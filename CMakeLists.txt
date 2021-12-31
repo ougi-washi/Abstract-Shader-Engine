@@ -1,7 +1,8 @@
 ## General
 cmake_minimum_required(VERSION 3.13.4)
-project(UnknownShaderEngine LANGUAGES C CXX)
 
+project(UnknownShaderEngine LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
 
 # VULKAN
 message(STATUS "Adding Vulkan library")
