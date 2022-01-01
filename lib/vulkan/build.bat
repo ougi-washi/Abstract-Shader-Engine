@@ -1,1 +1,0 @@
-cmake . -B build -DCMAKE_INSTALL_PREFIX=`pwd`/install/ && cmake --build build -t install &&
