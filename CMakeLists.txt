@@ -35,8 +35,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 
-
-
 # GLFW
 message(STATUS "Adding GLFW library")
 add_subdirectory(lib/glfw)
@@ -56,7 +54,9 @@ add_library(Render STATIC
 # Link Dependencies 
 
 find_package(OpenMP REQUIRED)
-target_include_directories(Render PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(Render PUBLIC	${PROJECT_SOURCE_DIR}/include
+											${PROJECT_SOURCE_DIR}/lib/stb
+											${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
 
 add_executable(${PROJECT_NAME} main.cpp)
 

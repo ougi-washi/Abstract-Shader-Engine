@@ -57,3 +57,5 @@ out/
 
 # visual studio
 .vs/
+
+!resources/*
