@@ -2,7 +2,9 @@
 cmake_minimum_required(VERSION 3.13.4)
 
 project(UnknownShaderEngine LANGUAGES C CXX)
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
+
+set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /std:c++20 /EHsc /bigobj /MDd")
 
 # VULKAN
 message(STATUS "Attempting auto locate Vulkan using CMake......")
@@ -43,6 +45,16 @@ add_subdirectory(lib/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
+# Shaderc
+message(STATUS "Adding shaderc library")
+set(SHADERC_UTILS_DIR lib/shaderc/utils)
+execute_process(COMMAND ${SHADERC_UTILS_DIR}/add_copyright.py)
+execute_process(COMMAND ${SHADERC_UTILS_DIR}/git-sync-deps.py)
+execute_process(COMMAND ${SHADERC_UTILS_DIR}/remove-file-by-suffix.py)
+execute_process(COMMAND ${SHADERC_UTILS_DIR}/roll-deps.py)
+execute_process(COMMAND ${SHADERC_UTILS_DIR}/update_build_version.py)
+add_subdirectory(lib/shaderc)
+
 ## Render
 add_library(Render STATIC 
                 src/render.cpp 
@@ -64,6 +76,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
                         Render 
                         OpenMP::OpenMP_CXX 
                         vulkan-1
+						shaderc
+						#shaderc_shared
+						#shaderc_combinedd
+						#shaderc_util
+						#shaderc_utild
+						#shadercd
+						#SPIRV
                         glfw 
                         glm)
 
