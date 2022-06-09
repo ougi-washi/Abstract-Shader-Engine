@@ -14,7 +14,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-
 #include <shaderc/shaderc.hpp>
 
 #include <iostream>
@@ -659,7 +658,7 @@ private:
 			options.SetOptimizationLevel(shaderc_optimization_level_size);
 
 		}
-		// shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, kind, source_name.c_str(), options);
+		//shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, kind, source_name.c_str(), options);
 
         auto vertShaderCode = readFile("shaders/vert.spv");
         auto fragShaderCode = readFile("shaders/frag.spv");

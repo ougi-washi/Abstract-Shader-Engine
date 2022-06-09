@@ -2,9 +2,9 @@
 cmake_minimum_required(VERSION 3.13.4)
 
 project(UnknownShaderEngine LANGUAGES C CXX)
-#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
-set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /std:c++20 /EHsc /bigobj /MDd")
+set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /EHsc /bigobj /MDd /W4")
 
 # VULKAN
 message(STATUS "Attempting auto locate Vulkan using CMake......")
@@ -77,12 +77,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
                         OpenMP::OpenMP_CXX 
                         vulkan-1
 						shaderc
-						#shaderc_shared
-						#shaderc_combinedd
-						#shaderc_util
-						#shaderc_utild
-						#shadercd
-						#SPIRV
+						shaderc_shared
+						shaderc_combinedd
+						shaderc_util
+						shaderc_utild
+						shadercd
+						SPIRV
                         glfw 
                         glm)
 
