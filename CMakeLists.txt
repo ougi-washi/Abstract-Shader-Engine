@@ -56,12 +56,7 @@ execute_process(COMMAND ${SHADERC_UTILS_DIR}/update_build_version.py)
 add_subdirectory(lib/shaderc)
 
 ## Render
-add_library(Render STATIC 
-                src/render.cpp 
-                src/hittable_list.cpp 
-                src/sphere.cpp
-                src/camera.cpp
-                src/material.cpp)
+add_library(Render STATIC main.cpp )
 
 # Link Dependencies 
 
