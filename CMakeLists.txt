@@ -36,7 +36,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	link_directories(${VULKAN_PATH}/Bin;${VULKAN_PATH}/Lib;)
 endif()
 
-
 # GLFW
 message(STATUS "Adding GLFW library")
 add_subdirectory(lib/glfw)
@@ -56,30 +55,35 @@ execute_process(COMMAND ${SHADERC_UTILS_DIR}/update_build_version.py)
 add_subdirectory(lib/shaderc)
 
 ## Render
-add_library(Render STATIC main.cpp )
+add_library(Render STATIC	src/core.cpp
+							src/render/vulkan.cpp
+							src/render/vulkan_core.cpp)
+
+target_link_libraries(Render PUBLIC  
+							OpenMP::OpenMP_CXX 
+							vulkan-1
+							shaderc
+							shaderc_shared
+							shaderc_combinedd
+							shaderc_util
+							shaderc_utild
+							shadercd
+							SPIRV
+							glfw 
+							glm)
 
 # Link Dependencies 
 
 find_package(OpenMP REQUIRED)
 target_include_directories(Render PUBLIC	${PROJECT_SOURCE_DIR}/include
+											${PROJECT_SOURCE_DIR}/include/render
 											${PROJECT_SOURCE_DIR}/lib/stb
 											${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-                        Render 
-                        OpenMP::OpenMP_CXX 
-                        vulkan-1
-						shaderc
-						shaderc_shared
-						shaderc_combinedd
-						shaderc_util
-						shaderc_utild
-						shadercd
-						SPIRV
-                        glfw 
-                        glm)
+                        Render )
 
 ## Definitions
 if(MSVC)
