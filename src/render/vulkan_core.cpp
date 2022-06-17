@@ -111,13 +111,12 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 
 		// Submit info
 		VkPipelineStageFlags* wait_dest_stage_mask = (VkPipelineStageFlags*)malloc(sizeof VkPipelineStageFlags);
-		*wait_dest_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		*wait_dest_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // TODO: C6011
 		device->submit_info.pWaitDstStageMask = wait_dest_stage_mask;
 		device->submit_info.waitSemaphoreCount = 1;
 		device->submit_info.pWaitSemaphores = &device->presentation_semaphore;
 		device->submit_info.signalSemaphoreCount = 1;
 		device->submit_info.pSignalSemaphores = &device->render_semaphore;
-
 
 
 		u32 queue_family_index = 0;
