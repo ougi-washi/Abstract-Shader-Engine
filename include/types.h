@@ -1,7 +1,7 @@
+#pragma once
 #include "stdint.h"
 
 // Base types
-
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -12,12 +12,6 @@ typedef int32_t i32;
 typedef int64_t i64;
 typedef float f32;
 typedef double f64;
-
-#define true 1
-#define false 0
-
-#define CHECK_RESULT(result) \
-  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
 
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
@@ -56,3 +50,7 @@ typedef double f64;
 #else
 #error "Unknown platform"
 #endif
+
+// Error handling
+#define CHECK_RESULT(result) \
+  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
