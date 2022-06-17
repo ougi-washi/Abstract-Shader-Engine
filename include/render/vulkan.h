@@ -7,13 +7,30 @@
 
 namespace use
 {
+	enum vulkan_device_type : u8
+	{
+		NONE = 0,
+		GRAPHICS = 1 << 0,
+		COMPUTE = 1 << 1
+	};
+
 	struct vulkan_device
 	{
+		/** main data */
+		vulkan_device_type type;
 		VkPhysicalDevice physical;
 		VkDevice logical;
 		VkPhysicalDeviceMemoryProperties properties;
 		VkDeviceMemory memory;
 		VkDeviceSize size;
+
+		/** buffers & synchronization */
+		VkSubmitInfo submit_info;
+		VkSemaphore compute_semaphore;
+		VkSemaphore presentation_semaphore;
+		VkSemaphore render_semaphore;
+		VkFence compute_fence;
+		VkFence presentation_fence;
 	};
 
 	struct vulkan_interface
@@ -32,5 +49,6 @@ namespace use
 	struct vulkan_device_create_info
 	{
 		// properties, features, memory properties, queue types
+		vulkan_device_type type;
 	};
 };

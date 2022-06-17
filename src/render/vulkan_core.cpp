@@ -24,10 +24,10 @@ VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interfac
 {
 	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance));
 	CHECK_RESULT(construct_vulkan_devices(out_interface));
-	if (create_info.is_compute)
+	if (create_info.is_compute || 1)
 	{
 		vulkan_device_create_info device_create_info = {};
-		CHECK_RESULT(initialize_vulkan_devices(out_interface->devices, out_interface->device_count, device_create_info))
+		CHECK_RESULT(initialize_vulkan_devices(out_interface->devices, out_interface->device_count, device_create_info));
 	}
 	return VK_SUCCESS;
 }
@@ -56,7 +56,7 @@ VkResult use::construct_vulkan_devices(vulkan_interface* in_interface)
 	return VK_SUCCESS;
 }
 
-VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* out_devices, u32& out_device_count)
+VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count)
 {
 	CHECK_RESULT(vkEnumeratePhysicalDevices(*in_instance, &out_device_count, 0));
 	if (out_device_count == 0)
@@ -70,15 +70,18 @@ VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* o
 	// parse it and copy it to the instance devices
 	for (u32 i = 0; i < out_device_count; i++)
 	{
-		memcpy(out_devices[i].physical, physical_devices_temp[i], sizeof(physical_devices_temp[i])); // TODO C6011
+		memcpy(&out_devices[i].physical, &physical_devices_temp[i], sizeof(physical_devices_temp[i])); // TODO C6011
+		if (out_devices[i].physical != physical_devices_temp[i])
+		{
+			return VK_ERROR_UNKNOWN;
+		}
 	}
 	// free temp memory
 	free(physical_devices_temp);
-	
 	return VK_SUCCESS;
 }
 
-VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32 device_count, const vulkan_device_create_info& create_info)
+VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info)
 {
 	for (u32 i = 0; i < device_count; i++)
 	{
@@ -89,46 +92,72 @@ VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32 device
 
 VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info)
 {
-	// TODO: depends on the passed create info
-	create_info;
-
-	u32 queue_family_index = 0;
-	CHECK_RESULT(get_best_compute_queue(device->physical, &queue_family_index));
-
-	const float queue_prioritory = 1.0f;
-	const VkDeviceQueueCreateInfo device_queue_create_info = 
-	{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queue_family_index, 1, & queue_prioritory };
-	const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
-	CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
-
-	VkPhysicalDeviceMemoryProperties properties;
-	vkGetPhysicalDeviceMemoryProperties(device->physical, &properties);
-
-	// Init MEMORY
-	const i32 bufferLength = 16384;
-	const u32 bufferSize = sizeof(i32) * bufferLength;
-	// we are going to need two buffers from this one memory
-	device->size = bufferSize * 2;
-	// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
-	u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
-
-	for (u32 k = 0; k < properties.memoryTypeCount; k++)
+	if (device)
 	{
-		if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & properties.memoryTypes[k].propertyFlags) &&
-			(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & properties.memoryTypes[k].propertyFlags) &&
-			(device->size < properties.memoryHeaps[properties.memoryTypes[k].heapIndex].size))
+		// TODO: depends on the passed create info
+
+		// Semaphore
+		VkSemaphoreCreateInfo semaphore_create_info{};
+		semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (create_info.type & vulkan_device_type::COMPUTE)
 		{
-			memoryTypeIndex = k;
-			break;
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->compute_semaphore));
 		}
+		if (create_info.type & vulkan_device_type::GRAPHICS)
+		{
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->presentation_semaphore));
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->render_semaphore));
+		}
+
+		// Submit info
+		VkPipelineStageFlags* wait_dest_stage_mask = (VkPipelineStageFlags*)malloc(sizeof VkPipelineStageFlags);
+		*wait_dest_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		device->submit_info.pWaitDstStageMask = wait_dest_stage_mask;
+		device->submit_info.waitSemaphoreCount = 1;
+		device->submit_info.pWaitSemaphores = &device->presentation_semaphore;
+		device->submit_info.signalSemaphoreCount = 1;
+		device->submit_info.pSignalSemaphores = &device->render_semaphore;
+
+
+
+		u32 queue_family_index = 0;
+		CHECK_RESULT(get_best_compute_queue(device->physical, &queue_family_index));
+
+		const float queue_prioritory = 1.0f;
+		const VkDeviceQueueCreateInfo device_queue_create_info =
+		{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queue_family_index, 1, &queue_prioritory };
+		const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
+		CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
+
+		VkPhysicalDeviceMemoryProperties properties;
+		vkGetPhysicalDeviceMemoryProperties(device->physical, &properties);
+
+		// Init MEMORY
+		const i32 bufferLength = 16384;
+		const u32 bufferSize = sizeof(i32) * bufferLength;
+		// we are going to need two buffers from this one memory
+		device->size = bufferSize * 2;
+		// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
+		u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
+
+		for (u32 k = 0; k < properties.memoryTypeCount; k++)
+		{
+			if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & properties.memoryTypes[k].propertyFlags) &&
+				(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & properties.memoryTypes[k].propertyFlags) &&
+				(device->size < properties.memoryHeaps[properties.memoryTypes[k].heapIndex].size))
+			{
+				memoryTypeIndex = k;
+				break;
+			}
+		}
+
+		CHECK_RESULT(memoryTypeIndex == VK_MAX_MEMORY_TYPES ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS);
+		const VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 0, device->size, memoryTypeIndex };
+		CHECK_RESULT(vkAllocateMemory(device->logical, &memoryAllocateInfo, 0, &device->memory));
+		//i32* payload;
+		//CHECK_RESULT(vkMapMemory(device->logical, device->memory, 0, device->size, 0, (void*)&payload));
+
 	}
-
-	CHECK_RESULT(memoryTypeIndex == VK_MAX_MEMORY_TYPES ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS);
-	const VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 0, device->size, memoryTypeIndex };
-	CHECK_RESULT(vkAllocateMemory(device->logical, &memoryAllocateInfo, 0, &device->memory));
-	//i32* payload;
-	//CHECK_RESULT(vkMapMemory(device->logical, device->memory, 0, device->size, 0, (void*)&payload));
-
 	return VK_SUCCESS;
 }
 

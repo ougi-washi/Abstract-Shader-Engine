@@ -10,8 +10,8 @@ namespace use
 
 	VkResult initialize_vulkan_instance(VkInstance* instance);
 	VkResult construct_vulkan_devices(vulkan_interface* in_interface);
-	VkResult construct_vulkan_devices(VkInstance* in_instance, vulkan_device* out_devices, u32& out_device_count);
-	VkResult initialize_vulkan_devices(vulkan_device* devices, const u32 device_count, const vulkan_device_create_info& create_info);
+	VkResult construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count);
+	VkResult initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info);
 	VkResult initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info);
 
 	/** Queues */

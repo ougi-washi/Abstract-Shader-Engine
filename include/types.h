@@ -1,5 +1,7 @@
 #pragma once
-#include "stdint.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // Base types
 typedef uint8_t u8;
