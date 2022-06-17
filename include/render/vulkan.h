@@ -16,11 +16,21 @@ namespace use
 		VkDeviceSize size;
 	};
 
-	struct vulkan_instance
+	struct vulkan_interface
 	{
 		VkInstance instance;
 		u32 device_count = 0;
 		vulkan_device* devices = nullptr;
 	};
 
+	struct vulkan_interface_create_info
+	{
+		u8 is_compute : 1; // change to array of types
+		u8 debug : 1;
+	};
+
+	struct vulkan_device_create_info
+	{
+		// properties, features, memory properties, queue types
+	};
 };

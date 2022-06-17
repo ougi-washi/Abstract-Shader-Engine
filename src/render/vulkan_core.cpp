@@ -20,42 +20,85 @@
 #include <shaderc/shaderc.hpp>
 
 
-VkResult use::initialize_vulkan_instance(vulkan_instance* instance)
+VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
-	// Instance
-	const VkApplicationInfo applicationInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO, 0, "UnknownShaderEngine_VK_Compute", 0, "", 0, VK_MAKE_VERSION(1, 0, 9) };
-	const VkInstanceCreateInfo instanceCreateInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, 0, 0, &applicationInfo, 0, 0, 0, 0 };
-	CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, 0, &instance->instance));
-
-	// Devices
-	CHECK_RESULT(vkEnumeratePhysicalDevices(instance->instance, &instance->device_count, 0));
-	instance->devices = (vulkan_device*)malloc(sizeof(vulkan_device) * instance->device_count);
-	// allocate temp memory
-	VkPhysicalDevice* physical_devices_temp = (VkPhysicalDevice*)malloc(sizeof(VkPhysicalDevice) * instance->device_count);
-	CHECK_RESULT(vkEnumeratePhysicalDevices(instance->instance, &instance->device_count, physical_devices_temp));
-	// parse it and copy it to the instance devices
-	for (u32 i = 0; i < instance->device_count; i++)
+	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance));
+	CHECK_RESULT(construct_vulkan_devices(out_interface));
+	if (create_info.is_compute)
 	{
-		memcpy(instance->devices[i].physical, physical_devices_temp[i], sizeof(physical_devices_temp[i])); // TODO C6011
+		vulkan_device_create_info device_create_info = {};
+		CHECK_RESULT(initialize_vulkan_devices(out_interface->devices, out_interface->device_count, device_create_info))
 	}
-	// free temp memory
-	free(physical_devices_temp);
-	for (u32 i = 0 ; i < instance->device_count ; i++)
-	{
-		CHECK_RESULT(initialize_vulkan_device(&instance->devices[i]));
-	}
-
 	return VK_SUCCESS;
 }
 
-VkResult use::initialize_vulkan_device(vulkan_device* device)
+VkResult use::initialize_vulkan_instance(VkInstance* instance)
 {
-	u32 queueFamilyIndex = 0;
-	CHECK_RESULT(get_best_compute_queue(device->physical, &queueFamilyIndex));
+	VkApplicationInfo application_info = {};
+	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	application_info.pApplicationName = "UnknownShaderEngine_VK";
+	application_info.pEngineName = "UnknownShaderEngine_VK";
+	application_info.apiVersion = VK_API_VERSION_1_0;
 
-	const float queuePrioritory = 1.0f;
-	const VkDeviceQueueCreateInfo deviceQueueCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queueFamilyIndex, 1, &queuePrioritory };
-	const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &deviceQueueCreateInfo, 0, 0, 0, 0, 0 };
+	VkInstanceCreateInfo instance_create_info = {};
+	instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	instance_create_info.pNext = NULL;
+	instance_create_info.pApplicationInfo = &application_info;
+
+	// TODO: Extensions here
+
+	return vkCreateInstance(&instance_create_info, 0, instance);
+}
+
+VkResult use::construct_vulkan_devices(vulkan_interface* in_interface)
+{
+	CHECK_RESULT(construct_vulkan_devices(&in_interface->instance, in_interface->devices, in_interface->device_count));
+	return VK_SUCCESS;
+}
+
+VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* out_devices, u32& out_device_count)
+{
+	CHECK_RESULT(vkEnumeratePhysicalDevices(*in_instance, &out_device_count, 0));
+	if (out_device_count == 0)
+	{
+		return VK_ERROR_INITIALIZATION_FAILED;
+	}
+	out_devices = (vulkan_device*)malloc(sizeof(vulkan_device) * out_device_count);
+	// allocate temp memory
+	VkPhysicalDevice* physical_devices_temp = (VkPhysicalDevice*)malloc(sizeof(VkPhysicalDevice) * out_device_count);
+	CHECK_RESULT(vkEnumeratePhysicalDevices(*in_instance, &out_device_count, physical_devices_temp));
+	// parse it and copy it to the instance devices
+	for (u32 i = 0; i < out_device_count; i++)
+	{
+		memcpy(out_devices[i].physical, physical_devices_temp[i], sizeof(physical_devices_temp[i])); // TODO C6011
+	}
+	// free temp memory
+	free(physical_devices_temp);
+	
+	return VK_SUCCESS;
+}
+
+VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32 device_count, const vulkan_device_create_info& create_info)
+{
+	for (u32 i = 0; i < device_count; i++)
+	{
+		CHECK_RESULT(initialize_vulkan_device(&devices[i], create_info));
+	}
+	return VK_SUCCESS;
+}
+
+VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info)
+{
+	// TODO: depends on the passed create info
+	create_info;
+
+	u32 queue_family_index = 0;
+	CHECK_RESULT(get_best_compute_queue(device->physical, &queue_family_index));
+
+	const float queue_prioritory = 1.0f;
+	const VkDeviceQueueCreateInfo device_queue_create_info = 
+	{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queue_family_index, 1, & queue_prioritory };
+	const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
 	CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
 
 	VkPhysicalDeviceMemoryProperties properties;
@@ -69,11 +112,11 @@ VkResult use::initialize_vulkan_device(vulkan_device* device)
 	// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
 	u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
 
-	for (u32 k = 0; k < properties.memoryTypeCount; k++) 
+	for (u32 k = 0; k < properties.memoryTypeCount; k++)
 	{
 		if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & properties.memoryTypes[k].propertyFlags) &&
 			(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & properties.memoryTypes[k].propertyFlags) &&
-			(device->size < properties.memoryHeaps[properties.memoryTypes[k].heapIndex].size)) 
+			(device->size < properties.memoryHeaps[properties.memoryTypes[k].heapIndex].size))
 		{
 			memoryTypeIndex = k;
 			break;
@@ -83,6 +126,8 @@ VkResult use::initialize_vulkan_device(vulkan_device* device)
 	CHECK_RESULT(memoryTypeIndex == VK_MAX_MEMORY_TYPES ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS);
 	const VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 0, device->size, memoryTypeIndex };
 	CHECK_RESULT(vkAllocateMemory(device->logical, &memoryAllocateInfo, 0, &device->memory));
+	//i32* payload;
+	//CHECK_RESULT(vkMapMemory(device->logical, device->memory, 0, device->size, 0, (void*)&payload));
 
 	return VK_SUCCESS;
 }
