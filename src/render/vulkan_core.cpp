@@ -126,48 +126,20 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
 		CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
 		vkGetPhysicalDeviceMemoryProperties(device->physical, &device->properties);
-		create_command_pool(device);
 
-		// Init MEMORY
+		create_command_pool(device, queue_family_index);
+		create_command_buffer(device, true);
+		create_fences(device);
+
 		const i32 bufferLength = 16384;
 		const u32 bufferSize = sizeof(i32) * bufferLength;
-		// we are going to need two buffers from this one memory
-		device->size = bufferSize * 2;
-		// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
-		u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
-
-		for (u32 k = 0; k < device->properties.memoryTypeCount; k++)
-		{
-			if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & device->properties.memoryTypes[k].propertyFlags) &&
-				(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & device->properties.memoryTypes[k].propertyFlags) &&
-				(device->size < device->properties.memoryHeaps[device->properties.memoryTypes[k].heapIndex].size))
-			{
-				memoryTypeIndex = k;
-				break;
-			}
-		}
-
-		CHECK_RESULT(memoryTypeIndex == VK_MAX_MEMORY_TYPES ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS);
-		const VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 0, device->size, memoryTypeIndex };
-		CHECK_RESULT(vkAllocateMemory(device->logical, &memoryAllocateInfo, 0, &device->memory));
-		//i32* payload;
-		//CHECK_RESULT(vkMapMemory(device->logical, device->memory, 0, device->size, 0, (void*)&payload));
 
 	}
 	return VK_SUCCESS;
 }
 
-VkResult use::create_command_pool(vulkan_device* &device)
+VkResult use::create_command_pool(vulkan_device* &device, const u32 &queue_index)
 {
-	u32 queue_index = 0;
-	if (device->type & COMPUTE)
-	{
-		get_best_compute_queue(device->physical, &queue_index);
-	}
-	else
-	{
-		get_best_transfer_queue(device->physical, &queue_index);
-	}
 	return construct_command_pool(&device->command_pool, &device->logical, queue_index);
 }
 
@@ -211,8 +183,161 @@ VkResult use::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDe
 		command_buffer_begin_info.pNext = 0;
 		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		command_buffer_begin_info.pInheritanceInfo = 0;
-		CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info));
+		CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info)); // TODO C6011
 	}
+	return VK_SUCCESS;
+}
+
+VkResult use::get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperties& memory_properties, u32& typeBits, const VkMemoryPropertyFlags& properties)
+{
+	for (u32 i = 0; i < memory_properties.memoryTypeCount; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((memory_properties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				if (!out_type)
+				{
+					return VK_ERROR_INITIALIZATION_FAILED;
+				}
+				*out_type = i;
+				return VK_SUCCESS;
+			}
+		}
+		typeBits >>= 1;
+	}
+	return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+VkResult use::allocate_memory(vulkan_memory*& out_memory, const vulkan_memory_create_info& create_info)
+{
+	assert(out_memory);
+	assert(create_info.device);
+	out_memory->device = create_info.device;
+	out_memory->size = create_info.buffer_size;
+
+	// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
+	u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
+
+	for (u32 k = 0; k < out_memory->device->properties.memoryTypeCount; k++)
+	{
+		if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & out_memory->device->properties.memoryTypes[k].propertyFlags) &&
+			(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & out_memory->device->properties.memoryTypes[k].propertyFlags) &&
+			(out_memory->size < out_memory->device->properties.memoryHeaps[out_memory->device->properties.memoryTypes[k].heapIndex].size))
+		{
+			memoryTypeIndex = k;
+			break;
+		}
+	}
+	CHECK_RESULT(memoryTypeIndex == VK_MAX_MEMORY_TYPES ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS);
+	const VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 0, out_memory->size, memoryTypeIndex };
+	CHECK_RESULT(vkAllocateMemory(out_memory->device->logical, &memoryAllocateInfo, 0, &out_memory->device_memory));
+	return VK_SUCCESS;
+}
+
+VkResult use::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn)
+{
+	assert(memory);
+	assert(memory->device);
+	i32* payload;
+	CHECK_RESULT(vkMapMemory(memory->device->logical, memory->device_memory, 0, memory->size, 0, (void**)&payload));
+	payload_edit_fn(payload);
+	vkUnmapMemory(memory->device->logical, memory->device_memory);
+	return VK_SUCCESS;
+}
+
+VkResult use::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
+{
+	const u8 total_formats = 5;
+	VkFormat formats[total_formats] =
+	{
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D24_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM
+	};
+	for (u8 i = 0 ; i < total_formats ; i++)
+	{
+		VkFormatProperties format_properties;
+		vkGetPhysicalDeviceFormatProperties(*physical_device, formats[i], &format_properties);
+		// Format must support depth stencil attachment for optimal tiling
+		if (format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+		{
+			if (!out_Format)
+			{
+				out_Format = (VkFormat*)malloc(sizeof VkFormat);
+			}
+			*out_Format = formats[i];
+			return VK_SUCCESS;
+		}
+	}
+	return VK_ERROR_UNKNOWN;
+}
+
+VkResult use::create_depth_stencil(vulkan_device*& device, const u32& width, const u32& height)
+{
+	VkFormat depth_format;
+	CHECK_RESULT(get_depth_format(&depth_format, &device->physical));
+
+	VkImageCreateInfo image_create_info{};
+	image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	image_create_info.imageType = VK_IMAGE_TYPE_2D;
+	image_create_info.format = depth_format;
+	image_create_info.extent = { width, height, 1 };
+	image_create_info.mipLevels = 1;
+	image_create_info.arrayLayers = 1;
+	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+	CHECK_RESULT(vkCreateImage(device->logical, &image_create_info, nullptr, &device->depth_stencil.image));
+	VkMemoryRequirements memory_requirements{};
+	vkGetImageMemoryRequirements(device->logical, device->depth_stencil.image, &memory_requirements);
+
+	VkMemoryAllocateInfo memory_allocate_info{};
+	memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	memory_allocate_info.allocationSize = memory_requirements.size;
+	u32 memory_type = 0;
+	CHECK_RESULT(get_memory_type(&memory_type, device->properties, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+	memory_allocate_info.memoryTypeIndex = memory_type;
+	CHECK_RESULT(vkAllocateMemory(device->logical, &memory_allocate_info, nullptr, &device->depth_stencil.mem));
+	CHECK_RESULT(vkBindImageMemory(device->logical, device->depth_stencil.image, device->depth_stencil.mem, 0));
+
+	VkImageViewCreateInfo image_view_create_info{};
+	image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	image_view_create_info.image = device->depth_stencil.image;
+	image_view_create_info.format = depth_format;
+	image_view_create_info.subresourceRange.baseMipLevel = 0;
+	image_view_create_info.subresourceRange.levelCount = 1;
+	image_view_create_info.subresourceRange.baseArrayLayer = 0;
+	image_view_create_info.subresourceRange.layerCount = 1;
+	image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	// Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+	if (depth_format >= VK_FORMAT_D16_UNORM_S8_UINT) 
+	{
+		image_view_create_info.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+	}
+	CHECK_RESULT(vkCreateImageView(device->logical, &image_view_create_info, nullptr, &device->depth_stencil.view));
+}
+
+VkResult use::create_fences(vulkan_device*& device)
+{
+	construct_fence(&device->compute_fence, &device->logical);
+}
+
+VkResult use::construct_fence(VkFence* out_fence, VkDevice* logical_device)
+{
+	VkFenceCreateInfo fence_create_info = {};
+	fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fence_create_info.pNext = 0;
+	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	if (!out_fence)
+	{
+		out_fence = (VkFence*)malloc(sizeof VkFence);
+	}
+	CHECK_RESULT(vkCreateFence(*logical_device, &fence_create_info, nullptr, out_fence));
 	return VK_SUCCESS;
 }
 

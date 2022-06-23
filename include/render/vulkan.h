@@ -7,6 +7,8 @@
 
 namespace use
 {
+	/** device start */
+
 	enum vulkan_device_type : u8
 	{
 		NONE = 0,
@@ -21,27 +23,45 @@ namespace use
 		VkPhysicalDevice physical;
 		VkDevice logical;
 		VkPhysicalDeviceMemoryProperties properties;
-		VkDeviceMemory memory;
-		VkDeviceSize size;
 		
 		/** Commands */
 		VkCommandPool command_pool;
 		VkCommandBuffer command_buffer; // TODO: system for many buffers
 
-		/** buffers & synchronization */
+		/** Buffers & Synchronization */
 		VkSubmitInfo submit_info;
 		VkSemaphore compute_semaphore;
 		VkSemaphore presentation_semaphore;
 		VkSemaphore render_semaphore;
 		VkFence compute_fence;
-		VkFence presentation_fence;
+		VkFence presentation_fence; // TODO: there should be a total number of fences equal to the number of buffers
+
+		// Depth
+		struct depth_stencil
+		{
+			VkImage image;
+			VkDeviceMemory mem;
+			VkImageView view;
+		} depth_stencil;
 	};
+
+	struct vulkan_device_create_info
+	{
+		// properties, features, memory properties, queue types
+		vulkan_device_type type;
+	};
+
+	/** device end */
+
+	/** interface start */
 
 	struct vulkan_interface
 	{
 		VkInstance instance;
-		u32 device_count = 0;
-		vulkan_device* devices = nullptr;
+		u32 device_count;
+		vulkan_device* devices;
+
+		vulkan_interface() : instance(VkInstance()), device_count(0), devices(nullptr) {};
 	};
 
 	struct vulkan_interface_create_info
@@ -50,9 +70,26 @@ namespace use
 		u8 debug : 1;
 	};
 
-	struct vulkan_device_create_info
+	/** interface end */
+
+	/** memory start */
+
+	struct vulkan_memory
 	{
-		// properties, features, memory properties, queue types
-		vulkan_device_type type;
+		vulkan_device* device;
+		VkDeviceMemory device_memory;
+		VkDeviceSize size;
+
+		vulkan_memory() : device(nullptr), memory(VkDeviceMemory()), size(VkDeviceSize()) {};
 	};
+
+	struct vulkan_memory_create_info
+	{
+		vulkan_device* device;
+		i32 buffer_size;
+
+		vulkan_memory_create_info() : device(nullptr) {};
+	};
+
+	/** memory end */
 };
