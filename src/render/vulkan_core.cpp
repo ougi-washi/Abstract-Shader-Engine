@@ -19,7 +19,6 @@
 //SHADERC
 #include <shaderc/shaderc.hpp>
 
-
 VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
 	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance));
@@ -118,7 +117,6 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		device->submit_info.signalSemaphoreCount = 1;
 		device->submit_info.pSignalSemaphores = &device->render_semaphore;
 
-
 		u32 queue_family_index = 0;
 		CHECK_RESULT(get_best_compute_queue(device->physical, &queue_family_index));
 
@@ -127,9 +125,8 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queue_family_index, 1, &queue_prioritory };
 		const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
 		CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
-
-		VkPhysicalDeviceMemoryProperties properties;
-		vkGetPhysicalDeviceMemoryProperties(device->physical, &properties);
+		vkGetPhysicalDeviceMemoryProperties(device->physical, &device->properties);
+		create_command_pool(device);
 
 		// Init MEMORY
 		const i32 bufferLength = 16384;
@@ -139,11 +136,11 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		// set memoryTypeIndex to an invalid entry in the properties.memoryTypes array
 		u32 memoryTypeIndex = VK_MAX_MEMORY_TYPES;
 
-		for (u32 k = 0; k < properties.memoryTypeCount; k++)
+		for (u32 k = 0; k < device->properties.memoryTypeCount; k++)
 		{
-			if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & properties.memoryTypes[k].propertyFlags) &&
-				(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & properties.memoryTypes[k].propertyFlags) &&
-				(device->size < properties.memoryHeaps[properties.memoryTypes[k].heapIndex].size))
+			if ((VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT & device->properties.memoryTypes[k].propertyFlags) &&
+				(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT & device->properties.memoryTypes[k].propertyFlags) &&
+				(device->size < device->properties.memoryHeaps[device->properties.memoryTypes[k].heapIndex].size))
 			{
 				memoryTypeIndex = k;
 				break;
@@ -156,6 +153,65 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		//i32* payload;
 		//CHECK_RESULT(vkMapMemory(device->logical, device->memory, 0, device->size, 0, (void*)&payload));
 
+	}
+	return VK_SUCCESS;
+}
+
+VkResult use::create_command_pool(vulkan_device* &device)
+{
+	u32 queue_index = 0;
+	if (device->type & COMPUTE)
+	{
+		get_best_compute_queue(device->physical, &queue_index);
+	}
+	else
+	{
+		get_best_transfer_queue(device->physical, &queue_index);
+	}
+	return construct_command_pool(&device->command_pool, &device->logical, queue_index);
+}
+
+VkResult use::construct_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
+{
+	VkCommandPoolCreateInfo command_pool_info = {};
+	command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	command_pool_info.queueFamilyIndex = queue_index;
+	command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // I am not sure if needed
+	if (!out_command_pool)
+	{
+		out_command_pool = (VkCommandPool*)malloc(sizeof VkCommandPool);
+	}
+	CHECK_RESULT(vkCreateCommandPool(*logical_device, &command_pool_info, nullptr, out_command_pool));
+	return VK_SUCCESS;
+}
+
+VkResult use::create_command_buffer(vulkan_device*& device, const u8& start_buffer)
+{
+	return construct_command_buffer(&device->command_buffer, &device->logical, &device->command_pool, start_buffer);
+}
+
+VkResult use::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer)
+{
+	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
+	command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	command_buffer_allocate_info.pNext = 0;
+	command_buffer_allocate_info.commandPool = *command_pool;
+	command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	command_buffer_allocate_info.commandBufferCount = 1; // TODO: create a system to create multiple buffers
+	if (!out_command_buffer)
+	{
+		out_command_buffer = (VkCommandBuffer*)malloc(sizeof VkCommandBuffer);
+	}
+	CHECK_RESULT(vkAllocateCommandBuffers(*logical_device, &command_buffer_allocate_info, out_command_buffer));
+
+	if (start_buffer)
+	{
+		VkCommandBufferBeginInfo command_buffer_begin_info = {};
+		command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		command_buffer_begin_info.pNext = 0;
+		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		command_buffer_begin_info.pInheritanceInfo = 0;
+		CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info));
 	}
 	return VK_SUCCESS;
 }

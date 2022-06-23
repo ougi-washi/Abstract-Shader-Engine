@@ -23,6 +23,10 @@ namespace use
 		VkPhysicalDeviceMemoryProperties properties;
 		VkDeviceMemory memory;
 		VkDeviceSize size;
+		
+		/** Commands */
+		VkCommandPool command_pool;
+		VkCommandBuffer command_buffer; // TODO: system for many buffers
 
 		/** buffers & synchronization */
 		VkSubmitInfo submit_info;
