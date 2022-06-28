@@ -32,7 +32,12 @@ namespace use
 
 	/** Buffers */
 
-	//VkResult create_buffer(VkBuffer* &out_buffer, )
+	VkResult create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const u32& queue_family_index);
+
+	/** Shaders */
+
+	VkResult create_shader_module(VkShaderModule*& out_shader_module, const vulkan_shader_create_info& create_info);
+	VkResult compile_shader(u32* out_bin, const shader_compile_info& compile_info);
 
 	/** Depth Stencil */
 

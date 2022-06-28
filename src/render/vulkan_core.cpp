@@ -16,8 +16,7 @@
 //TINYOBJ
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
-//SHADERC
-#include <shaderc/shaderc.hpp>
+
 
 VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
@@ -246,6 +245,71 @@ VkResult use::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*
 	return VK_SUCCESS;
 }
 
+VkResult use::create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const u32& queue_family_index)
+{
+	assert(memory);
+	assert(memory->device);
+	assert(memory->device->logical);
+	assert(out_buffer);
+
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.pNext = 0;
+	buffer_create_info.flags = 0;
+	buffer_create_info.size = memory->size;
+	buffer_create_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	buffer_create_info.queueFamilyIndexCount = 1;
+	buffer_create_info.pQueueFamilyIndices = &queue_family_index;
+
+	CHECK_RESULT(vkCreateBuffer(memory->device->logical, &buffer_create_info, 0, out_buffer));
+	CHECK_RESULT(vkBindBufferMemory(memory->device->logical, *out_buffer, memory->device_memory, 0));
+	return VK_SUCCESS;
+}
+
+VkResult use::create_shader_module(VkShaderModule*& out_shader_module, const vulkan_shader_create_info& create_info)
+{
+	return VK_SUCCESS;
+}
+
+VkResult use::compile_shader(u32* out_bin, const shader_compile_info& compile_info)
+{
+	//shaderc::Compiler compiler;
+	//shaderc::CompileOptions options;
+
+
+	//shaderc::AssemblyCompilationResult result = compiler.CompileGlslToSpvAssembly(
+	//	compile_info.text, compile_info.kind, compile_info.name, options);
+
+	//if (result.GetCompilationStatus() != shaderc_compilation_status_success) 
+	//{
+	//	out_bin = nullptr;
+	//	return VK_ERROR_UNKNOWN;
+	//}
+
+	// Like -DMY_DEFINE=1
+	//shaderc::CompileOptions options;
+	//options.AddMacroDefinition("MY_DEFINE", "1");
+	//options.SetOptimizationLevel(shaderc_optimization_level_size);
+	shaderc_compile_options_t options;
+	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
+	//options.include_resolver
+
+	shaderc_compiler_t compiler = shaderc_compiler_initialize();
+	shaderc_compilation_result_t result = shaderc_compile_into_spv(
+		compiler, compile_info.source, std::strlen(compile_info.source), compile_info.kind,
+		compile_info.file_name, "main", options);
+	shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
+	if (status != shaderc_compilation_status_success) 
+	{
+		//USE_LOG(use::log_level::ERROR, shaderc_result_get_error_message(result));
+	}
+	shaderc_result_release(result);
+	shaderc_compiler_release(compiler);
+
+	return VK_SUCCESS;
+}
+
 VkResult use::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
 {
 	const u8 total_formats = 5;
@@ -324,7 +388,7 @@ VkResult use::create_depth_stencil(vulkan_device*& device, const u32& width, con
 
 VkResult use::create_fences(vulkan_device*& device)
 {
-	construct_fence(&device->compute_fence, &device->logical);
+	return construct_fence(&device->compute_fence, &device->logical);
 }
 
 VkResult use::construct_fence(VkFence* out_fence, VkDevice* logical_device)

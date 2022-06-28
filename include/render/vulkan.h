@@ -5,6 +5,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+// SHADERC
+#include <shaderc/shaderc.hpp>
+
 namespace use
 {
 	/** device start */
@@ -80,7 +83,7 @@ namespace use
 		VkDeviceMemory device_memory;
 		VkDeviceSize size;
 
-		vulkan_memory() : device(nullptr), memory(VkDeviceMemory()), size(VkDeviceSize()) {};
+		vulkan_memory() : device(nullptr), device_memory(VkDeviceMemory()), size(VkDeviceSize()) {};
 	};
 
 	struct vulkan_memory_create_info
@@ -88,8 +91,36 @@ namespace use
 		vulkan_device* device;
 		i32 buffer_size;
 
-		vulkan_memory_create_info() : device(nullptr) {};
+		vulkan_memory_create_info() : device(nullptr), buffer_size(0) {};
 	};
 
 	/** memory end */
+
+	/** shader start */
+
+	struct vulkan_shader
+	{
+		u32* data;
+		VkShaderModule module;
+		VkDescriptorSetLayout descriptor_set_layout;
+		VkDescriptorSet descriptor_set;
+		VkDescriptorPool descriptor_layout;
+		VkPipelineLayout pipeline_layout;
+		VkPipeline pipeline;
+	};
+
+	struct vulkan_shader_create_info
+	{
+
+	};
+
+	struct shader_compile_info
+	{
+		char* file_name;
+		char* source;
+		shaderc_shader_kind kind;
+	};
+
+	/** shader end */
+
 };

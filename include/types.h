@@ -54,5 +54,10 @@ typedef double f64;
 #endif
 
 // Error handling
+namespace use { enum log_level { LOG, WARNING, ERROR }; };
 #define CHECK_RESULT(result) \
   if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
+#define USE_LOG(level, text) \
+	if (level == use::log_level::LOG) { printf("LOG: %s\n", text); }\
+	else if(level == use::log_level::WARNING) { printf("WARNING: %s\n", text); }\
+	else if(level == use::log_level::ERROR) { printf("ERROR: %s\n", text); fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1);}
