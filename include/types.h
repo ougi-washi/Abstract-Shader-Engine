@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <iostream> // STD HAS BAD COMPILE TIME
 
 // Base types
 typedef uint8_t u8;
@@ -54,10 +54,12 @@ typedef double f64;
 #endif
 
 // Error handling
-namespace use { enum log_level { LOG, WARNING, ERROR }; };
+#define CRASH_ON_ERROR true
+
+enum log_level :u8 { USE_LOG = 0, USE_WARNING = 1, USE_ERROR = 2 };
 #define CHECK_RESULT(result) \
   if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
 #define USE_LOG(level, text) \
-	if (level == use::log_level::LOG) { printf("LOG: %s\n", text); }\
-	else if(level == use::log_level::WARNING) { printf("WARNING: %s\n", text); }\
-	else if(level == use::log_level::ERROR) { printf("ERROR: %s\n", text); fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1);}
+	if (level == log_level::USE_LOG) { std::cout << "LOG: " << text << std::endl; }\
+	else if(level == log_level::USE_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
+	else if(level == log_level::USE_ERROR) { std::cout << "ERROR: " << text << std::endl; if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }

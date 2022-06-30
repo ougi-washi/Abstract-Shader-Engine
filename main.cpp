@@ -8,9 +8,13 @@ int main()
 	
 	const char shader_source[] =
 		"#version 310 es\n"
-		"void main() { int x = MY_DEFINE; }\n";
-	u32* shader_bin = nullptr;
-	use::shader_compile_info compile_info;
-	use::compile_shader(shader_bin, compile_info);
+		"void main() { }\n";
+	char* shader_bin = nullptr;
+	use::shader_compile_info compile_info = {};
+	compile_info.file_name = new char[10]("main.vert");
+	compile_info.source = new char[250](*shader_source);
 
+	use::compile_shader(shader_bin, compile_info);
+	USE_LOG(USE_LOG, "OK");
+	return 0;
 }

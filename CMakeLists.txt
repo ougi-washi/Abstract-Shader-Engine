@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.13.4)
 project(UnknownShaderEngine LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
-set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /EHsc /bigobj /MDd /W4")
+set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /EHsc /bigobj -DSHADERC_ENABLE_SHARED_CRT=ON")
 
 # VULKAN
 message(STATUS "Attempting auto locate Vulkan using CMake......")
@@ -36,6 +36,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	link_directories(${VULKAN_PATH}/Bin;${VULKAN_PATH}/Lib;)
 endif()
 
+
 # GLFW
 message(STATUS "Adding GLFW library")
 add_subdirectory(lib/glfw)
@@ -44,16 +45,6 @@ add_subdirectory(lib/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
-# Shaderc
-message(STATUS "Adding shaderc library")
-set(SHADERC_UTILS_DIR lib/shaderc/utils)
-execute_process(COMMAND ${SHADERC_UTILS_DIR}/add_copyright.py)
-execute_process(COMMAND ${SHADERC_UTILS_DIR}/git-sync-deps.py)
-execute_process(COMMAND ${SHADERC_UTILS_DIR}/remove-file-by-suffix.py)
-execute_process(COMMAND ${SHADERC_UTILS_DIR}/roll-deps.py)
-execute_process(COMMAND ${SHADERC_UTILS_DIR}/update_build_version.py)
-add_subdirectory(lib/shaderc)
-
 ## Render
 add_library(Render STATIC	src/core.cpp
 							src/render/vulkan.cpp
@@ -61,14 +52,17 @@ add_library(Render STATIC	src/core.cpp
 
 target_link_libraries(Render PUBLIC  
 							OpenMP::OpenMP_CXX 
-							vulkan-1
-							shaderc
+							SPIRV-Tools-shared
 							shaderc_shared
-							shaderc_combinedd
-							shaderc_util
-							shaderc_utild
-							shadercd
-							SPIRV
+							vulkan-1
+
+							#shaderc_combined
+							#shaderc
+
+							#shaderc_combinedd
+							#shaderc_util
+							#shaderc_utild
+							#shadercd
 							glfw 
 							glm)
 
@@ -83,7 +77,7 @@ target_include_directories(Render PUBLIC	${PROJECT_SOURCE_DIR}/include
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-                        Render )
+							Render )
 
 ## Definitions
 if(MSVC)

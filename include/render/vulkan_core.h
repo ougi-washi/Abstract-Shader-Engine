@@ -37,7 +37,7 @@ namespace use
 	/** Shaders */
 
 	VkResult create_shader_module(VkShaderModule*& out_shader_module, const vulkan_shader_create_info& create_info);
-	VkResult compile_shader(u32* out_bin, const shader_compile_info& compile_info);
+	VkResult compile_shader(char* out_bytes, const shader_compile_info& compile_info);
 
 	/** Depth Stencil */
 

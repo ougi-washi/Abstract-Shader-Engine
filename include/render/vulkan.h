@@ -6,7 +6,9 @@
 #include <GLFW/glfw3.h>
 
 // SHADERC
+//#include <shaderc/shaderc.hpp>
 #include <shaderc/shaderc.hpp>
+//#include <shaderc/third_party/spirv-tools>
 
 namespace use
 {
@@ -100,7 +102,7 @@ namespace use
 
 	struct vulkan_shader
 	{
-		u32* data;
+		char* data;
 		VkShaderModule module;
 		VkDescriptorSetLayout descriptor_set_layout;
 		VkDescriptorSet descriptor_set;

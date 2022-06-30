@@ -272,40 +272,73 @@ VkResult use::create_shader_module(VkShaderModule*& out_shader_module, const vul
 	return VK_SUCCESS;
 }
 
-VkResult use::compile_shader(u32* out_bin, const shader_compile_info& compile_info)
+VkResult use::compile_shader(char* out_bytes, const shader_compile_info& compile_info)
 {
-	//shaderc::Compiler compiler;
-	//shaderc::CompileOptions options;
-
-
-	//shaderc::AssemblyCompilationResult result = compiler.CompileGlslToSpvAssembly(
-	//	compile_info.text, compile_info.kind, compile_info.name, options);
-
-	//if (result.GetCompilationStatus() != shaderc_compilation_status_success) 
+	//shaderc_compile_options_t options = *new shaderc_compile_options();
+	//shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
+	//
+	//shaderc_compiler_t compiler;
+	//compiler = shaderc_compiler_initialize();
+	//
+	//shaderc_compilation_result_t result = shaderc_compile_into_spv(
+	//	compiler, compile_info.source, std::strlen(compile_info.source), compile_info.kind,
+	//	compile_info.file_name, "main", nullptr);
+	//shaderc_compilation_status status = shaderc_result_get_compilation_status(result); // TODO C26812
+	//if (status == shaderc_compilation_status_success) 
 	//{
-	//	out_bin = nullptr;
-	//	return VK_ERROR_UNKNOWN;
+	//	if (out_bytes)
+	//	{
+	//		USE_LOG(USE_LOG, int(status));
+	//		//out_bytes = (char*)realloc(out_bytes, size);
+	//	}
 	//}
+	//else
+	//{
+	//	USE_LOG(USE_ERROR, shaderc_result_get_error_message(result));
+	//}
+	//shaderc_result_release(result);
+	//shaderc_compiler_release(compiler);
 
-	// Like -DMY_DEFINE=1
-	//shaderc::CompileOptions options;
-	//options.AddMacroDefinition("MY_DEFINE", "1");
-	//options.SetOptimizationLevel(shaderc_optimization_level_size);
-	shaderc_compile_options_t options;
-	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
-	//options.include_resolver
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
 
-	shaderc_compiler_t compiler = shaderc_compiler_initialize();
-	shaderc_compilation_result_t result = shaderc_compile_into_spv(
-		compiler, compile_info.source, std::strlen(compile_info.source), compile_info.kind,
-		compile_info.file_name, "main", options);
-	shaderc_compilation_status status = shaderc_result_get_compilation_status(result);
-	if (status != shaderc_compilation_status_success) 
-	{
-		//USE_LOG(use::log_level::ERROR, shaderc_result_get_error_message(result));
+	{  // Compiling
+		shaderc::Compiler compiler;
+		shaderc::CompileOptions options;
+
+		// Like -DMY_DEFINE=1
+		options.AddMacroDefinition("MY_DEFINE", "1");
+		options.SetTargetSpirv(shaderc_spirv_version::shaderc_spirv_version_1_6);
+		options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+		//options.SetOptimizationLevel(shaderc_optimization_level_size);
+
+		shaderc::AssemblyCompilationResult result = compiler.CompileGlslToSpvAssembly(
+			compile_info.source, compile_info.kind, compile_info.file_name, options);
+
+		if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+			std::cerr << result.GetErrorMessage();
+		}
+		std::string result_string = { result.cbegin(), result.cend() };
+		std::cout << result_string << std::endl;
+
+		shaderc::SpvCompilationResult result_module =
+			compiler.CompileGlslToSpv(
+				compile_info.source, compile_info.kind, compile_info.file_name, options);
+		
+		if (result_module.GetCompilationStatus() != shaderc_compilation_status_success) {
+			std::cerr << result_module.GetErrorMessage();
+		}
+		std::vector<uint32_t> result_spv = { result_module.cbegin(), result_module.cend() };
+
+		std::cout << "SPIR-V assembly:" << std::endl << result_string << std::endl;
+
+		std::cout << "Compiled to a binary module with " << result_spv.size()
+			<< " words." << std::endl;
 	}
-	shaderc_result_release(result);
-	shaderc_compiler_release(compiler);
+
+
 
 	return VK_SUCCESS;
 }
@@ -384,6 +417,7 @@ VkResult use::create_depth_stencil(vulkan_device*& device, const u32& width, con
 		image_view_create_info.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 	CHECK_RESULT(vkCreateImageView(device->logical, &image_view_create_info, nullptr, &device->depth_stencil.view));
+	return VK_SUCCESS;
 }
 
 VkResult use::create_fences(vulkan_device*& device)
