@@ -30,16 +30,6 @@ int main()
 	VkBuffer out_buffer;
 	CHECK_RESULT(as::create_buffer(&out_buffer, &memory, vk_interface.devices[0].queue_family_index));
 
-	// SHADER
-	//char shader_source[] =
-	//	"#version 310 es\n"
-	//	"void main() { int test = 5; test++; if (test == test + 1) {;;}}\n";
-	//as::shader_binaries out_shader_binaries;
-	//as::shader_compile_info compile_info = {};
-	//compile_info.file_name = new char[10]("main.vert");
-	//compile_info.source = shader_source;
-	//CHECK_RESULT(as::compile_shader(&out_shader_binaries, compile_info));
-	
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
 	shader_create_info.logical_device = &vk_interface.devices[0].logical;
