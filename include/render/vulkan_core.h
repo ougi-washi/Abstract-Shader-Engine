@@ -34,14 +34,10 @@ namespace as
 
 	VkResult create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index);
 
-	/** Shaders */
+	/** Shaders && Descriptors */
 
 	VkResult compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info);
-	VkResult create_shader(vulkan_shader*& out_shader, const vulkan_shader_create_info& create_info);
-
-	/** Descriptors */
-
-	//VkResult 
+	VkResult create_shader(vulkan_shader* out_shader, const vulkan_shader_create_info& create_info);
 
 	/** Depth Stencil */
 

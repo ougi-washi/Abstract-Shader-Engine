@@ -105,22 +105,33 @@ namespace as
 		VkShaderModule module;
 		VkDescriptorSetLayout descriptor_set_layout;
 		VkDescriptorSet descriptor_set;
-		VkDescriptorPool descriptor_layout;
+		VkDescriptorPool descriptor_pool;
 		VkPipelineLayout pipeline_layout;
 		VkPipeline pipeline;
 	};
 
 	struct vulkan_shader_create_info
 	{
-		VkDevice* device;
+		VkDevice* logical_device;
 		char* file_name;
 		char* source;
+		VkBuffer* in_buffer;
+		VkBuffer* out_buffer;
+
+		vulkan_shader_create_info() : 
+			logical_device(nullptr), 
+			file_name(nullptr),
+			source(nullptr),
+			in_buffer(nullptr),
+			out_buffer(nullptr){};
 	};
 
 	struct shader_binaries
 	{
 		u32* binaries;
 		u32 size;
+
+		shader_binaries() : binaries(nullptr), size(0) {};
 	};
 
 	struct shader_compile_info

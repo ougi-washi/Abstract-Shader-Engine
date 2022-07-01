@@ -296,11 +296,11 @@ VkResult as::compile_shader(shader_binaries* out_compiled_shader, const shader_c
 			free(out_compiled_shader->binaries);
 		}
 
-		const u32* result_bytes = (u32*)shaderc_result_get_bytes(result);
-		const size_t result_size = shaderc_result_get_length(result);
+		u32* result_bytes = (u32*)shaderc_result_get_bytes(result);
+		out_compiled_shader->size = shaderc_result_get_length(result);
 
-		out_compiled_shader->binaries = (u32*)malloc(result_size);
-		memcpy(out_compiled_shader->binaries, result_bytes, result_size);
+		out_compiled_shader->binaries = (u32*)malloc(out_compiled_shader->size);
+		memcpy(out_compiled_shader->binaries, result_bytes, out_compiled_shader->size);
 	}
 	else
 	{
@@ -315,7 +315,7 @@ VkResult as::compile_shader(shader_binaries* out_compiled_shader, const shader_c
 	return VK_ERROR_UNKNOWN;
 }
 
-VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_create_info& create_info)
+VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create_info& create_info)
 {
 	AS_LOG(LV_LOG, "Creating shader");
 	assert(out_shader);
@@ -337,7 +337,7 @@ VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_creat
 		shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		shader_module_create_info.codeSize = out_bin.size;
 		shader_module_create_info.pCode = out_bin.binaries;
-		CHECK_RESULT(vkCreateShaderModule(*create_info.device, &shader_module_create_info, nullptr, &out_shader->module));
+		CHECK_RESULT(vkCreateShaderModule(*create_info.logical_device, &shader_module_create_info, nullptr, &out_shader->module));
 	}
 
 	/** Descriptors set layout */
@@ -360,7 +360,7 @@ VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_creat
 		descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptor_set_layout_create_info.bindingCount = 2;
 		descriptor_set_layout_create_info.pBindings = descriptor_set_layout_bindings;
-		CHECK_RESULT(vkCreateDescriptorSetLayout(*create_info.device, &descriptor_set_layout_create_info, 0, &out_shader->descriptor_set_layout));
+		CHECK_RESULT(vkCreateDescriptorSetLayout(*create_info.logical_device, &descriptor_set_layout_create_info, 0, &out_shader->descriptor_set_layout));
 	}
 
 	/** Pipeline layout */
@@ -372,11 +372,12 @@ VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_creat
 		pipeline_layout_create_info.pSetLayouts = &out_shader->descriptor_set_layout;
 		pipeline_layout_create_info.pushConstantRangeCount = 0;
 		pipeline_layout_create_info.pPushConstantRanges = 0;
-		CHECK_RESULT(vkCreatePipelineLayout(*create_info.device, &pipeline_layout_create_info, 0, &out_shader->pipeline_layout));
+		CHECK_RESULT(vkCreatePipelineLayout(*create_info.logical_device, &pipeline_layout_create_info, 0, &out_shader->pipeline_layout));
 	}
 
 	/** Pipeline */
 	{
+		AS_LOG(LV_LOG, "Creating compute shader pipeline");
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 		pipeline_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		pipeline_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -386,14 +387,73 @@ VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_creat
 		compute_pipeline_create.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 		compute_pipeline_create.stage = pipeline_shader_stage_create_info;
 		compute_pipeline_create.layout = out_shader->pipeline_layout;
-		CHECK_RESULT(vkCreateComputePipelines(*create_info.device, 0, 1, &compute_pipeline_create, 0, &out_shader->pipeline));
+		CHECK_RESULT(vkCreateComputePipelines(*create_info.logical_device, 0, 1, &compute_pipeline_create, 0, &out_shader->pipeline));
 	}
 
-	/**  */
+	/** Descriptor pool */
 	{
-
+		AS_LOG(LV_LOG, "Creating descriptor pool");
+		VkDescriptorPoolSize descriptor_pool_size = {};
+		descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptor_pool_size.descriptorCount = 2;
+		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
+		descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptor_pool_create_info.maxSets = 1;
+		descriptor_pool_create_info.poolSizeCount = 1;
+		descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
+		vkCreateDescriptorPool(*create_info.logical_device, &descriptor_pool_create_info, 0, &out_shader->descriptor_pool);
 	}
 
+	/** Allocate descriptor sets */
+	{
+		AS_LOG(LV_LOG, "Allocate descriptor sets");
+		VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {};
+		descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptor_set_allocate_info.descriptorPool = out_shader->descriptor_pool;
+		CHECK_RESULT(vkAllocateDescriptorSets(*create_info.logical_device, &descriptor_set_allocate_info, &out_shader->descriptor_set));
+	}
+
+	/** Update Descriptor Sets */
+	{
+		AS_LOG(LV_LOG, "Update Descriptor Sets");
+		VkDescriptorBufferInfo in_descriptor_buffer_info = {};
+		in_descriptor_buffer_info.buffer = *create_info.in_buffer;
+		in_descriptor_buffer_info.range = VK_WHOLE_SIZE;
+		VkDescriptorBufferInfo out_descriptor_buffer_info = {};
+		in_descriptor_buffer_info.buffer = *create_info.out_buffer;
+		in_descriptor_buffer_info.range = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet write_descriptor_set_0 = {};
+		write_descriptor_set_0.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_descriptor_set_0.dstSet = out_shader->descriptor_set;
+		write_descriptor_set_0.dstBinding = 0;
+		write_descriptor_set_0.dstArrayElement = 0;
+		write_descriptor_set_0.descriptorCount = 1;
+		write_descriptor_set_0.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		write_descriptor_set_0.pImageInfo = 0;
+		write_descriptor_set_0.pBufferInfo = &in_descriptor_buffer_info;
+		write_descriptor_set_0.pTexelBufferView = 0;
+
+
+		VkWriteDescriptorSet write_descriptor_set_1 = {};
+		write_descriptor_set_1.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write_descriptor_set_1.dstSet = out_shader->descriptor_set;
+		write_descriptor_set_1.dstBinding = 1;
+		write_descriptor_set_0.dstArrayElement = 0;
+		write_descriptor_set_1.descriptorCount = 1;
+		write_descriptor_set_1.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		write_descriptor_set_1.pImageInfo = 0;
+		write_descriptor_set_1.pBufferInfo = &out_descriptor_buffer_info;
+		write_descriptor_set_1.pTexelBufferView = 0;
+
+		VkWriteDescriptorSet write_descriptor_set[2] =
+		{
+			write_descriptor_set_0,
+			write_descriptor_set_1
+		};
+		vkUpdateDescriptorSets(*create_info.logical_device, 2, write_descriptor_set, 0, 0);
+	}
+	AS_LOG(LV_LOG, "Done creating the shader");
 	return VK_SUCCESS;
 }
 
