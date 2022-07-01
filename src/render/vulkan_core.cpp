@@ -18,8 +18,9 @@
 #include <tiny_obj_loader.h>
 
 
-VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
+VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
+	AS_LOG(LV_LOG, "Initializing Vulkan");
 	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance));
 	CHECK_RESULT(construct_vulkan_devices(out_interface));
 	if (create_info.is_compute || 1)
@@ -30,8 +31,9 @@ VkResult use::init_vulkan(vulkan_interface* out_interface, const vulkan_interfac
 	return VK_SUCCESS;
 }
 
-VkResult use::initialize_vulkan_instance(VkInstance* instance)
+VkResult as::initialize_vulkan_instance(VkInstance* instance)
 {
+	AS_LOG(LV_LOG, "Initializing Vulkan instance");
 	VkApplicationInfo application_info = {};
 	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	application_info.pApplicationName = "UnknownShaderEngine_VK";
@@ -48,17 +50,19 @@ VkResult use::initialize_vulkan_instance(VkInstance* instance)
 	return vkCreateInstance(&instance_create_info, 0, instance);
 }
 
-VkResult use::construct_vulkan_devices(vulkan_interface* in_interface)
+VkResult as::construct_vulkan_devices(vulkan_interface* in_interface)
 {
 	CHECK_RESULT(construct_vulkan_devices(&in_interface->instance, in_interface->devices, in_interface->device_count));
 	return VK_SUCCESS;
 }
 
-VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count)
+VkResult as::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count)
 {
+	AS_LOG(LV_LOG, "Constructing Vulkan devices");
 	CHECK_RESULT(vkEnumeratePhysicalDevices(*in_instance, &out_device_count, 0));
 	if (out_device_count == 0)
 	{
+		AS_LOG(LV_ERROR, "No physical devices found");
 		return VK_ERROR_INITIALIZATION_FAILED;
 	}
 	out_devices = (vulkan_device*)malloc(sizeof(vulkan_device) * out_device_count);
@@ -71,6 +75,7 @@ VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &
 		memcpy(&out_devices[i].physical, &physical_devices_temp[i], sizeof(physical_devices_temp[i])); // TODO C6011
 		if (out_devices[i].physical != physical_devices_temp[i])
 		{
+			AS_LOG(LV_ERROR, "Device construction, something went wrong with memcpy");
 			return VK_ERROR_UNKNOWN;
 		}
 	}
@@ -79,8 +84,9 @@ VkResult use::construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &
 	return VK_SUCCESS;
 }
 
-VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info)
+VkResult as::initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info)
 {
+	AS_LOG(LV_LOG, "Initializing Vulkan devices");
 	for (u32 i = 0; i < device_count; i++)
 	{
 		CHECK_RESULT(initialize_vulkan_device(&devices[i], create_info));
@@ -88,13 +94,16 @@ VkResult use::initialize_vulkan_devices(vulkan_device* devices, const u32& devic
 	return VK_SUCCESS;
 }
 
-VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info)
+VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info)
 {
 	if (device)
 	{
+		AS_LOG(LV_LOG, "Initializing Vulkan device");
 		// TODO: depends on the passed create info
 
 		// Semaphore
+
+		AS_LOG(LV_LOG, "Creating Semaphores");
 		VkSemaphoreCreateInfo semaphore_create_info{};
 		semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		if (create_info.type & vulkan_device_type::COMPUTE)
@@ -116,17 +125,16 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 		device->submit_info.signalSemaphoreCount = 1;
 		device->submit_info.pSignalSemaphores = &device->render_semaphore;
 
-		u32 queue_family_index = 0;
-		CHECK_RESULT(get_best_compute_queue(device->physical, &queue_family_index));
+		CHECK_RESULT(get_best_compute_queue(device->physical, &device->queue_family_index));
 
 		const float queue_prioritory = 1.0f;
 		const VkDeviceQueueCreateInfo device_queue_create_info =
-		{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, queue_family_index, 1, &queue_prioritory };
+		{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, device->queue_family_index, 1, &queue_prioritory };
 		const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
 		CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
 		vkGetPhysicalDeviceMemoryProperties(device->physical, &device->properties);
 
-		create_command_pool(device, queue_family_index);
+		create_command_pool(device, device->queue_family_index);
 		create_command_buffer(device, true);
 		create_fences(device);
 
@@ -137,12 +145,12 @@ VkResult use::initialize_vulkan_device(vulkan_device* device, const vulkan_devic
 	return VK_SUCCESS;
 }
 
-VkResult use::create_command_pool(vulkan_device* &device, const u32 &queue_index)
+VkResult as::create_command_pool(vulkan_device* &device, const u32 &queue_index)
 {
 	return construct_command_pool(&device->command_pool, &device->logical, queue_index);
 }
 
-VkResult use::construct_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
+VkResult as::construct_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
 {
 	VkCommandPoolCreateInfo command_pool_info = {};
 	command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -156,16 +164,15 @@ VkResult use::construct_command_pool(VkCommandPool* out_command_pool, VkDevice* 
 	return VK_SUCCESS;
 }
 
-VkResult use::create_command_buffer(vulkan_device*& device, const u8& start_buffer)
+VkResult as::create_command_buffer(vulkan_device*& device, const u8& start_buffer)
 {
 	return construct_command_buffer(&device->command_buffer, &device->logical, &device->command_pool, start_buffer);
 }
 
-VkResult use::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer)
+VkResult as::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer)
 {
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.pNext = 0;
 	command_buffer_allocate_info.commandPool = *command_pool;
 	command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	command_buffer_allocate_info.commandBufferCount = 1; // TODO: create a system to create multiple buffers
@@ -179,7 +186,6 @@ VkResult use::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDe
 	{
 		VkCommandBufferBeginInfo command_buffer_begin_info = {};
 		command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		command_buffer_begin_info.pNext = 0;
 		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		command_buffer_begin_info.pInheritanceInfo = 0;
 		CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info)); // TODO C6011
@@ -187,7 +193,7 @@ VkResult use::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDe
 	return VK_SUCCESS;
 }
 
-VkResult use::get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperties& memory_properties, u32& typeBits, const VkMemoryPropertyFlags& properties)
+VkResult as::get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperties& memory_properties, u32& typeBits, const VkMemoryPropertyFlags& properties)
 {
 	for (u32 i = 0; i < memory_properties.memoryTypeCount; i++)
 	{
@@ -208,7 +214,7 @@ VkResult use::get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryPropert
 	return VK_ERROR_INITIALIZATION_FAILED;
 }
 
-VkResult use::allocate_memory(vulkan_memory*& out_memory, const vulkan_memory_create_info& create_info)
+VkResult as::allocate_memory(vulkan_memory* out_memory, const vulkan_memory_create_info& create_info)
 {
 	assert(out_memory);
 	assert(create_info.device);
@@ -234,7 +240,7 @@ VkResult use::allocate_memory(vulkan_memory*& out_memory, const vulkan_memory_cr
 	return VK_SUCCESS;
 }
 
-VkResult use::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn)
+VkResult as::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn)
 {
 	assert(memory);
 	assert(memory->device);
@@ -245,7 +251,7 @@ VkResult use::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*
 	return VK_SUCCESS;
 }
 
-VkResult use::create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const u32& queue_family_index)
+VkResult as::create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index)
 {
 	assert(memory);
 	assert(memory->device);
@@ -254,8 +260,6 @@ VkResult use::create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const 
 
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_create_info.pNext = 0;
-	buffer_create_info.flags = 0;
 	buffer_create_info.size = memory->size;
 	buffer_create_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -267,83 +271,133 @@ VkResult use::create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const 
 	return VK_SUCCESS;
 }
 
-VkResult use::create_shader_module(VkShaderModule*& out_shader_module, const vulkan_shader_create_info& create_info)
+VkResult as::compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info)
 {
-	return VK_SUCCESS;
+	shaderc_compile_options_t options = shaderc_compile_options_initialize();
+	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
+	shaderc_compile_options_set_generate_debug_info(options);
+
+	shaderc_compiler_t compiler;
+	compiler = shaderc_compiler_initialize();
+
+	shaderc_compilation_result_t result = shaderc_compile_into_spv(
+		compiler, compile_info.source, std::strlen(compile_info.source), compile_info.kind,
+		compile_info.file_name, "main", nullptr);
+	shaderc_compilation_status status = shaderc_result_get_compilation_status(result); // TODO C26812
+	if (status == shaderc_compilation_status_success)
+	{
+		if (!out_compiled_shader)
+		{
+			out_compiled_shader = (shader_binaries*)malloc(sizeof(shader_binaries));
+		}
+
+		if (out_compiled_shader->binaries)
+		{
+			free(out_compiled_shader->binaries);
+		}
+
+		const u32* result_bytes = (u32*)shaderc_result_get_bytes(result);
+		const size_t result_size = shaderc_result_get_length(result);
+
+		out_compiled_shader->binaries = (u32*)malloc(result_size);
+		memcpy(out_compiled_shader->binaries, result_bytes, result_size);
+	}
+	else
+	{
+		AS_LOG(LV_ERROR, shaderc_result_get_error_message(result));
+	}
+	shaderc_result_release(result);
+	shaderc_compiler_release(compiler);
+	if (status == shaderc_compilation_status_success)
+	{
+		return VK_SUCCESS;
+	}
+	return VK_ERROR_UNKNOWN;
 }
 
-VkResult use::compile_shader(char* out_bytes, const shader_compile_info& compile_info)
+VkResult as::create_shader(vulkan_shader*& out_shader, const vulkan_shader_create_info& create_info)
 {
-	//shaderc_compile_options_t options = *new shaderc_compile_options();
-	//shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
-	//
-	//shaderc_compiler_t compiler;
-	//compiler = shaderc_compiler_initialize();
-	//
-	//shaderc_compilation_result_t result = shaderc_compile_into_spv(
-	//	compiler, compile_info.source, std::strlen(compile_info.source), compile_info.kind,
-	//	compile_info.file_name, "main", nullptr);
-	//shaderc_compilation_status status = shaderc_result_get_compilation_status(result); // TODO C26812
-	//if (status == shaderc_compilation_status_success) 
-	//{
-	//	if (out_bytes)
-	//	{
-	//		USE_LOG(USE_LOG, int(status));
-	//		//out_bytes = (char*)realloc(out_bytes, size);
-	//	}
-	//}
-	//else
-	//{
-	//	USE_LOG(USE_ERROR, shaderc_result_get_error_message(result));
-	//}
-	//shaderc_result_release(result);
-	//shaderc_compiler_release(compiler);
+	AS_LOG(LV_LOG, "Creating shader");
+	assert(out_shader);
 
-#include <cstring>
-#include <iostream>
-#include <string>
-#include <vector>
+	/** Compile shader */
+	{
+		AS_LOG(LV_LOG, "Compiling the shader"); // TODO check if it is cached and it does exist
+		shader_binaries out_bin;
+		shader_compile_info compile_info;
+		compile_info.file_name = create_info.file_name;
+		compile_info.source = create_info.source;
+		compile_info.kind = shaderc_compute_shader;
+		compile_info.optimize = true;
+		CHECK_RESULT(compile_shader(&out_bin, compile_info));
 
-	{  // Compiling
-		shaderc::Compiler compiler;
-		shaderc::CompileOptions options;
-
-		// Like -DMY_DEFINE=1
-		options.AddMacroDefinition("MY_DEFINE", "1");
-		options.SetTargetSpirv(shaderc_spirv_version::shaderc_spirv_version_1_6);
-		options.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-		//options.SetOptimizationLevel(shaderc_optimization_level_size);
-
-		shaderc::AssemblyCompilationResult result = compiler.CompileGlslToSpvAssembly(
-			compile_info.source, compile_info.kind, compile_info.file_name, options);
-
-		if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-			std::cerr << result.GetErrorMessage();
-		}
-		std::string result_string = { result.cbegin(), result.cend() };
-		std::cout << result_string << std::endl;
-
-		shaderc::SpvCompilationResult result_module =
-			compiler.CompileGlslToSpv(
-				compile_info.source, compile_info.kind, compile_info.file_name, options);
-		
-		if (result_module.GetCompilationStatus() != shaderc_compilation_status_success) {
-			std::cerr << result_module.GetErrorMessage();
-		}
-		std::vector<uint32_t> result_spv = { result_module.cbegin(), result_module.cend() };
-
-		std::cout << "SPIR-V assembly:" << std::endl << result_string << std::endl;
-
-		std::cout << "Compiled to a binary module with " << result_spv.size()
-			<< " words." << std::endl;
+		/** Create shader module */
+		AS_LOG(LV_LOG, "Creating shader module");
+		VkShaderModuleCreateInfo shader_module_create_info = {};
+		shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shader_module_create_info.codeSize = out_bin.size;
+		shader_module_create_info.pCode = out_bin.binaries;
+		CHECK_RESULT(vkCreateShaderModule(*create_info.device, &shader_module_create_info, nullptr, &out_shader->module));
 	}
 
+	/** Descriptors set layout */
+	{
+		AS_LOG(LV_LOG, "Creating shader descriptor set layout");
+		VkDescriptorSetLayoutBinding descriptor_set_layout_binding_0 = {};
+		descriptor_set_layout_binding_0.binding = 0;
+		descriptor_set_layout_binding_0.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptor_set_layout_binding_0.descriptorCount = 1;
+		descriptor_set_layout_binding_0.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+		descriptor_set_layout_binding_0.pImmutableSamplers = 0;
+		VkDescriptorSetLayoutBinding descriptor_set_layout_binding_1 = descriptor_set_layout_binding_0;
+		descriptor_set_layout_binding_1.binding = 1;
+		VkDescriptorSetLayoutBinding descriptor_set_layout_bindings[2] =
+		{	
+			descriptor_set_layout_binding_0,
+			descriptor_set_layout_binding_1
+		};
+		VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {};
+		descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptor_set_layout_create_info.bindingCount = 2;
+		descriptor_set_layout_create_info.pBindings = descriptor_set_layout_bindings;
+		CHECK_RESULT(vkCreateDescriptorSetLayout(*create_info.device, &descriptor_set_layout_create_info, 0, &out_shader->descriptor_set_layout));
+	}
 
+	/** Pipeline layout */
+	{
+		AS_LOG(LV_LOG, "Creating shader pipeline layout");
+		VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
+		pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipeline_layout_create_info.setLayoutCount = 1;
+		pipeline_layout_create_info.pSetLayouts = &out_shader->descriptor_set_layout;
+		pipeline_layout_create_info.pushConstantRangeCount = 0;
+		pipeline_layout_create_info.pPushConstantRanges = 0;
+		CHECK_RESULT(vkCreatePipelineLayout(*create_info.device, &pipeline_layout_create_info, 0, &out_shader->pipeline_layout));
+	}
+
+	/** Pipeline */
+	{
+		VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+		pipeline_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		pipeline_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		pipeline_shader_stage_create_info.module = out_shader->module;
+		pipeline_shader_stage_create_info.pName = "main";
+		VkComputePipelineCreateInfo compute_pipeline_create = {};
+		compute_pipeline_create.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		compute_pipeline_create.stage = pipeline_shader_stage_create_info;
+		compute_pipeline_create.layout = out_shader->pipeline_layout;
+		CHECK_RESULT(vkCreateComputePipelines(*create_info.device, 0, 1, &compute_pipeline_create, 0, &out_shader->pipeline));
+	}
+
+	/**  */
+	{
+
+	}
 
 	return VK_SUCCESS;
 }
 
-VkResult use::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
+VkResult as::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
 {
 	const u8 total_formats = 5;
 	VkFormat formats[total_formats] =
@@ -372,7 +426,7 @@ VkResult use::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_
 	return VK_ERROR_UNKNOWN;
 }
 
-VkResult use::create_depth_stencil(vulkan_device*& device, const u32& width, const u32& height)
+VkResult as::create_depth_stencil(vulkan_device*& device, const u32& width, const u32& height)
 {
 	VkFormat depth_format;
 	CHECK_RESULT(get_depth_format(&depth_format, &device->physical));
@@ -420,16 +474,15 @@ VkResult use::create_depth_stencil(vulkan_device*& device, const u32& width, con
 	return VK_SUCCESS;
 }
 
-VkResult use::create_fences(vulkan_device*& device)
+VkResult as::create_fences(vulkan_device*& device)
 {
 	return construct_fence(&device->compute_fence, &device->logical);
 }
 
-VkResult use::construct_fence(VkFence* out_fence, VkDevice* logical_device)
+VkResult as::construct_fence(VkFence* out_fence, VkDevice* logical_device)
 {
 	VkFenceCreateInfo fence_create_info = {};
 	fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fence_create_info.pNext = 0;
 	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	if (!out_fence)
 	{
@@ -439,7 +492,7 @@ VkResult use::construct_fence(VkFence* out_fence, VkDevice* logical_device)
 	return VK_SUCCESS;
 }
 
-VkResult use::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
+VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
 {
 	uint32_t queue_family_properties_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_properties_count, 0);
@@ -489,7 +542,7 @@ VkResult use::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u
 	return VK_ERROR_INITIALIZATION_FAILED;
 }
 
-VkResult use::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
+VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
 {
 	uint32_t queue_family_properties_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_properties_count, 0);

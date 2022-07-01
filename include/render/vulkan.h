@@ -6,11 +6,9 @@
 #include <GLFW/glfw3.h>
 
 // SHADERC
-//#include <shaderc/shaderc.hpp>
-#include <shaderc/shaderc.hpp>
-//#include <shaderc/third_party/spirv-tools>
+#include <shaderc/shaderc.h>
 
-namespace use
+namespace as
 {
 	/** device start */
 
@@ -30,6 +28,7 @@ namespace use
 		VkPhysicalDeviceMemoryProperties properties;
 		
 		/** Commands */
+		u32 queue_family_index;
 		VkCommandPool command_pool;
 		VkCommandBuffer command_buffer; // TODO: system for many buffers
 
@@ -113,7 +112,15 @@ namespace use
 
 	struct vulkan_shader_create_info
 	{
+		VkDevice* device;
+		char* file_name;
+		char* source;
+	};
 
+	struct shader_binaries
+	{
+		u32* binaries;
+		u32 size;
 	};
 
 	struct shader_compile_info
@@ -121,8 +128,21 @@ namespace use
 		char* file_name;
 		char* source;
 		shaderc_shader_kind kind;
+		u8 optimize : 1;
 	};
 
 	/** shader end */
 
+	// TEMP
+	struct Compute {
+		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
+		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
+		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
+		VkSemaphore semaphore;                      // Execution dependency between compute & graphic submission
+		VkDescriptorSetLayout descriptorSetLayout;	// Compute shader binding layout
+		VkDescriptorSet descriptorSet;				// Compute shader bindings
+		VkPipelineLayout pipelineLayout;			// Layout of the compute pipeline
+		//std::vector<VkPipeline> pipelines;			// Compute pipelines for image filters
+		int32_t pipelineIndex = 0;					// Current image filtering compute pipeline index
+	};
 };

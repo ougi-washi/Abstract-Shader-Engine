@@ -56,10 +56,10 @@ typedef double f64;
 // Error handling
 #define CRASH_ON_ERROR true
 
-enum log_level :u8 { USE_LOG = 0, USE_WARNING = 1, USE_ERROR = 2 };
+enum log_level : u8 { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 };
 #define CHECK_RESULT(result) \
   if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
-#define USE_LOG(level, text) \
-	if (level == log_level::USE_LOG) { std::cout << "LOG: " << text << std::endl; }\
-	else if(level == log_level::USE_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
-	else if(level == log_level::USE_ERROR) { std::cout << "ERROR: " << text << std::endl; if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }
+#define AS_LOG(level, text) \
+	if (level == log_level::LV_LOG) { std::cout << "LOG: " << text << std::endl; }\
+	else if(level == log_level::LV_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
+	else if(level == log_level::LV_ERROR) { std::cout << "ERROR: " << text << std::endl; if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }

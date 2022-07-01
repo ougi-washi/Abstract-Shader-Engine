@@ -4,7 +4,7 @@
 // Stupid std include that I wanna get rid of
 #include <functional>
 
-namespace use
+namespace as
 {
 	/** Initialization */
 
@@ -27,17 +27,21 @@ namespace use
 	/** Memory */
 	
 	VkResult get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperties& memory_properties, u32& typeBits, const VkMemoryPropertyFlags& properties);
-	VkResult allocate_memory(vulkan_memory*& out_memory, const vulkan_memory_create_info& create_info);
+	VkResult allocate_memory(vulkan_memory* out_memory, const vulkan_memory_create_info& create_info);
 	VkResult edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn);
 
 	/** Buffers */
 
-	VkResult create_buffer(VkBuffer*& out_buffer, vulkan_memory* memory, const u32& queue_family_index);
+	VkResult create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index);
 
 	/** Shaders */
 
-	VkResult create_shader_module(VkShaderModule*& out_shader_module, const vulkan_shader_create_info& create_info);
-	VkResult compile_shader(char* out_bytes, const shader_compile_info& compile_info);
+	VkResult compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info);
+	VkResult create_shader(vulkan_shader*& out_shader, const vulkan_shader_create_info& create_info);
+
+	/** Descriptors */
+
+	//VkResult 
 
 	/** Depth Stencil */
 

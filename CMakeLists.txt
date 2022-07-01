@@ -51,18 +51,9 @@ add_library(Render STATIC	src/core.cpp
 							src/render/vulkan_core.cpp)
 
 target_link_libraries(Render PUBLIC  
-							OpenMP::OpenMP_CXX 
-							SPIRV-Tools-shared
-							shaderc_shared
+							OpenMP::OpenMP_CXX
+							shaderc_combinedd
 							vulkan-1
-
-							#shaderc_combined
-							#shaderc
-
-							#shaderc_combinedd
-							#shaderc_util
-							#shaderc_utild
-							#shadercd
 							glfw 
 							glm)
 
