@@ -2,10 +2,10 @@
 
 int main() 
 {
-
 	// VULKAN INIT
 	as::vulkan_interface vk_interface;
 	as::vulkan_interface_create_info vulkan_interface_create_info = {};
+	vulkan_interface_create_info.debug = true;
 	CHECK_RESULT(as::init_vulkan(&vk_interface, vulkan_interface_create_info));
 	
 	// MEMORY ALLOCATION AND FILLING VRAM
@@ -38,6 +38,7 @@ int main()
 		"void main() { int test = 5; test++; if (test == test + 1) {;;}}\n");
 	shader_create_info.in_buffer = &in_buffer;
 	shader_create_info.out_buffer = &out_buffer;
+
 	CHECK_RESULT(as::create_shader(&shader, shader_create_info));
 
 	return 0;

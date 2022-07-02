@@ -21,7 +21,7 @@
 VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
 	AS_LOG(LV_LOG, "Initializing Vulkan");
-	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance));
+	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance, create_info.debug));
 	CHECK_RESULT(construct_vulkan_devices(out_interface));
 	if (create_info.is_compute || 1)
 	{
@@ -31,9 +31,14 @@ VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface
 	return VK_SUCCESS;
 }
 
-VkResult as::initialize_vulkan_instance(VkInstance* instance)
+VkResult as::initialize_vulkan_instance(VkInstance* instance, const bool& enable_validation_layers)
 {
 	AS_LOG(LV_LOG, "Initializing Vulkan instance");
+	if (enable_validation_layers && !check_validation_layer_support())
+	{
+		AS_LOG(LV_WARNING, "No validation layer support available")
+	}
+
 	VkApplicationInfo application_info = {};
 	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	application_info.pApplicationName = "UnknownShaderEngine_VK";
@@ -44,6 +49,9 @@ VkResult as::initialize_vulkan_instance(VkInstance* instance)
 	instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instance_create_info.pNext = NULL;
 	instance_create_info.pApplicationInfo = &application_info;
+	instance_create_info.enabledLayerCount = 1;
+	const char* validation_layer_names[1] = {VULKAN_VALIDATION_LAYER};
+	instance_create_info.ppEnabledLayerNames = validation_layer_names;
 
 	// TODO: Extensions here
 
@@ -410,6 +418,8 @@ VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create
 		VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {};
 		descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		descriptor_set_allocate_info.descriptorPool = out_shader->descriptor_pool;
+		descriptor_set_allocate_info.descriptorSetCount = 1;
+		descriptor_set_allocate_info.pSetLayouts = &out_shader->descriptor_set_layout;
 		CHECK_RESULT(vkAllocateDescriptorSets(*create_info.logical_device, &descriptor_set_allocate_info, &out_shader->descriptor_set));
 	}
 
@@ -434,7 +444,6 @@ VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create
 		write_descriptor_set_0.pBufferInfo = &in_descriptor_buffer_info;
 		write_descriptor_set_0.pTexelBufferView = 0;
 
-
 		VkWriteDescriptorSet write_descriptor_set_1 = {};
 		write_descriptor_set_1.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor_set_1.dstSet = out_shader->descriptor_set;
@@ -451,6 +460,7 @@ VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create
 			write_descriptor_set_0,
 			write_descriptor_set_1
 		};
+		
 		vkUpdateDescriptorSets(*create_info.logical_device, 2, write_descriptor_set, 0, 0);
 	}
 	AS_LOG(LV_LOG, "Done creating the shader");
@@ -641,4 +651,45 @@ VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32
 	}
 
 	return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+bool as::check_validation_layer_support()
+{
+	u32 layer_count = 0;
+	vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+	VkLayerProperties* available_layers = (VkLayerProperties*)malloc(sizeof(VkLayerProperties) * layer_count);
+	vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
+
+	for (u32 i = 0; i < layer_count; i++)
+	{
+		if (strcmp(available_layers[i].layerName, VULKAN_VALIDATION_LAYER))
+		{
+			return true;
+		}
+	}
+	free(available_layers);
+	return false;
+}
+
+char** as::get_required_extensions()
+{
+	u32 glfw_extension_count = 0;
+	const char** glfw_extensions;
+	glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+
+	if (glfw_extensions)
+	{
+		//char** extensions = new char* [glfw_extension_count + 1];
+		//memcpy(extensions, glfw_extensions, sizeof(glfw_extensions));
+		
+		//{ glfw_extensions, glfw_extensions + glfw_extension_count }
+
+		//if (enableValidationLayers) 
+		//{
+		//	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		//}
+		//return extensions;
+	}
+	
+	return nullptr;
 }

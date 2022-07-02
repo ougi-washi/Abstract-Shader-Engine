@@ -1,7 +1,7 @@
 ## General
 cmake_minimum_required(VERSION 3.13.4)
 
-project(UnknownShaderEngine LANGUAGES C CXX)
+project(AbstractShaderEngine LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /EHsc /bigobj -DSHADERC_ENABLE_SHARED_CRT=ON")

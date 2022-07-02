@@ -4,6 +4,8 @@
 // Stupid std include that I wanna get rid of
 #include <functional>
 
+#define VULKAN_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
+
 namespace as
 {
 	/** Initialization */
@@ -11,7 +13,7 @@ namespace as
 	// Main initialization function
 	VkResult init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info);
 
-	VkResult initialize_vulkan_instance(VkInstance* instance);
+	VkResult initialize_vulkan_instance(VkInstance* instance, const bool& enable_validation_layers);
 	VkResult construct_vulkan_devices(vulkan_interface* in_interface);
 	VkResult construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count);
 	VkResult initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info);
@@ -53,4 +55,9 @@ namespace as
 
 	VkResult get_best_transfer_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index);
 	VkResult get_best_compute_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index);
+
+	/** Validation layers && debug extensions */
+
+	bool check_validation_layer_support();
+	char** get_required_extensions();
 };
