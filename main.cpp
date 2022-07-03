@@ -8,7 +8,7 @@ int main()
 	vulkan_interface_create_info.debug = true;
 	CHECK_RESULT(as::init_vulkan(&vk_interface, vulkan_interface_create_info));
 	
-	// MEMORY ALLOCATION AND FILLING VRAM
+	// FILLING VRAM
 	const i32 buffer_length = 16384;
 	const u32 buffer_size = sizeof(i32) * buffer_length;
 	const u64 memory_size = buffer_size * 2;
@@ -25,22 +25,34 @@ int main()
 		}
 	}));
 	
+	// BUFFERS
 	VkBuffer in_buffer;
 	CHECK_RESULT(as::create_buffer(&in_buffer, &memory, vk_interface.devices[0].queue_family_index));
 	VkBuffer out_buffer;
 	CHECK_RESULT(as::create_buffer(&out_buffer, &memory, vk_interface.devices[0].queue_family_index));
 
-
+	// SHADERS
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
 	shader_create_info.logical_device = &vk_interface.devices[0].logical;
 	shader_create_info.file_name = new char[]("main.vert");
 	shader_create_info.source = new char[]("#version 310 es\n"
-		"void main() { int test = 5; test++; if (test == test + 1) {;;}}\n");
+		"void main() {  }\n");
 	shader_create_info.in_buffer = &in_buffer;
 	shader_create_info.out_buffer = &out_buffer;
-
 	CHECK_RESULT(as::create_shader(&shader, shader_create_info));
-
+	CHECK_RESULT(as::start_shader(&shader, &vk_interface.devices[0].command_buffer, buffer_size));
+	
+	// QUEUE
+	VkQueue queue;
+	CHECK_RESULT(as::get_device_queue(&queue, &vk_interface.devices[0]));
+	CHECK_RESULT(as::submit_queue(&queue, &vk_interface.devices[0].command_buffer));
+	CHECK_RESULT(as::edit_memory_payload(&memory, [&](i32* payload)
+	{
+		for (u32 i = 1; i < memory_size / sizeof(i32); i++)
+		{
+			payload[i] = rand();
+		}
+	}));
 	return 0;
 }

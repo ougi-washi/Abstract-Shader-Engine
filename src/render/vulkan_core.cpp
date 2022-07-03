@@ -145,10 +145,6 @@ VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device
 		create_command_pool(device, device->queue_family_index);
 		create_command_buffer(device, true);
 		create_fences(device);
-
-		const i32 bufferLength = 16384;
-		const u32 bufferSize = sizeof(i32) * bufferLength;
-
 	}
 	return VK_SUCCESS;
 }
@@ -216,6 +212,7 @@ VkResult as::get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperti
 
 VkResult as::allocate_memory(vulkan_memory* out_memory, const vulkan_memory_create_info& create_info)
 {
+	AS_LOG(LV_LOG, "Allocating memory");
 	assert(out_memory);
 	assert(create_info.device);
 	out_memory->device = create_info.device;
@@ -242,6 +239,7 @@ VkResult as::allocate_memory(vulkan_memory* out_memory, const vulkan_memory_crea
 
 VkResult as::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn)
 {
+	AS_LOG(LV_LOG, "Editing memory payload (this implies mapping and unmapping)");
 	assert(memory);
 	assert(memory->device);
 	i32* payload;
@@ -253,6 +251,7 @@ VkResult as::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)
 
 VkResult as::create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index)
 {
+	AS_LOG(LV_LOG, "Creating buffer");
 	assert(memory);
 	assert(memory->device);
 	assert(memory->device->logical);
@@ -459,6 +458,16 @@ VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create
 	return VK_SUCCESS;
 }
 
+VkResult as::start_shader(vulkan_shader* in_shader, VkCommandBuffer* in_command_buffer, const u32& buffer_size)
+{
+	vkCmdBindPipeline(*in_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, in_shader->pipeline);
+	vkCmdBindDescriptorSets(*in_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, 
+							in_shader->pipeline_layout, 0, 1, &in_shader->descriptor_set, 0, 0);
+	vkCmdDispatch(*in_command_buffer, buffer_size / sizeof(i32), 1, 1);
+	CHECK_RESULT(vkEndCommandBuffer(*in_command_buffer));
+	return VK_SUCCESS;
+}
+
 VkResult as::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
 {
 	const u8 total_formats = 5;
@@ -554,6 +563,21 @@ VkResult as::construct_fence(VkFence* out_fence, VkDevice* logical_device)
 	return VK_SUCCESS;
 }
 
+VkResult as::submit_queue(VkQueue* in_queue, VkCommandBuffer* in_command_buffer)
+{
+	AS_LOG(LV_LOG, "Submitting queue");
+	assert(in_queue);
+	VkSubmitInfo submit_info = {};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.pCommandBuffers = in_command_buffer;
+	submit_info.commandBufferCount = 1;
+	// TODO: semaphores
+
+	CHECK_RESULT(vkQueueSubmit(*in_queue, 1, &submit_info, 0));
+	CHECK_RESULT(vkQueueWaitIdle(*in_queue));
+	return VK_SUCCESS;
+}
+
 VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
 {
 	uint32_t queue_family_properties_count = 0;
@@ -643,6 +667,14 @@ VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32
 	}
 
 	return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+VkResult as::get_device_queue(VkQueue* out_queue, vulkan_device* in_vulkan_device)
+{
+	assert(out_queue);
+	assert(&in_vulkan_device->logical);
+	vkGetDeviceQueue(in_vulkan_device->logical, in_vulkan_device->queue_family_index, 0, out_queue);
+	return VK_SUCCESS;
 }
 
 bool as::check_validation_layer_support()

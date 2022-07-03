@@ -123,7 +123,7 @@ namespace as
 			file_name(nullptr),
 			source(nullptr),
 			in_buffer(nullptr),
-			out_buffer(nullptr){};
+			out_buffer(nullptr) {};
 	};
 
 	struct shader_binaries
@@ -145,7 +145,8 @@ namespace as
 	/** shader end */
 
 	// TEMP
-	struct Compute {
+	struct Compute 
+	{
 		VkQueue queue;								// Separate queue for compute commands (queue family may differ from the one used for graphics)
 		VkCommandPool commandPool;					// Use a separate command pool (queue family may differ from the one used for graphics)
 		VkCommandBuffer commandBuffer;				// Command buffer storing the dispatch commands and barriers
