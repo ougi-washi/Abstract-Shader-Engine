@@ -35,9 +35,10 @@ int main()
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
 	shader_create_info.logical_device = &vk_interface.devices[0].logical;
-	shader_create_info.file_name = new char[]("main.vert");
+	shader_create_info.file_name = new char[]("main.comp");
 	shader_create_info.source = new char[]("#version 310 es\n"
-		"void main() {  }\n");
+		"void main() { ;; }\n"
+		);
 	shader_create_info.in_buffer = &in_buffer;
 	shader_create_info.out_buffer = &out_buffer;
 	CHECK_RESULT(as::create_shader(&shader, shader_create_info));
@@ -49,10 +50,16 @@ int main()
 	CHECK_RESULT(as::submit_queue(&queue, &vk_interface.devices[0].command_buffer));
 	CHECK_RESULT(as::edit_memory_payload(&memory, [&](i32* payload)
 	{
+		char full_payload[500000] = "";
 		for (u32 i = 1; i < memory_size / sizeof(i32); i++)
 		{
-			payload[i] = rand();
+			char current_payload[10];
+			sprintf(current_payload, "%d", payload[i]);
+			strcat(full_payload, current_payload);
+			strcat(full_payload, "|");
 		}
+		AS_LOG(LV_LOG, "Display the full payload after executing the shader: ");
+		printf("%s\n", full_payload);
 	}));
 	return 0;
 }

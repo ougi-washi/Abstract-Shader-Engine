@@ -275,7 +275,7 @@ VkResult as::compile_shader(shader_binaries* out_compiled_shader, const shader_c
 	shaderc_compile_options_t options = shaderc_compile_options_initialize();
 	shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level::shaderc_optimization_level_performance);
 	shaderc_compile_options_set_generate_debug_info(options);
-
+	shaderc_compile_options_add_macro_definition(options, "test_var", 8, "1", 1); // add test_var val 1
 	shaderc_compiler_t compiler;
 	compiler = shaderc_compiler_initialize();
 
