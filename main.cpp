@@ -30,6 +30,7 @@ int main()
 	VkBuffer out_buffer;
 	CHECK_RESULT(as::create_buffer(&out_buffer, &memory, vk_interface.devices[0].queue_family_index));
 
+
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
 	shader_create_info.logical_device = &vk_interface.devices[0].logical;

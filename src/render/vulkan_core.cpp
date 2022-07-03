@@ -430,8 +430,8 @@ VkResult as::create_shader(vulkan_shader* out_shader, const vulkan_shader_create
 		in_descriptor_buffer_info.buffer = *create_info.in_buffer;
 		in_descriptor_buffer_info.range = VK_WHOLE_SIZE;
 		VkDescriptorBufferInfo out_descriptor_buffer_info = {};
-		in_descriptor_buffer_info.buffer = *create_info.out_buffer;
-		in_descriptor_buffer_info.range = VK_WHOLE_SIZE;
+		out_descriptor_buffer_info.buffer = *create_info.out_buffer;
+		out_descriptor_buffer_info.range = VK_WHOLE_SIZE;
 
 		VkWriteDescriptorSet write_descriptor_set_0 = {};
 		write_descriptor_set_0.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
