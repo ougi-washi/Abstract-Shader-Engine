@@ -153,51 +153,43 @@ VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device
 	return VK_SUCCESS;
 }
 
-VkResult as::create_command_pool(vulkan_device* &device, const u32 &queue_index)
+VkResult as::create_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
 {
-	return construct_command_pool(&device->command_pool, &device->logical, queue_index);
-}
-
-VkResult as::construct_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
-{
+	assert(out_command_pool);
 	VkCommandPoolCreateInfo command_pool_info = {};
 	command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	command_pool_info.queueFamilyIndex = queue_index;
 	command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // I am not sure if needed
-	if (!out_command_pool)
-	{
-		out_command_pool = (VkCommandPool*)malloc(sizeof VkCommandPool);
-	}
 	CHECK_RESULT(vkCreateCommandPool(*logical_device, &command_pool_info, nullptr, out_command_pool));
 	return VK_SUCCESS;
 }
 
-VkResult as::create_command_buffer(vulkan_device*& device, const u8& start_buffer)
+VkResult as::create_command_pool(vulkan_device*& out_vulkan_device, const u32& queue_index)
 {
-	return construct_command_buffer(&device->command_buffer, &device->logical, &device->command_pool, start_buffer);
+	return create_command_pool(&out_vulkan_device->command_pool, &out_vulkan_device->logical, out_vulkan_device->queue_family_index);
 }
 
-VkResult as::construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer)
+VkResult as::create_command_buffer(vulkan_device*& device, const u8& start_buffer)
 {
+	return create_command_buffer(&device->command_buffer, &device->logical, &device->command_pool, start_buffer);
+}
+
+VkResult as::create_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer)
+{
+	assert(out_command_buffer);
+
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	command_buffer_allocate_info.commandPool = *command_pool;
 	command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	command_buffer_allocate_info.commandBufferCount = 1; // TODO: create a system to create multiple buffers
-	if (!out_command_buffer)
-	{
-		out_command_buffer = (VkCommandBuffer*)malloc(sizeof VkCommandBuffer);
-	}
 	CHECK_RESULT(vkAllocateCommandBuffers(*logical_device, &command_buffer_allocate_info, out_command_buffer));
 
-	if (start_buffer)
-	{
-		VkCommandBufferBeginInfo command_buffer_begin_info = {};
-		command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		command_buffer_begin_info.pInheritanceInfo = 0;
-		CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info)); // TODO C6011
-	}
+	VkCommandBufferBeginInfo command_buffer_begin_info = {};
+	command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	command_buffer_begin_info.pInheritanceInfo = 0;
+	CHECK_RESULT(vkBeginCommandBuffer(*out_command_buffer, &command_buffer_begin_info)); // TODO C6011
 	return VK_SUCCESS;
 }
 

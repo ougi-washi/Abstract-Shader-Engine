@@ -21,10 +21,10 @@ namespace as
 
 	/** Commands */
 
-	VkResult create_command_pool(vulkan_device* &device, const u32& queue_index);
-	VkResult construct_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index);
+	VkResult create_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index);
+	VkResult create_command_pool(vulkan_device*& out_vulkan_device, const u32& queue_index);
 	VkResult create_command_buffer(vulkan_device*& device, const u8& start_buffer = true);
-	VkResult construct_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer = true);
+	VkResult create_command_buffer(VkCommandBuffer* out_command_buffer, VkDevice* logical_device, VkCommandPool* command_pool, const u8& start_buffer = true);
 	
 	/** Memory */
 	
