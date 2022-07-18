@@ -36,8 +36,11 @@ int main()
 	as::vulkan_shader_create_info shader_create_info = {};
 	shader_create_info.logical_device = &vk_interface.devices[0].logical;
 	shader_create_info.file_name = new char[]("main.comp");
-	shader_create_info.source = new char[]("#version 310 es\n"
-		"void main() { ;; }\n"
+	shader_create_info.source = new char[](
+		"#version 310 es\n"
+		"layout (set=0, binding = 0) uniform in_buffer_struct {int data[200];} in_buffer; \n"
+		"layout (set=0, binding = 1) uniform out_buffer_struct {int data[200];} out_buffer; \n"
+		"void main() {  }\n"
 		);
 	shader_create_info.in_buffer = &in_buffer;
 	shader_create_info.out_buffer = &out_buffer;
