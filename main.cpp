@@ -21,7 +21,7 @@ int main()
 	{
 		for (u32 i = 1; i < memory_size / sizeof(i32); i++)
 		{
-			payload[i] = rand();
+			payload[i] = 1;
 		}
 	}));
 	
@@ -30,7 +30,7 @@ int main()
 	CHECK_RESULT(as::create_buffer(&in_buffer, &memory, vk_interface.devices[0].queue_family_index));
 	VkBuffer out_buffer;
 	CHECK_RESULT(as::create_buffer(&out_buffer, &memory, vk_interface.devices[0].queue_family_index));
-
+	
 	// SHADERS
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
@@ -38,9 +38,10 @@ int main()
 	shader_create_info.file_name = new char[]("main.comp");
 	shader_create_info.source = new char[](
 		"#version 310 es\n"
-		"layout (set=0, binding = 0) uniform in_buffer_struct {int data[200];} in_buffer; \n"
-		"layout (set=0, binding = 1) uniform out_buffer_struct {int data[200];} out_buffer; \n"
-		"void main() {  }\n"
+		//"layout(local_size_x = 1, local_size_y = 1) in;\n"
+		"layout (set=0, binding = 0) buffer in_buffer_struct {int data[16384];} in_buffer; \n"
+		"layout (set=0, binding = 1) buffer out_buffer_struct {int data[16384];} out_buffer; \n"
+		"void main() { out_buffer.data[gl_GlobalInvocationID.x]++; }\n"
 		);
 	shader_create_info.in_buffer = &in_buffer;
 	shader_create_info.out_buffer = &out_buffer;
