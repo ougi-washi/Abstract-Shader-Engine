@@ -8,7 +8,7 @@
 
 namespace as
 {
-	/** Initialization */
+	/** Instances & devices */
 
 	// Main initialization function
 	VkResult init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info);
@@ -18,6 +18,7 @@ namespace as
 	VkResult construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count);
 	VkResult initialize_vulkan_devices(vulkan_device* devices, const u32& device_count, const vulkan_device_create_info& create_info);
 	VkResult initialize_vulkan_device(vulkan_device* device, const vulkan_device_create_info& create_info);
+	void destroy_vulkan(vulkan_interface* in_interface);
 
 	/** Pool & Commands */
 
@@ -31,16 +32,19 @@ namespace as
 	VkResult get_memory_type(u32* out_type, const VkPhysicalDeviceMemoryProperties& memory_properties, u32& typeBits, const VkMemoryPropertyFlags& properties);
 	VkResult allocate_memory(vulkan_memory* out_memory, const vulkan_memory_create_info& create_info);
 	VkResult edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)> payload_edit_fn);
+	void destroy_device_memory(VkDevice* in_device, VkDeviceMemory* in_device_memory);
 
 	/** Buffers */
 
 	VkResult create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index);
+	void destroy_buffer(VkDevice* in_device, VkBuffer* in_buffer);
 
 	/** Shaders & Descriptors */
 
 	VkResult compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info);
 	VkResult create_shader(vulkan_shader* out_shader, const vulkan_shader_create_info& create_info);
 	VkResult start_shader(vulkan_shader* in_shader, VkCommandBuffer* in_command_buffer, const u32& buffer_size);
+	void destroy_shader(VkDevice* in_device, vulkan_shader* in_shader);
 
 	/** Depth Stencil */
 
@@ -50,7 +54,7 @@ namespace as
 	/** Synchronization */
 
 	VkResult create_fences(vulkan_device*& device);
-	VkResult construct_fence(VkFence* out_fence, VkDevice* logical_device);
+	VkResult create_fence(VkFence* out_fence, VkDevice* logical_device);
 
 	/** Queues */
 

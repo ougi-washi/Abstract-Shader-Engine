@@ -6,6 +6,7 @@ int main()
 	as::vulkan_interface vk_interface;
 	as::vulkan_interface_create_info vulkan_interface_create_info = {};
 	vulkan_interface_create_info.debug = true;
+	vulkan_interface_create_info.is_compute = true;
 	CHECK_RESULT(as::init_vulkan(&vk_interface, vulkan_interface_create_info));
 	
 	// FILLING VRAM
@@ -30,7 +31,7 @@ int main()
 	CHECK_RESULT(as::create_buffer(&in_buffer, &memory, vk_interface.devices[0].queue_family_index));
 	VkBuffer out_buffer;
 	CHECK_RESULT(as::create_buffer(&out_buffer, &memory, vk_interface.devices[0].queue_family_index));
-	
+	//printf("%d", vk_interface.devices[0]);
 	// SHADERS
 	as::vulkan_shader shader;
 	as::vulkan_shader_create_info shader_create_info = {};
@@ -38,7 +39,7 @@ int main()
 	shader_create_info.file_name = new char[]("main.comp");
 	shader_create_info.source = new char[](
 		"#version 310 es\n"
-		//"layout(local_size_x = 1, local_size_y = 1) in;\n"
+		"layout(local_size_x = 1, local_size_y = 16) in;\n"
 		"layout (set=0, binding = 0) buffer in_buffer_struct {int data[16384];} in_buffer; \n"
 		"layout (set=0, binding = 1) buffer out_buffer_struct {int data[16384];} out_buffer; \n"
 		"void main() { out_buffer.data[gl_GlobalInvocationID.x]++; }\n"
@@ -65,5 +66,11 @@ int main()
 		AS_LOG(LV_LOG, "Display the full payload after executing the shader: ");
 		printf("%s\n", full_payload);
 	}));
+
+	as::destroy_buffer(&vk_interface.devices[0].logical, &in_buffer);
+	as::destroy_buffer(&vk_interface.devices[0].logical, &out_buffer);
+	as::destroy_device_memory(&vk_interface.devices[0].logical, &memory.device_memory);
+	as::destroy_shader(&vk_interface.devices[0].logical, &shader);
+	as::destroy_vulkan(&vk_interface);
 	return 0;
 }

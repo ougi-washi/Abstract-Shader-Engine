@@ -23,11 +23,12 @@ VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface
 	AS_LOG(LV_LOG, "Initializing Vulkan");
 	CHECK_RESULT(initialize_vulkan_instance(&out_interface->instance, create_info.debug));
 	CHECK_RESULT(construct_vulkan_devices(out_interface));
-	if (create_info.is_compute || 1)
+	vulkan_device_create_info device_create_info = {};
+	if (create_info.is_compute)
 	{
-		vulkan_device_create_info device_create_info = {};
-		CHECK_RESULT(initialize_vulkan_devices(out_interface->devices, out_interface->device_count, device_create_info));
+		device_create_info.type = vulkan_device_type::COMPUTE;
 	}
+	CHECK_RESULT(initialize_vulkan_devices(out_interface->devices, out_interface->device_count, device_create_info));
 	return VK_SUCCESS;
 }
 
@@ -41,8 +42,8 @@ VkResult as::initialize_vulkan_instance(VkInstance* instance, const bool& enable
 
 	VkApplicationInfo application_info = {};
 	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	application_info.pApplicationName = "UnknownShaderEngine_VK";
-	application_info.pEngineName = "UnknownShaderEngine_VK";
+	application_info.pApplicationName = "AbstractShaderEngine_VK";
+	application_info.pEngineName = "AbstractShaderEngine_VK";
 	application_info.apiVersion = VK_API_VERSION_1_0;
 
 	VkInstanceCreateInfo instance_create_info = {};
@@ -107,22 +108,9 @@ VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device
 	if (device)
 	{
 		AS_LOG(LV_LOG, "Initializing Vulkan device");
+
 		// TODO: depends on the passed create info
-
-		// Semaphore
-
-		AS_LOG(LV_LOG, "Creating Semaphores");
-		VkSemaphoreCreateInfo semaphore_create_info{};
-		semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (create_info.type & vulkan_device_type::COMPUTE)
-		{
-			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->compute_semaphore));
-		}
-		if (create_info.type & vulkan_device_type::GRAPHICS)
-		{
-			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->presentation_semaphore));
-			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->render_semaphore));
-		}
+		device->type = create_info.type;
 
 		// Submit info
 		VkPipelineStageFlags* wait_dest_stage_mask = (VkPipelineStageFlags*)malloc(sizeof VkPipelineStageFlags);
@@ -142,11 +130,60 @@ VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device
 		CHECK_RESULT(vkCreateDevice(device->physical, &deviceCreateInfo, 0, &device->logical));
 		vkGetPhysicalDeviceMemoryProperties(device->physical, &device->properties);
 
+		// Semaphore
+
+		AS_LOG(LV_LOG, "Creating Semaphores");
+		VkSemaphoreCreateInfo semaphore_create_info{};
+		semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (create_info.type & vulkan_device_type::COMPUTE)
+		{
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->compute_semaphore));
+		}
+		if (create_info.type & vulkan_device_type::GRAPHICS)
+		{
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->presentation_semaphore));
+			CHECK_RESULT(vkCreateSemaphore(device->logical, &semaphore_create_info, nullptr, &device->render_semaphore));
+		}
+
 		create_command_pool(device, device->queue_family_index);
 		create_command_buffer(device, true);
 		create_fences(device);
 	}
 	return VK_SUCCESS;
+}
+
+void as::destroy_vulkan(vulkan_interface* in_interface)
+{
+	assert(in_interface);
+	assert(in_interface->devices);
+
+	for (u8 i = 0 ; i < in_interface->device_count ; i++)
+	{
+		assert(&in_interface->devices[i].physical);
+		assert(&in_interface->devices[i].logical);
+
+		vkDestroyCommandPool(in_interface->devices[i].logical, in_interface->devices[i].command_pool, nullptr);
+		
+		if (in_interface->devices[i].type & as::vulkan_device_type::COMPUTE)
+		{
+			vkDestroySemaphore(in_interface->devices[i].logical, in_interface->devices[i].compute_semaphore, nullptr);
+			vkDestroyFence(in_interface->devices[i].logical, in_interface->devices[i].compute_fence, nullptr);
+		}
+		if (in_interface->devices[i].type & as::vulkan_device_type::GRAPHICS)
+		{
+			vkDestroySemaphore(in_interface->devices[i].logical, in_interface->devices[i].presentation_semaphore, nullptr);
+			vkDestroySemaphore(in_interface->devices[i].logical, in_interface->devices[i].render_semaphore, nullptr);
+			vkDestroyFence(in_interface->devices[i].logical, in_interface->devices[i].presentation_fence, nullptr);
+		}
+
+		vkDestroyDevice(in_interface->devices[i].logical, nullptr);
+	}
+	
+	assert(in_interface->instance);
+	vkDestroyInstance(in_interface->instance, nullptr);
+
+	//free(in_interface);
+
 }
 
 VkResult as::create_command_pool(VkCommandPool* out_command_pool, VkDevice* logical_device, const u32& queue_index)
@@ -249,6 +286,14 @@ VkResult as::edit_memory_payload(vulkan_memory* memory, std::function<void(i32*)
 	return VK_SUCCESS;
 }
 
+void as::destroy_device_memory(VkDevice* in_device, VkDeviceMemory* in_device_memory)
+{
+	assert(in_device_memory);
+	assert(in_device);
+
+	vkFreeMemory(*in_device, *in_device_memory, nullptr);
+}
+
 VkResult as::create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u32& queue_family_index)
 {
 	AS_LOG(LV_LOG, "Creating buffer");
@@ -268,6 +313,14 @@ VkResult as::create_buffer(VkBuffer* out_buffer, vulkan_memory* memory, const u3
 	CHECK_RESULT(vkCreateBuffer(memory->device->logical, &buffer_create_info, 0, out_buffer));
 	CHECK_RESULT(vkBindBufferMemory(memory->device->logical, *out_buffer, memory->device_memory, 0));
 	return VK_SUCCESS;
+}
+
+void as::destroy_buffer(VkDevice* in_device, VkBuffer* in_buffer)
+{
+	assert(in_buffer);
+	assert(in_device);
+
+	vkDestroyBuffer(*in_device, *in_buffer, nullptr);
 }
 
 VkResult as::compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info)
@@ -468,6 +521,18 @@ VkResult as::start_shader(vulkan_shader* in_shader, VkCommandBuffer* in_command_
 	return VK_SUCCESS;
 }
 
+void as::destroy_shader(VkDevice* in_device, vulkan_shader* in_shader)
+{
+	assert(in_shader);
+	assert(in_device);
+
+	vkDestroyPipelineLayout(*in_device, in_shader->pipeline_layout, nullptr);
+	vkDestroyPipeline(*in_device, in_shader->pipeline, nullptr);
+	vkDestroyDescriptorSetLayout(*in_device, in_shader->descriptor_set_layout, nullptr);
+	vkDestroyDescriptorPool(*in_device, in_shader->descriptor_pool, nullptr);
+	vkDestroyShaderModule(*in_device, in_shader->module, nullptr);
+}
+
 VkResult as::get_depth_format(VkFormat* out_Format, VkPhysicalDevice* physical_device)
 {
 	const u8 total_formats = 5;
@@ -547,18 +612,26 @@ VkResult as::create_depth_stencil(vulkan_device*& device, const u32& width, cons
 
 VkResult as::create_fences(vulkan_device*& device)
 {
-	return construct_fence(&device->compute_fence, &device->logical);
+	assert(device);
+	if (device->type & vulkan_device_type::COMPUTE)
+	{
+		CHECK_RESULT(create_fence(&device->compute_fence, &device->logical));
+	}
+	if (device->type & vulkan_device_type::GRAPHICS)
+	{
+		CHECK_RESULT(create_fence(&device->presentation_fence, &device->logical));
+	}
+	return VK_SUCCESS;
 }
 
-VkResult as::construct_fence(VkFence* out_fence, VkDevice* logical_device)
+VkResult as::create_fence(VkFence* out_fence, VkDevice* logical_device)
 {
+	assert(logical_device);
+	assert(out_fence);
+
 	VkFenceCreateInfo fence_create_info = {};
 	fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	if (!out_fence)
-	{
-		out_fence = (VkFence*)malloc(sizeof VkFence);
-	}
 	CHECK_RESULT(vkCreateFence(*logical_device, &fence_create_info, nullptr, out_fence));
 	return VK_SUCCESS;
 }
