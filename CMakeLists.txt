@@ -57,6 +57,12 @@ target_link_libraries(Render PUBLIC
 							glfw 
 							glm)
 
+## Path tracer
+add_library(RayTracer STATIC	src/ray_tracer/ray_tracer.cpp
+								src/ray_tracer/ray_tracer_core.cpp)
+target_link_libraries(RayTracer PUBLIC Render)
+
+
 # Link Dependencies 
 
 find_package(OpenMP REQUIRED)
@@ -68,7 +74,8 @@ target_include_directories(Render PUBLIC	${PROJECT_SOURCE_DIR}/include
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-							Render )
+							Render 
+							RayTracer)
 
 ## Definitions
 if(MSVC)
