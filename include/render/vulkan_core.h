@@ -43,7 +43,7 @@ namespace as
 
 	VkResult compile_shader(shader_binaries* out_compiled_shader, const shader_compile_info& compile_info);
 	VkResult create_shader(vulkan_shader* out_shader, const vulkan_shader_create_info& create_info);
-	VkResult start_shader(vulkan_shader* in_shader, VkCommandBuffer* in_command_buffer, const u32& buffer_size);
+	VkResult start_shader(vulkan_shader* in_shader, vulkan_device* in_device, const u32& buffer_size);
 	void destroy_shader(VkDevice* in_device, vulkan_shader* in_shader);
 
 	/** Depth Stencil */
@@ -67,4 +67,9 @@ namespace as
 
 	bool check_validation_layer_support();
 	char** get_required_extensions();
+
+	/** Tests */
+
+	void compute_test();
+
 };
