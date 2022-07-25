@@ -116,7 +116,7 @@ VkResult as::initialize_vulkan_device(vulkan_device* device, const vulkan_device
 
 		CHECK_RESULT(get_best_compute_queue(device->physical, &device->queue_family_index));
 
-		const float queue_prioritory = 1.0f;
+		const f32 queue_prioritory = 1.0f;
 		const VkDeviceQueueCreateInfo device_queue_create_info =
 		{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, device->queue_family_index, 1, &queue_prioritory };
 		const VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, 0, 0, 1, &device_queue_create_info, 0, 0, 0, 0, 0 };
