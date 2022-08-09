@@ -12,14 +12,23 @@
 
 namespace as
 {
-	/** Transforms */
+	/** Transforms 3D */
 	typedef glm::vec3 location;
 	typedef glm::vec3 direction;
 	typedef glm::vec3 rotation;
 	typedef glm::vec4 quaternion;
 	typedef glm::vec3 scale;
+	/** Transform 2D */
+	typedef glm::vec2 location2D;
+	typedef glm::vec2 direction2D;
+	typedef glm::vec2 rotation2D;
+	typedef glm::vec2 scale2D;
 	/** Colors */
 	typedef glm::vec3 color;
+	typedef glm::vec3 rgb;
+	typedef glm::vec4 rgba;
+
+	/** forward declaration */
 
 	struct time_stamp
 	{
@@ -55,7 +64,7 @@ namespace as
 	{
 		location loc;
 		direction dir;
-		f32 time;
+		f32 distance;
 	};
 
 	struct material
@@ -64,10 +73,25 @@ namespace as
 		f32 metal;
 	};
 
+	struct hit_record
+	{
+		location loc;
+		direction normal;
+		material* mat = nullptr;
+		float time;
+		u8 front_face : 1;
+	};
+
 	struct sphere
 	{
 		location center;
 		f32 radius;
-		material* mat;
+		material* mat = nullptr;
+	};
+
+	struct world
+	{
+		sphere* spheres = nullptr;
+		u16 sphere_count = 0;
 	};
 }

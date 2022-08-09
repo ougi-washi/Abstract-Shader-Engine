@@ -3,7 +3,7 @@
 
 int main() 
 {
-	as::compute_test();
-	as::test();
+	//as::compute_test();
+	as::ray_tracer_test();
 	return 0;
 }
