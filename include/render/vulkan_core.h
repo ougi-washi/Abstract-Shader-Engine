@@ -12,7 +12,6 @@ namespace as
 
 	// Main initialization function
 	VkResult init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info);
-
 	VkResult initialize_vulkan_instance(VkInstance* instance, const bool& enable_validation_layers);
 	VkResult construct_vulkan_devices(vulkan_interface* in_interface);
 	VkResult construct_vulkan_devices(VkInstance* in_instance, vulkan_device* &out_devices, u32& out_device_count);
@@ -72,4 +71,67 @@ namespace as
 
 	void compute_test();
 
+};
+
+// Rework
+namespace as
+{
+	/** Instance */
+	VkResult create_vulkan_instance(VkInstance& out_instance, const vulkan_instance_create_info& instance_create_info);
+
+	/** Surface */
+	VkResult create_surface(VkSurfaceKHR& out_surface, const VkInstance& instance, GLFWwindow* window);
+
+	/** Physical device */
+	QueueFamilyIndices find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
+	bool check_device_extension_support(VkPhysicalDevice& physical_device, const std::vector<const char*> extensions);
+	SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
+	bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
+	VkSampleCountFlagBits get_max_usable_sample_count(VkPhysicalDevice* physical_device);
+	void pick_physical_device(VkPhysicalDevice* out_physical_device, VkSampleCountFlagBits* out_msaa_samples, VkInstance* instance, VkSurfaceKHR* surface);
+
+	/** Logical device */
+	void create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers);
+	
+	/** Swap chain */
+	VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	VkExtent2D choos_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
+	void create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>* out_swap_chain_images, VkFormat* out_swap_chain_image_format, VkExtent2D* out_swap_chain_extent, VkDevice* logical_device, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, GLFWwindow* window);
+
+	/** Image view */
+	VkImageView create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+	void create_image_views(std::vector<VkImageView>* swap_chain_image_views, std::vector<VkFramebuffer>* swap_chain_framebuffers, std::vector<VkImage>* swap_chain_images, VkFormat* swap_chain_image_format, VkDevice* logical_device);
+	VkResult create_render_pass(VkFormat& swap_chain_image_format, VkSampleCountFlagBits& msaa_samples, VkRenderPass& render_pass, VkDevice& logical_device, VkPhysicalDevice& physical_device);
+	VkFormat find_supported_format(VkPhysicalDevice& physical_device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	VkFormat find_depth_format(VkPhysicalDevice& physical_device);
+
+	/** Descriptor && Shader */
+	VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);
+	void create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineLayout& out_pipeline_layout, VkDevice& logical_device, VkSampleCountFlagBits& msaa_samples, VkDescriptorSetLayout& descriptor_set_layout, VkRenderPass& render_pass); // EDIT THIS TO EXPOSE SHADERS
+	VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice& logical_device);
+	VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
+
+	/** Memory */
+
+	void create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	uint32_t find_memory_type(VkPhysicalDevice& physical_device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	void create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
+	void create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
+
+	/** Debug */
+	VkResult setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger);
+	VkResult create_debug_utils_messenger_EXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+	void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	
+	/** Utility */
+	bool check_layers_support(const std::vector<const char*> layers);
+	std::vector<const char*> get_required_extensions(const bool& enable_validation_layers);
+
+	/** Files */
+	static std::vector<char> read_file(const std::string& filename);
+	static char* read_file(const char* filename);
+	static void write_file_str(const char* filename, const char* data);
+	static void write_shader_bin(const char* filename, const as::shader_binaries& shader_bin);
 };

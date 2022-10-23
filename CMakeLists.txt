@@ -45,10 +45,16 @@ add_subdirectory(lib/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
+## CREATE ANOTHER MODULE, ADD THE DEPENDENCIES TO THE OTHER MODULE THEN BIND THEM TO THE MAIN RENDER LIB
 ## Render
 add_library(Render STATIC	src/core.cpp
 							src/render/vulkan.cpp
 							src/render/vulkan_core.cpp)
+
+target_include_directories(Render PUBLIC	
+								${PROJECT_SOURCE_DIR}/include
+								${PROJECT_SOURCE_DIR}/lib/stb
+								${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
 
 target_link_libraries(Render PUBLIC  
 							OpenMP::OpenMP_CXX
@@ -62,14 +68,10 @@ add_library(RayTracer STATIC	src/ray_tracer/ray_tracer.cpp
 								src/ray_tracer/ray_tracer_core.cpp)
 target_link_libraries(RayTracer PUBLIC Render)
 
-
 # Link Dependencies 
 
 find_package(OpenMP REQUIRED)
-target_include_directories(Render PUBLIC	${PROJECT_SOURCE_DIR}/include
-											${PROJECT_SOURCE_DIR}/include/render
-											${PROJECT_SOURCE_DIR}/lib/stb
-											${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
+
 
 add_executable(${PROJECT_NAME} main.cpp)
 

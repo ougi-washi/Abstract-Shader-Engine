@@ -7,17 +7,26 @@
 #include "glm/gtc/random.hpp"
 #include "glm/gtx/norm.hpp"
 
+const double pi = 3.1415926535897932385;
+
+glm::vec3 unit_vector(glm::vec3 v) {
+	return v / glm::length(v);
+}
+
 bool as::create_camera(camera* out_camera, const camera_create_info& create_info)
 {
 	assert(out_camera);
 
-	f32 theta = glm::radians(create_info.vfov);
+	//f32 theta = glm::radians(create_info.vfov); TODO
+	f32 theta = create_info.vfov * pi / 180.0;
 	f32 h = tan(theta / 2);
 	f32 viewport_height = 2.0 * h;
 	f32 viewport_width = create_info.aspect_ratio * viewport_height;
 
-	out_camera->w = glm::normalize(create_info.look_from - create_info.look_at);
-	out_camera->u = glm::normalize(glm::cross(create_info.vup, out_camera->w)); // TODO: make sure Normalize and unit vec are the same
+	//out_camera->w = glm::normalize(create_info.look_from - create_info.look_at); TODO
+	out_camera->w = unit_vector(create_info.look_from - create_info.look_at);
+	//out_camera->u = glm::normalize(glm::cross(create_info.vup, out_camera->w)); // TODO: make sure Normalize and unit vec are the same
+	out_camera->u = unit_vector(glm::cross(create_info.vup, out_camera->w));
 	out_camera->v = glm::cross(out_camera->w, out_camera->u);
 
 	out_camera->origin = create_info.look_from;
@@ -185,16 +194,16 @@ void as::ray_tracer_test()
 	/** camera */
 	camera main_camera = {};
 	camera_create_info main_camera_create_info = {};
-	main_camera_create_info.look_from = location(13.f, 2.f, 3.f);
-	main_camera_create_info.look_at = location(0.f);
+	main_camera_create_info.look_from = location(0.f, 0.f, 2.f);
+	main_camera_create_info.look_at = location(0.f, 0.f, 0.f);
 	main_camera_create_info.vup = location(0.f, 1.f, 0.f);
-	main_camera_create_info.focus_dist = 10.f;
+	main_camera_create_info.focus_dist = 1.f;
 	main_camera_create_info.aperture = .1f;
 	create_camera(&main_camera, main_camera_create_info);
 
 	/** material */
 	material metallic_material = {};
-	metallic_material.albedo = color(.2f, 5.f, 1.f);
+	metallic_material.albedo = color(1.f, 0.f, 0.f);
 	metallic_material.metal = .5f;
 
 	/** scene */
@@ -204,8 +213,8 @@ void as::ray_tracer_test()
 	main_world.sphere_count = sphere_count;
 	main_world.spheres = (sphere*)malloc(sizeof(sphere) * sphere_count);
 
-	main_world.spheres[0].center = location(0.f, -1000.f, 0.f);
-	main_world.spheres[0].radius = 1000.f;
+	main_world.spheres[0].center = location(0.f, 0.f, 0.f);
+	main_world.spheres[0].radius = 1.f;
 	main_world.spheres[0].mat = &metallic_material;
 
 	/** render */
@@ -225,7 +234,7 @@ void as::ray_tracer_test()
 		for (int i = 0; i < image_width; ++i)
 		{
 			color pixel_color(0, 0, 0);
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (int s = 0; s < samples_per_pixel; s++)
 			{
 				// Set up UV
@@ -236,7 +245,7 @@ void as::ray_tracer_test()
 				get_ray_from_camera(&current_ray, &main_camera, glm::vec2(u, v));
 
 				color result_pixel_color = get_ray_color(current_ray, &main_world, max_depth);
-#pragma omp critical
+//#pragma omp critical
 				{
 					pixel_color += result_pixel_color;
 				}
