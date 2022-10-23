@@ -11,12 +11,16 @@
 #include "render/vulkan_core.h"
 
 //IMAGE
+#ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#endif //STB_IMAGE_IMPLEMENTATION
 
 //TINYOBJ
+#ifndef TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#endif // TINYOBJLOADER_IMPLEMENTATION
 
 #include <iostream>
 #include <fstream>
@@ -247,8 +251,8 @@ private:
         as::create_command_pool(commandPool, physicalDevice, device, surface);//createCommandPool();
         as::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);// createColorResources();
         as::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);// createDepthResources();
-        createFramebuffers();
-        createTextureImage();
+        as::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);//createFramebuffers();
+        as::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);//createTextureImage();
         createTextureImageView();
         createTextureSampler();
         loadModel();
