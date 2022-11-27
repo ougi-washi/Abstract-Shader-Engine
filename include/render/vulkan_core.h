@@ -123,7 +123,7 @@ namespace as
 
 	void create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebuffers, VkDevice& logical_device, std::vector<VkImageView> &swap_chain_image_views, VkImageView& color_image_view, VkImageView& depth_image_view, VkRenderPass& render_pass, VkExtent2D& swap_chain_extent);
 
-	/** Buffer && Layout */
+	/** Texture && Buffer && Layout */
 
 	void create_texture_image(VkImage& out_texture_image, const char* texture_path, u32& mip_levels, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkDeviceMemory& texture_image_memory);
 	void create_texture_image_view(VkImageView& out_texture_image_view, VkDevice& logical_device, VkImage& image, const u32& mip_levels);
@@ -134,6 +134,17 @@ namespace as
 	void end_single_time_commands(VkDevice& logical_device, VkCommandPool& command_pool, VkCommandBuffer command_buffer, VkQueue& graphics_queue); /** unsure if the command_buffer should be a copy or ref */
 	void copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkBuffer buffer, VkImage image, u32 width, u32 height);
 	void generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, u32 mip_levels);
+
+	/** Model && Buffer */
+
+	void load_model(const char* modle_path, std::vector<Vertex> &out_vertices, std::vector<u32> &out_indices);
+	void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue);
+	void create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<Vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue);
+	void create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue);
+	void create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight);
+	VkResult create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDevice& logical_device, const i8& max_frames_in_flight);
+	VkResult create_descriptor_sets(std::vector<VkDescriptorSet>& out_descriptor_sets, VkDevice& logical_device, VkDescriptorSetLayout& descriptor_set_layout, VkDescriptorPool& descriptor_pool, const i8& max_frames_in_flight);;
+	void update_descriptor_sets(VkDevice& logical_device, std::vector<VkDescriptorSet>& out_descriptor_sets, std::vector<VkBuffer>& uniform_buffers, const i8& max_frames_in_flight, VkImageView& image_view, VkSampler& image_sampler);;
 
 	/** Debug */
 	VkResult setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger);

@@ -14,6 +14,12 @@
 #include <stb_image.h>
 #endif //STB_IMAGE_IMPLEMENTATION
 
+//TINYOBJ
+#ifndef TINYOBJLOADER_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+#endif // TINYOBJLOADER_IMPLEMENTATION
+
 VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
 	AS_LOG(LV_LOG, "Initializing Vulkan");
@@ -1692,7 +1698,7 @@ VkResult as::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_devi
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.size = size;
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	if (vkCreateBuffer(logical_device, &bufferInfo, nullptr, &out_buffer) != VK_SUCCESS) {
@@ -1705,7 +1711,7 @@ VkResult as::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_devi
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, properties);
 
 	VkResult allocation_result = vkAllocateMemory(logical_device, &allocInfo, nullptr, &buffer_memory);
 	VkResult binding_result = vkBindBufferMemory(logical_device, out_buffer, buffer_memory, 0);
@@ -1914,6 +1920,178 @@ void as::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_d
 		1, &barrier);
 
 	end_single_time_commands(logical_device, command_pool, commandBuffer, queue);
+}
+
+void as::load_model(const char* modle_path, std::vector<Vertex>& out_vertices, std::vector<u32>& out_indices)
+{
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modle_path)) {
+		throw std::runtime_error(warn + err);
+	}
+
+	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+	for (const auto& shape : shapes) {
+		for (const auto& index : shape.mesh.indices) {
+			Vertex vertex{};
+
+			vertex.pos = {
+				attrib.vertices[3 * index.vertex_index + 0],
+				attrib.vertices[3 * index.vertex_index + 1],
+				attrib.vertices[3 * index.vertex_index + 2]
+			};
+
+			vertex.texCoord = {
+				attrib.texcoords[2 * index.texcoord_index + 0],
+				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+			};
+
+			vertex.color = { 1.0f, 1.0f, 1.0f };
+
+			if (uniqueVertices.count(vertex) == 0) {
+				uniqueVertices[vertex] = static_cast<uint32_t>(out_vertices.size());
+				out_vertices.push_back(vertex);
+			}
+
+			out_indices.push_back(uniqueVertices[vertex]);
+		}
+	}
+}
+
+void as::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue)
+{
+	VkCommandBuffer command_buffer = begin_single_time_commands(logical_device, command_pool);
+
+	VkBufferCopy copy_region{};
+	copy_region.size = size;
+	vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+	end_single_time_commands(logical_device, command_pool, command_buffer, queue);
+}
+
+void as::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<Vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
+{
+	VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(staging_buffer, physical_device, logical_device, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(logical_device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, vertices.data(), (size_t)buffer_size);
+	vkUnmapMemory(logical_device, staging_buffer_memory);
+
+	create_buffer(out_vertex_buffer, physical_device, logical_device, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertex_buffer_memory);
+	 
+	copy_buffer(staging_buffer, out_vertex_buffer, buffer_size, logical_device, command_pool, queue);
+
+	vkDestroyBuffer(logical_device, staging_buffer, nullptr);
+	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
+}
+
+void as::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue)
+{
+	VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(staging_buffer, physical_device, logical_device, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(logical_device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, indices.data(), (size_t)buffer_size);
+	vkUnmapMemory(logical_device, staging_buffer_memory);
+
+	create_buffer(out_index_buffer, physical_device, logical_device, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer_memory);
+
+	copy_buffer(staging_buffer, out_index_buffer, buffer_size, logical_device, command_pool, queue);
+
+	vkDestroyBuffer(logical_device, staging_buffer, nullptr);
+	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
+}
+
+void as::create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight)
+{
+	VkDeviceSize buffer_size = sizeof(UniformBufferObject);
+
+	out_uniform_buffers.resize(max_frames_in_flight);
+	out_uniform_buffers_memory.resize(max_frames_in_flight);
+
+	for (i8 i = 0; i < max_frames_in_flight; i++)
+	{
+		create_buffer(out_uniform_buffers[i], physical_device, logical_device, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, out_uniform_buffers_memory[i]);
+	}
+}
+
+VkResult as::create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDevice& logical_device, const i8& max_frames_in_flight)
+{
+	std::array<VkDescriptorPoolSize, 2> pool_sizes{};
+	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_sizes[0].descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	pool_sizes[1].descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+	VkDescriptorPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+	poolInfo.pPoolSizes = pool_sizes.data();
+	poolInfo.maxSets = static_cast<uint32_t>(max_frames_in_flight);
+
+	return vkCreateDescriptorPool(logical_device, &poolInfo, nullptr, &descriptor_tool);
+}
+
+VkResult as::create_descriptor_sets(std::vector<VkDescriptorSet>& out_descriptor_sets, VkDevice& logical_device, VkDescriptorSetLayout& descriptor_set_layout, VkDescriptorPool& descriptor_pool, const i8& max_frames_in_flight)
+{
+	std::vector<VkDescriptorSetLayout> layouts(max_frames_in_flight, descriptor_set_layout);
+	VkDescriptorSetAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = descriptor_pool;
+	alloc_info.descriptorSetCount = static_cast<uint32_t>(max_frames_in_flight);
+	alloc_info.pSetLayouts = layouts.data();
+
+	out_descriptor_sets.resize(max_frames_in_flight);
+	return vkAllocateDescriptorSets(logical_device, &alloc_info, out_descriptor_sets.data());
+}
+
+void as::update_descriptor_sets(VkDevice& logical_device, std::vector<VkDescriptorSet>& out_descriptor_sets, std::vector<VkBuffer>& uniform_buffers, const i8& max_frames_in_flight, VkImageView& image_view, VkSampler& image_sampler)
+{
+	for (size_t i = 0; i < max_frames_in_flight; i++)
+	{
+		VkDescriptorBufferInfo buffer_info{};
+		buffer_info.buffer = uniform_buffers[i];
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(UniformBufferObject);
+
+		VkDescriptorImageInfo image_info{};
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = image_view;
+		image_info.sampler = image_sampler;
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = out_descriptor_sets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = out_descriptor_sets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &image_info;
+
+		vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
 }
 
 VkResult as::setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger)

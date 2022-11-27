@@ -15,12 +15,12 @@
 //#define STB_IMAGE_IMPLEMENTATION
 //#include <stb_image.h>
 //#endif //STB_IMAGE_IMPLEMENTATION
-
-//TINYOBJ
-#ifndef TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-#endif // TINYOBJLOADER_IMPLEMENTATION
+//
+////TINYOBJ
+//#ifndef TINYOBJLOADER_IMPLEMENTATION
+//#define TINYOBJLOADER_IMPLEMENTATION
+//#include <tiny_obj_loader.h>
+//#endif // TINYOBJLOADER_IMPLEMENTATION
 
 
 #include <iostream>
@@ -197,7 +197,7 @@ private:
     VkImageView textureImageView;
     VkSampler textureSampler;
 
-    std::vector<Vertex> vertices;
+    std::vector<as::Vertex> vertices;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
@@ -256,12 +256,13 @@ private:
         as::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory); //createTextureImage();
         as::create_texture_image_view(textureImageView, device, textureImage, mipLevels); //createTextureImageView();
         as::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels); //createTextureSampler();
-        loadModel();
-        createVertexBuffer();
-        createIndexBuffer();
-        createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
+        as::load_model(MODEL_PATH.c_str(), vertices, indices); //loadModel();
+        as::create_vertex_buffer(vertexBuffer, vertexBufferMemory, physicalDevice, device, vertices, commandPool, graphicsQueue); //createVertexBuffer();
+        as::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue); //createIndexBuffer();
+        as::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT); //createUniformBuffers();
+        as::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);  //createDescriptorPool();
+        as::create_descriptor_sets(descriptorSets, device, descriptorSetLayout, descriptorPool, MAX_FRAMES_IN_FLIGHT); //createDescriptorSets();
+        as::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
         createCommandBuffers();
         createSyncObjects();
     }
@@ -1149,42 +1150,42 @@ private:
     }
 
     void loadModel() {
-		tinyobj::attrib_t attrib;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-		std::string warn, err;
+		/*	tinyobj::attrib_t attrib;
+			std::vector<tinyobj::shape_t> shapes;
+			std::vector<tinyobj::material_t> materials;
+			std::string warn, err;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
-			throw std::runtime_error(warn + err);
-		}
-
-		std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-		for (const auto& shape : shapes) {
-			for (const auto& index : shape.mesh.indices) {
-				Vertex vertex{};
-
-				vertex.pos = {
-					attrib.vertices[3 * index.vertex_index + 0],
-					attrib.vertices[3 * index.vertex_index + 1],
-					attrib.vertices[3 * index.vertex_index + 2]
-				};
-
-				vertex.texCoord = {
-					attrib.texcoords[2 * index.texcoord_index + 0],
-					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-				};
-
-				vertex.color = { 1.0f, 1.0f, 1.0f };
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-					vertices.push_back(vertex);
-				}
-
-				indices.push_back(uniqueVertices[vertex]);
+			if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+				throw std::runtime_error(warn + err);
 			}
-		}
+
+			std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+			for (const auto& shape : shapes) {
+				for (const auto& index : shape.mesh.indices) {
+					Vertex vertex{};
+
+					vertex.pos = {
+						attrib.vertices[3 * index.vertex_index + 0],
+						attrib.vertices[3 * index.vertex_index + 1],
+						attrib.vertices[3 * index.vertex_index + 2]
+					};
+
+					vertex.texCoord = {
+						attrib.texcoords[2 * index.texcoord_index + 0],
+						1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+					};
+
+					vertex.color = { 1.0f, 1.0f, 1.0f };
+
+					if (uniqueVertices.count(vertex) == 0) {
+						uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+						vertices.push_back(vertex);
+					}
+
+					indices.push_back(uniqueVertices[vertex]);
+				}
+			}*/
     }
 
     void createVertexBuffer() {
@@ -1201,7 +1202,8 @@ private:
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        as::copy_buffer(stagingBuffer, vertexBuffer, bufferSize, device, commandPool, graphicsQueue);
+        //copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
         vkFreeMemory(device, stagingBufferMemory, nullptr);
