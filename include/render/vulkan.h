@@ -239,7 +239,12 @@ namespace as
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-
+	struct image_data
+	{
+		VkImage image;
+		VkImageView view;
+		VkDeviceMemory memory;
+	};
 };
 
 namespace std 
