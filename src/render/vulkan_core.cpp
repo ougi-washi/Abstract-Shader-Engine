@@ -8,8 +8,11 @@
 #include <array> // TODO: remove
 #include <fstream> // TODO: remove
 
-
-
+//IMAGE
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#endif //STB_IMAGE_IMPLEMENTATION
 
 VkResult as::init_vulkan(vulkan_interface* out_interface, const vulkan_interface_create_info& create_info)
 {
@@ -654,13 +657,13 @@ VkResult as::submit_queue(VkQueue* in_queue, VkCommandBuffer* in_command_buffer)
 
 VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
 {
-	uint32_t queue_family_properties_count = 0;
+	u32 queue_family_properties_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_properties_count, 0);
 
 	VkQueueFamilyProperties* const queue_family_properties = (VkQueueFamilyProperties*)_alloca(sizeof(VkQueueFamilyProperties) * queue_family_properties_count); // TODO: check warning
 
 	// first try and find a queue that has just the transfer bit set
-	for (uint32_t i = 0; i < queue_family_properties_count; i++)
+	for (u32 i = 0; i < queue_family_properties_count; i++)
 	{
 		// mask out the sparse binding bit that we aren't caring about (yet!)
 		const VkQueueFlags masked_flags = (~VK_QUEUE_SPARSE_BINDING_BIT & queue_family_properties[i].queueFlags);
@@ -674,7 +677,7 @@ VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u3
 
 	// otherwise we'll prefer using a compute-only queue,
 	// remember that having compute on the queue implicitly enables transfer!
-	for (uint32_t i = 0; i < queue_family_properties_count; i++)
+	for (u32 i = 0; i < queue_family_properties_count; i++)
 	{
 		// mask out the sparse binding bit that we aren't caring about (yet!)
 		const VkQueueFlags masked_flags = (~VK_QUEUE_SPARSE_BINDING_BIT & queue_family_properties[i].queueFlags);
@@ -687,7 +690,7 @@ VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u3
 	}
 
 	// lastly get any queue that'll work for us (graphics, compute or transfer bit set)
-	for (uint32_t i = 0; i < queue_family_properties_count; i++)
+	for (u32 i = 0; i < queue_family_properties_count; i++)
 	{
 		// mask out the sparse binding bit that we aren't caring about (yet!)
 		const VkQueueFlags masked_flags = (~VK_QUEUE_SPARSE_BINDING_BIT & queue_family_properties[i].queueFlags);
@@ -704,7 +707,7 @@ VkResult as::get_best_transfer_queue(const VkPhysicalDevice &physical_device, u3
 
 VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32* queue_family_index)
 {
-	uint32_t queue_family_properties_count = 0;
+	u32 queue_family_properties_count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_properties_count, 0);
 
 	VkQueueFamilyProperties* const queue_family_properties = (VkQueueFamilyProperties*)_alloca(
@@ -713,7 +716,7 @@ VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_properties_count, queue_family_properties);
 
 	// first try and find a queue that has just the compute bit set
-	for (uint32_t i = 0; i < queue_family_properties_count; i++)
+	for (u32 i = 0; i < queue_family_properties_count; i++)
 	{
 		// mask out the sparse binding bit that we aren't caring about (yet!) and the transfer bit
 		const VkQueueFlags masked_flags = (~(VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT) &
@@ -727,7 +730,7 @@ VkResult as::get_best_compute_queue(const VkPhysicalDevice &physical_device, u32
 	}
 
 	// lastly get any queue that'll work for us
-	for (uint32_t i = 0; i < queue_family_properties_count; i++)
+	for (u32 i = 0; i < queue_family_properties_count; i++)
 	{
 		// mask out the sparse binding bit that we aren't caring about (yet!) and the transfer bit
 		const VkQueueFlags masked_flags = (~(VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT) &
@@ -753,7 +756,7 @@ VkResult as::get_device_queue(VkQueue* out_queue, vulkan_device* in_vulkan_devic
 
 bool as::check_validation_layer_support()
 {
-	uint32_t layerCount;
+	u32 layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 	std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -893,13 +896,13 @@ VkResult as::create_vulkan_instance(VkInstance& out_instance, const vulkan_insta
 	createInfo.pApplicationInfo = &appInfo;
 
 	auto extensions = get_required_extensions(instance_create_info.enable_validation_layers);
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+	createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 	if (instance_create_info.enable_validation_layers) 
 	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(instance_create_info.validation_layers.size());
+		createInfo.enabledLayerCount = static_cast<u32>(instance_create_info.validation_layers.size());
 		createInfo.ppEnabledLayerNames = instance_create_info.validation_layers.data();
 		populate_debug_messenger_create_info(debugCreateInfo);
 		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -921,7 +924,7 @@ as::QueueFamilyIndices as::find_queue_families(VkPhysicalDevice& physical_device
 {
 	QueueFamilyIndices indices;
 
-	uint32_t queueFamilyCount = 0;
+	u32 queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, nullptr);
 
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -954,7 +957,7 @@ as::QueueFamilyIndices as::find_queue_families(VkPhysicalDevice& physical_device
 
 bool as::check_device_extension_support(VkPhysicalDevice& physical_device, const std::vector<const char*> extensions)
 {
-	uint32_t extensionCount;
+	u32 extensionCount;
 	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, nullptr);
 
 	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -976,7 +979,7 @@ as::SwapChainSupportDetails as::query_swap_chain_support(VkPhysicalDevice& physi
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, *surface, &details.capabilities);
 
-	uint32_t formatCount;
+	u32 formatCount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, *surface, &formatCount, nullptr);
 
 	if (formatCount != 0) {
@@ -984,7 +987,7 @@ as::SwapChainSupportDetails as::query_swap_chain_support(VkPhysicalDevice& physi
 		vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, *surface, &formatCount, details.formats.data());
 	}
 
-	uint32_t presentModeCount;
+	u32 presentModeCount;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, *surface, &presentModeCount, nullptr);
 
 	if (presentModeCount != 0) {
@@ -1032,7 +1035,7 @@ VkSampleCountFlagBits as::get_max_usable_sample_count(VkPhysicalDevice* physical
 
 void as::pick_physical_device(VkPhysicalDevice* out_physical_device, VkSampleCountFlagBits* out_msaa_samples, VkInstance* instance, VkSurfaceKHR* surface)
 {
-	uint32_t deviceCount = 0;
+	u32 deviceCount = 0;
 	vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
 
 	if (deviceCount == 0) {
@@ -1063,10 +1066,10 @@ void as::create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphi
 	QueueFamilyIndices indices = find_queue_families(*physical_device, surface);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+	std::set<u32> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
+	for (u32 queueFamily : uniqueQueueFamilies)
 	{
 		VkDeviceQueueCreateInfo queueCreateInfo{};
 		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -1082,17 +1085,17 @@ void as::create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphi
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+	createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
 	createInfo.pEnabledFeatures = &deviceFeatures;
 
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+	createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
 
 	if (validation_layers.size() > 0)
 	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
+		createInfo.enabledLayerCount = static_cast<u32>(validation_layers.size());
 		createInfo.ppEnabledLayerNames = validation_layers.data();
 	}
 	else {
@@ -1135,7 +1138,7 @@ VkPresentModeKHR as::choose_swap_present_mode(const std::vector<VkPresentModeKHR
 
 VkExtent2D as::choos_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
 {
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+	if (capabilities.currentExtent.width != std::numeric_limits<u32>::max()) {
 		return capabilities.currentExtent;
 	}
 	else {
@@ -1143,8 +1146,8 @@ VkExtent2D as::choos_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, G
 		glfwGetFramebufferSize(window, &width, &height);
 
 		VkExtent2D actualExtent = {
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
+			static_cast<u32>(width),
+			static_cast<u32>(height)
 		};
 
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -1162,7 +1165,7 @@ void as::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>*
 	VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.presentModes);
 	VkExtent2D extent = choos_swap_extent(swapChainSupport.capabilities, window);
 
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+	u32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
 	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
@@ -1179,7 +1182,7 @@ void as::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>*
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	QueueFamilyIndices indices = find_queue_families(*physical_device, surface);
-	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+	u32 queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	if (indices.graphicsFamily != indices.presentFamily) {
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -1207,7 +1210,7 @@ void as::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>*
 	*out_swap_chain_extent = extent;
 }
 
-VkImageView as::create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+VkImageView as::create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels)
 {
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1231,7 +1234,7 @@ VkImageView as::create_image_view(VkDevice* logical_device, VkImage image, VkFor
 void as::create_image_views(std::vector<VkImageView>* swap_chain_image_views, std::vector<VkFramebuffer>* swap_chain_framebuffers, std::vector<VkImage>* swap_chain_images, VkFormat* swap_chain_image_format, VkDevice* logical_device)
 {
 	swap_chain_image_views->resize(swap_chain_images->size());
-	for (uint32_t i = 0; i < swap_chain_images->size(); i++)
+	for (u32 i = 0; i < swap_chain_images->size(); i++)
 	{
 		(*swap_chain_image_views)[i] = create_image_view(logical_device, (*swap_chain_images)[i], *swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	}
@@ -1299,7 +1302,7 @@ VkResult as::create_render_pass(VkFormat& swap_chain_image_format, VkSampleCount
 	std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+	renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
@@ -1354,7 +1357,7 @@ VkResult as::create_descriptor_set_layout(VkDevice& logical_device, VkDescriptor
 	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.bindingCount = static_cast<u32>(bindings.size());
 	layoutInfo.pBindings = bindings.data();
 
 	return vkCreateDescriptorSetLayout(logical_device, &layoutInfo, nullptr, &out_descriptor_set_layout);
@@ -1407,7 +1410,7 @@ void as::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineL
 	auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attributeDescriptions.size());
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
@@ -1465,7 +1468,7 @@ void as::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineL
 	};
 	VkPipelineDynamicStateCreateInfo dynamicState{};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+	dynamicState.dynamicStateCount = static_cast<u32>(dynamicStates.size());
 	dynamicState.pDynamicStates = dynamicStates.data();
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -1507,7 +1510,7 @@ VkShaderModule as::create_shader_module(const std::vector<char>& code, VkDevice&
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	createInfo.pCode = reinterpret_cast<const u32*>(code.data());
 
 	VkShaderModule shaderModule;
 	if (vkCreateShaderModule(logical_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -1527,7 +1530,7 @@ VkResult as::create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevi
 	return vkCreateCommandPool(logical_device, &poolInfo, nullptr, &out_command_pool);
 }
 
-void as::create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void as::create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1563,17 +1566,16 @@ void as::create_image(VkPhysicalDevice& physical_device, VkDevice& logical_devic
 	vkBindImageMemory(logical_device, image, imageMemory, 0);
 }
 
-uint32_t as::find_memory_type(VkPhysicalDevice& physical_device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+u32 as::find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
 
-	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+	for (u32 i = 0; i < memProperties.memoryTypeCount; i++) {
 		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 			return i;
 		}
 	}
-
 	AS_LOG(LV_ERROR, "failed to find suitable memory type!");
 }
 
@@ -1605,7 +1607,7 @@ void as::create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebu
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = render_pass;
-		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		framebufferInfo.attachmentCount = static_cast<u32>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = swap_chain_extent.width;
 		framebufferInfo.height = swap_chain_extent.height;
@@ -1618,20 +1620,22 @@ void as::create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebu
 	}
 }
 
-void as::create_texture_image(VkImage& out_texture_image, const char* texture_path, uint32_t& mip_levels, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkDeviceMemory& texture_image_memory)
+void as::create_texture_image(VkImage& out_texture_image, const char* texture_path, u32& mip_levels, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkDeviceMemory& texture_image_memory)
 {
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(texture_path, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
-	mip_levels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+	mip_levels = static_cast<u32>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
-	if (!pixels) {
-		throw std::runtime_error("failed to load texture image!");
+	if (!pixels) 
+	{
+		AS_LOG(LV_ERROR, "Could not load the image");
 	}
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(stagingBuffer, physical_device, logical_device, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, imageSize, stagingBufferMemory);
+	CHECK_RESULT(create_buffer(stagingBuffer, physical_device, logical_device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferMemory));
+	
 
 	void* data;
 	vkMapMemory(logical_device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -1643,7 +1647,7 @@ void as::create_texture_image(VkImage& out_texture_image, const char* texture_pa
 	create_image(physical_device, logical_device, texWidth, texHeight, mip_levels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, out_texture_image, texture_image_memory);
 
 	transition_image_layout(logical_device, command_pool, graphics_queue, out_texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mip_levels);
-	copy_buffer_to_image(logical_device, command_pool, graphics_queue, stagingBuffer, out_texture_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	copy_buffer_to_image(logical_device, command_pool, graphics_queue, stagingBuffer, out_texture_image, static_cast<u32>(texWidth), static_cast<u32>(texHeight));
 	//transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
 
 	vkDestroyBuffer(logical_device, stagingBuffer, nullptr);
@@ -1652,12 +1656,43 @@ void as::create_texture_image(VkImage& out_texture_image, const char* texture_pa
 	generate_mipmaps(physical_device, logical_device, command_pool, graphics_queue, out_texture_image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mip_levels);
 }
 
-void as::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& buffer_memory)
+void as::create_texture_image_view(VkImageView& out_texture_image_view, VkDevice& logical_device, VkImage& image, const u32& mip_levels)
+{
+	out_texture_image_view = create_image_view(&logical_device, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mip_levels);
+}
+
+VkResult as::create_texture_sampler(VkSampler& out_texture_sampler, VkPhysicalDevice& physical_device, VkDevice& logical_device, const u32& mip_levels)
+{
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(physical_device, &properties);
+
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(mip_levels);
+	samplerInfo.mipLodBias = 0.0f;
+
+	return vkCreateSampler(logical_device, &samplerInfo, nullptr, &out_texture_sampler);
+}
+
+VkResult as::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkDeviceSize& size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& buffer_memory)
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.size = size;
-	bufferInfo.usage = usage;
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	if (vkCreateBuffer(logical_device, &bufferInfo, nullptr, &out_buffer) != VK_SUCCESS) {
@@ -1670,16 +1705,22 @@ void as::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_device, 
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, properties);
+	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-	if (vkAllocateMemory(logical_device, &allocInfo, nullptr, &buffer_memory) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate buffer memory!");
+	VkResult allocation_result = vkAllocateMemory(logical_device, &allocInfo, nullptr, &buffer_memory);
+	VkResult binding_result = vkBindBufferMemory(logical_device, out_buffer, buffer_memory, 0);
+	if (allocation_result != VK_SUCCESS)
+	{
+		return allocation_result;
 	}
-
-	vkBindBufferMemory(logical_device, out_buffer, buffer_memory, 0);
+	if (binding_result != VK_SUCCESS)
+	{
+		return binding_result;
+	}
+	return VK_SUCCESS;
 }
 
-void as::transition_image_layout(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, uint32_t mipLevels)
+void as::transition_image_layout(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, u32 mipLevels)
 {
 	VkCommandBuffer commandBuffer = begin_single_time_commands(logical_device, command_pool);
 
@@ -1764,7 +1805,7 @@ void as::end_single_time_commands(VkDevice& logical_device, VkCommandPool& comma
 	vkFreeCommandBuffers(logical_device, command_pool, 1, &command_buffer);
 }
 
-void as::copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void as::copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkBuffer buffer, VkImage image, u32 width, u32 height)
 {
 	VkCommandBuffer commandBuffer = begin_single_time_commands(logical_device, command_pool);
 
@@ -1787,7 +1828,7 @@ void as::copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& command_p
 	end_single_time_commands(logical_device, command_pool, commandBuffer, graphics_queue);
 }
 
-void as::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mip_levels)
+void as::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, u32 mip_levels)
 {
 	// Check if image format supports linear blitting
 	VkFormatProperties formatProperties;
@@ -1812,7 +1853,7 @@ void as::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_d
 	int32_t mipWidth = texWidth;
 	int32_t mipHeight = texHeight;
 
-	for (uint32_t i = 1; i < mip_levels; i++) {
+	for (u32 i = 1; i < mip_levels; i++) {
 		barrier.subresourceRange.baseMipLevel = i - 1;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -1910,7 +1951,7 @@ void as::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT
 
 bool as::check_layers_support(const std::vector<const char*> layers)
 {
-	uint32_t layerCount;
+	u32 layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 	std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -1938,7 +1979,7 @@ bool as::check_layers_support(const std::vector<const char*> layers)
 
 std::vector<const char*> as::get_required_extensions(const bool& enable_validation_layers)
 {
-	uint32_t glfwExtensionCount = 0;
+	u32 glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -1974,6 +2015,11 @@ std::vector<char> as::read_file(const std::string& filename)
 char* as::read_file(const char* filename)
 {
 	FILE* f = fopen(filename, "rb");
+	if (!f)
+	{
+		AS_LOG(LV_WARNING, "File [" + std::string(filename) + "] not found, a crash may occur");
+		return nullptr;
+	}
 	fseek(f, 0, SEEK_END);
 	long fsize = ftell(f);
 	fseek(f, 0, SEEK_SET);

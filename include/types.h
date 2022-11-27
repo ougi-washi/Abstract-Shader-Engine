@@ -54,6 +54,7 @@ typedef double f64;
 #endif
 
 // Error handling
+#define ASSERT_ON_ERROR true
 #define CRASH_ON_ERROR true
 
 enum log_level : u8 { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 };
@@ -62,4 +63,6 @@ enum log_level : u8 { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 };
 #define AS_LOG(level, text) \
 	if (level == log_level::LV_LOG) { std::cout << "LOG: " << text << std::endl; }\
 	else if(level == log_level::LV_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
-	else if(level == log_level::LV_ERROR) { std::cout << "ERROR: " << text << std::endl; if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }
+	else if(level == log_level::LV_ERROR) { std::cout << "ERROR: " << text << std::endl;\
+		if (ASSERT_ON_ERROR) { assert(false); }\
+		if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }
