@@ -2107,6 +2107,30 @@ VkResult as::create_command_buffers(std::vector<VkCommandBuffer>& command_buffer
 	return vkAllocateCommandBuffers(logical_device, &alloc_info, command_buffers.data());
 }
 
+void as::create_sync_objects(VkDevice& logical_device, std::vector<VkSemaphore>& image_available_semaphores, std::vector<VkSemaphore>& render_finished_semaphores, std::vector<VkFence>& inflight_fences, const i8& max_frames_in_flight)
+{
+	image_available_semaphores.resize(max_frames_in_flight);
+	render_finished_semaphores.resize(max_frames_in_flight);
+	inflight_fences.resize(max_frames_in_flight);
+
+	VkSemaphoreCreateInfo semaphore_info{};
+	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < max_frames_in_flight; i++)
+	{
+		if (vkCreateSemaphore(logical_device, &semaphore_info, nullptr, &image_available_semaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(logical_device, &semaphore_info, nullptr, &render_finished_semaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(logical_device, &fenceInfo, nullptr, &inflight_fences[i]) != VK_SUCCESS)
+		{
+			AS_LOG(LV_ERROR, "failed to create synchronization objects for a frame!");
+		}
+	}
+}
+
 VkResult as::setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger)
 {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo;
