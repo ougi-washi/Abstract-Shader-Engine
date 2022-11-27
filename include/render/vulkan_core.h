@@ -98,6 +98,7 @@ namespace as
 	VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D choos_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 	void create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>* out_swap_chain_images, VkFormat* out_swap_chain_image_format, VkExtent2D* out_swap_chain_extent, VkDevice* logical_device, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, GLFWwindow* window);
+	void cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<as::image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views);
 
 	/** Image view */
 	VkImageView create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels);

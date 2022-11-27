@@ -1216,6 +1216,28 @@ void as::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>*
 	*out_swap_chain_extent = extent;
 }
 
+void as::cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views)
+{
+	for (auto current_image_data : images_data)
+	{
+		vkDestroyImageView(logical_device, current_image_data.view, nullptr);
+		vkDestroyImage(logical_device, current_image_data.image, nullptr);
+		vkFreeMemory(logical_device, current_image_data.memory, nullptr);
+	}
+
+	for (auto frame_buffer : frame_buffers) 
+	{
+		vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
+	}
+
+	for (auto image_view : swap_chain_image_views) 
+	{
+		vkDestroyImageView(logical_device, image_view, nullptr);
+	}
+
+	vkDestroySwapchainKHR(logical_device, swap_chain, nullptr);
+}
+
 VkImageView as::create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels)
 {
 	VkImageViewCreateInfo viewInfo{};

@@ -256,23 +256,12 @@ private:
     }
 
     void cleanupSwapChain() {
-        vkDestroyImageView(device, depthImageView, nullptr);
-        vkDestroyImage(device, depthImage, nullptr);
-        vkFreeMemory(device, depthImageMemory, nullptr);
-
-        vkDestroyImageView(device, colorImageView, nullptr);
-        vkDestroyImage(device, colorImage, nullptr);
-        vkFreeMemory(device, colorImageMemory, nullptr);
-
-        for (auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-        }
-
-        for (auto imageView : swapChainImageViews) {
-            vkDestroyImageView(device, imageView, nullptr);
-        }
-
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
+		std::vector<as::image_data> images_data =
+		{
+			{colorImage, colorImageView, colorImageMemory},
+			{depthImage, depthImageView, depthImageMemory}
+		};
+		as::cleanup_swap_chain(device, swapChain, images_data, swapChainFramebuffers, swapChainImageViews);
     }
 
     void cleanup() {
