@@ -2094,6 +2094,19 @@ void as::update_descriptor_sets(VkDevice& logical_device, std::vector<VkDescript
 	}
 }
 
+VkResult as::create_command_buffers(std::vector<VkCommandBuffer>& command_buffers, VkDevice& logical_device, VkCommandPool& command_pool, const i8& max_frames_in_flight)
+{
+	command_buffers.resize(max_frames_in_flight);
+
+	VkCommandBufferAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = command_pool;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandBufferCount = (uint32_t)command_buffers.size();
+
+	return vkAllocateCommandBuffers(logical_device, &alloc_info, command_buffers.data());
+}
+
 VkResult as::setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger)
 {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo;

@@ -263,7 +263,7 @@ private:
         as::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);  //createDescriptorPool();
         as::create_descriptor_sets(descriptorSets, device, descriptorSetLayout, descriptorPool, MAX_FRAMES_IN_FLIGHT); //createDescriptorSets();
         as::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
-        createCommandBuffers();
+        as::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT); //createCommandBuffers();
         createSyncObjects();
     }
 
