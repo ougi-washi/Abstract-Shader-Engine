@@ -70,8 +70,42 @@ VkResult as::vk::create_surface(const surface_create_info& create_info, VkSurfac
 {
 	return glfwCreateWindowSurface(create_info.instance, create_info.window, nullptr, &out_surface);
 }
+//
+//as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface)
+//{
+//	QueueFamilyIndices indices;
+//
+//	u32 queueFamilyCount = 0;
+//	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, nullptr);
+//
+//	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+//	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, queueFamilies.data());
+//
+//	int i = 0;
+//	for (const auto& queueFamily : queueFamilies) 
+//	{
+//		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+//			indices.graphicsFamily = i;
+//		}
+//
+//		VkBool32 presentSupport = false;
+//		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, *surface, &presentSupport);
+//
+//		if (presentSupport) 
+//		{
+//			indices.presentFamily = i;
+//		}
+//
+//		if (indices.isComplete()) {
+//			break;
+//		}
+//		i++;
+//	}
+//
+//	return indices;
+//}
 
-as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface)
+as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR* surface)
 {
 	QueueFamilyIndices indices;
 
@@ -82,7 +116,7 @@ as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physica
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, queueFamilies.data());
 
 	int i = 0;
-	for (const auto& queueFamily : queueFamilies) 
+	for (const auto& queueFamily : queueFamilies)
 	{
 		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indices.graphicsFamily = i;
@@ -91,7 +125,7 @@ as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physica
 		VkBool32 presentSupport = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, *surface, &presentSupport);
 
-		if (presentSupport) 
+		if (presentSupport)
 		{
 			indices.presentFamily = i;
 		}
@@ -241,9 +275,9 @@ bool as::vk::pick_physical_device(const physical_device_create_info& create_info
 	return true;
 }
 
-void as::vk::create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers)
+void as::vk::create_logical_device(const logical_device_create_info& create_info, VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue)
 {
-	QueueFamilyIndices indices = find_queue_families(*physical_device, surface);
+	QueueFamilyIndices indices = find_queue_families(create_info.physical_device, create_info.surface);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<u32> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
@@ -270,19 +304,19 @@ void as::vk::create_logical_device(VkDevice* out_logical_device, VkQueue* out_gr
 
 	createInfo.pEnabledFeatures = &deviceFeatures;
 
-	createInfo.enabledExtensionCount = static_cast<u32>(extensions.size());
-	createInfo.ppEnabledExtensionNames = extensions.data();
+	createInfo.enabledExtensionCount = static_cast<u32>(create_info.extensions.size());
+	createInfo.ppEnabledExtensionNames = create_info.extensions.data();
 
-	if (validation_layers.size() > 0)
+	if (create_info.validation_layers.size() > 0)
 	{
-		createInfo.enabledLayerCount = static_cast<u32>(validation_layers.size());
-		createInfo.ppEnabledLayerNames = validation_layers.data();
+		createInfo.enabledLayerCount = static_cast<u32>(create_info.validation_layers.size());
+		createInfo.ppEnabledLayerNames = create_info.validation_layers.data();
 	}
 	else {
 		createInfo.enabledLayerCount = 0;
 	}
 
-	if (vkCreateDevice(*physical_device, &createInfo, nullptr, out_logical_device) != VK_SUCCESS)
+	if (vkCreateDevice(create_info.physical_device, &createInfo, nullptr, out_logical_device) != VK_SUCCESS)
 	{
 		AS_LOG(LV_ERROR, "failed to create logical device!");
 	}

@@ -16,7 +16,8 @@ namespace as
 		VkResult create_surface(const surface_create_info& create_info, VkSurfaceKHR& out_surface);
 
 		/** Physical device */
-		QueueFamilyIndices find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
+		//QueueFamilyIndices find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
+		QueueFamilyIndices find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
 		bool check_device_extension_support(VkPhysicalDevice& physical_device, const std::vector<const char*> extensions);
 		SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
 		bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
@@ -25,7 +26,8 @@ namespace as
 		bool pick_physical_device(const physical_device_create_info& create_info, VkPhysicalDevice& out_physical_device, VkSampleCountFlagBits& out_msaa_samples);
 
 		/** Logical device */
-		void create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers);
+		//void create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers);
+		void create_logical_device(const logical_device_create_info& create_info, VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue);
 
 		/** Swap chain */
 		VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats);

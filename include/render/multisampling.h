@@ -160,7 +160,14 @@ private:
         physical_device_create_info.instance = instance;
         as::vk::pick_physical_device(physical_device_create_info, physicalDevice, msaaSamples);
 
-        as::vk::create_logical_device(&device, &graphicsQueue, &presentQueue, &physicalDevice, &surface, deviceExtensions, validationLayers);
+        as::vk::logical_device_create_info logical_device_create_info = {};
+        logical_device_create_info.physical_device = physicalDevice;
+        logical_device_create_info.surface = &surface;
+        logical_device_create_info.extensions = deviceExtensions;
+        logical_device_create_info.validation_layers = validationLayers;
+        as::vk::create_logical_device(logical_device_create_info, &device, &graphicsQueue, &presentQueue);
+
+
         as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
         as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
         as::vk::create_render_pass(swapChainImageFormat, msaaSamples, renderPass, device, physicalDevice);

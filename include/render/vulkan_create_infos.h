@@ -39,8 +39,10 @@ namespace as
 
 		struct logical_device_create_info
 		{
-			VkInstance instance;
+			VkPhysicalDevice physical_device;
 			VkSurfaceKHR* surface;
+			std::vector<const char*> extensions;
+			std::vector<const char*> validation_layers;
 		};
 
 		struct image_create_info
