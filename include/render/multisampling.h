@@ -1,6 +1,7 @@
 #pragma once
 #include "render/vulkan_core.h"
 #include "render/vulkan_create_infos.h"
+#include "shader/shaderc_core.h"
 
 #include <iostream>
 #include <fstream>
@@ -76,11 +77,10 @@ private:
     VkQueue presentQueue;
 
     as::vk::swapchain swapchain;
-    as::vk::render render;
-    //VkRenderPass render.pass;
-    //VkDescriptorSetLayout render.descriptor_set_layout;
-    //VkPipelineLayout render.pipeline_layout;
-    //VkPipeline render.graphics_pipeline;
+    
+	VkRenderPass render_pass;
+	VkDescriptorSetLayout descriptor_set_layout;
+    as::vk::pipeline_data graphics_pipeline;
 
     VkCommandPool commandPool;
 
@@ -187,15 +187,42 @@ private:
         render_pass_create_info.logical_device = device;
         render_pass_create_info.msaa_samples = msaaSamples;
         render_pass_create_info.swap_chain_image_format = swapchain.image_format;
-        as::vk::create_render_pass(render_pass_create_info, render.pass);
+        as::vk::create_render_pass(render_pass_create_info, render_pass);
 
-        as::vk::create_descriptor_set_layout(device, render.descriptor_set_layout);
+        as::vk::create_descriptor_set_layout(device, descriptor_set_layout);
+        
+		// vertex shader
+		as::sc::shader_compile_info compile_info_vertex = {};
+		compile_info_vertex.file_name = new char[]("main");
+		compile_info_vertex.source = as::read_file("shaders/shader.vert");
+		compile_info_vertex.kind = shaderc_glsl_vertex_shader;
+        as::sc::shader_binaries out_vertex_shader_bin;
+        as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // cache and compare next time, do not compile every time
+        as::sc::write_shader_bin("shaders/vert.spv", out_vertex_shader_bin);
+        std::vector<char> vert_shader_code = as::read_file(std::string("shaders/vert.spv"));
 
-        as::vk::create_graphics_pipeline(render.graphics_pipeline, render.pipeline_layout, device, msaaSamples, render.descriptor_set_layout, render.pass);
-        as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
+		// fragment shader
+        as::sc::shader_compile_info compile_info_frag = {};
+		compile_info_frag.file_name = new char[]("main");
+		compile_info_frag.source = as::read_file("shaders/shader.frag");
+		compile_info_frag.kind = shaderc_glsl_fragment_shader;
+        as::sc::shader_binaries out_frag_shader_bin;
+        as::sc::compile_shader(&out_frag_shader_bin, compile_info_frag); // cache and compare next time, do not compile every time
+        as::sc::write_shader_bin("shaders/frag.spv", out_frag_shader_bin);
+		std::vector<char> frag_shader_code = as::read_file(std::string("shaders/frag.spv"));
+        
+        as::vk::pipeline_create_info pipeline_create_info;
+        pipeline_create_info.logical_device = device;
+        pipeline_create_info.descriptor_set_layout = descriptor_set_layout;
+        pipeline_create_info.render_pass = render_pass;
+        pipeline_create_info.msaa_samples = msaaSamples;
+        pipeline_create_info.vert_shader_spv = vert_shader_code;
+        pipeline_create_info.frag_shader_spv = frag_shader_code;
+        as::vk::create_pipeline(pipeline_create_info, graphics_pipeline);
+          as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
         as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
         as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-        as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render.pass, swapchain.extent);
+        as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render_pass, swapchain.extent);
         as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
         as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
         as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
@@ -204,7 +231,7 @@ private:
         as::vk::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
         as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
-        as::vk::create_descriptor_sets(descriptorSets, device, render.descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
+        as::vk::create_descriptor_sets(descriptorSets, device, descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
         as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
         as::vk::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
@@ -231,9 +258,9 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroyPipeline(device, render.graphics_pipeline, nullptr);
-        vkDestroyPipelineLayout(device, render.pipeline_layout, nullptr);
-        vkDestroyRenderPass(device, render.pass, nullptr);
+        vkDestroyPipeline(device, graphics_pipeline.pipeline, nullptr);
+        vkDestroyPipelineLayout(device, graphics_pipeline.layout, nullptr);
+        vkDestroyRenderPass(device, render_pass, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroyBuffer(device, uniformBuffers[i], nullptr);
@@ -248,7 +275,7 @@ private:
         vkDestroyImage(device, textureImage, nullptr);
         vkFreeMemory(device, textureImageMemory, nullptr);
 
-        vkDestroyDescriptorSetLayout(device, render.descriptor_set_layout, nullptr);
+        vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
         vkDestroyBuffer(device, indexBuffer, nullptr);
         vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -294,7 +321,7 @@ private:
 		as::vk::create_image_views(&swapchain.image_views, &swapchain.framebuffers, &swapchain.images, &swapchain.image_format, &device);
 		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
 		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-		as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render.pass, swapchain.extent);
+		as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render_pass, swapchain.extent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -307,7 +334,7 @@ private:
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = render.pass;
+        renderPassInfo.renderPass = render_pass;
         renderPassInfo.framebuffer = swapchain.framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapchain.extent;
@@ -321,31 +348,31 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render.graphics_pipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline.pipeline);
 
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float)swapchain.extent.width;
-            viewport.height = (float)swapchain.extent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = (float)swapchain.extent.width;
+		viewport.height = (float)swapchain.extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = swapchain.extent;
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = swapchain.extent;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            VkBuffer vertexBuffers[] = {vertexBuffer};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render.pipeline_layout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline.layout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
 

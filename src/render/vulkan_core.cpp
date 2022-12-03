@@ -1,6 +1,6 @@
 
 #include "render/vulkan_core.h"
-#include "shader/shaderc_core.h"
+//#include "shader/shaderc_core.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -571,7 +571,7 @@ VkResult as::vk::create_image(const image_create_info& create_info, image_data& 
 	return vkBindImageMemory(create_info.logical_device, out_image_data.image, out_image_data.memory, 0);
 }
 
-u32 as::vk::find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties)
+u32 as::vk::find_memory_type(VkPhysicalDevice physical_device, u32 typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
@@ -839,31 +839,10 @@ VkResult as::vk::create_descriptor_set_layout(VkDevice& logical_device, VkDescri
 	return vkCreateDescriptorSetLayout(logical_device, &layoutInfo, nullptr, &out_descriptor_set_layout);
 }
 
-void as::vk::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineLayout& out_pipeline_layout, VkDevice& logical_device, VkSampleCountFlagBits& msaa_samples, VkDescriptorSetLayout& descriptor_set_layout, VkRenderPass& render_pass)
+VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline)
 {
-	// vertex shader
-	sc::shader_compile_info compile_info_vertex = {};
-	compile_info_vertex.file_name = new char[]("main");
-	compile_info_vertex.source = read_file("shaders/shader.vert");
-	compile_info_vertex.kind = shaderc_glsl_vertex_shader;
-	sc::shader_binaries out_vertex_shader_bin;
-	sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex);
-	sc::write_shader_bin("shaders/vert.spv", out_vertex_shader_bin);
-
-	// fragment shader
-	sc::shader_compile_info compile_info_frag = {};
-	compile_info_frag.file_name = new char[]("main");
-	compile_info_frag.source = read_file("shaders/shader.frag");
-	compile_info_frag.kind = shaderc_glsl_fragment_shader;
-	sc::shader_binaries out_frag_shader_bin;
-	sc::compile_shader(&out_frag_shader_bin, compile_info_frag);
-	sc::write_shader_bin("shaders/frag.spv", out_frag_shader_bin);
-
-	auto vertShaderCode = read_file(std::string("shaders/vert.spv"));
-	auto fragShaderCode = read_file(std::string("shaders/frag.spv"));
-
-	VkShaderModule vertShaderModule = create_shader_module(vertShaderCode, logical_device);
-	VkShaderModule fragShaderModule = create_shader_module(fragShaderCode, logical_device);
+	VkShaderModule vertShaderModule = create_shader_module(create_info.vert_shader_spv, create_info.logical_device);
+	VkShaderModule fragShaderModule = create_shader_module(create_info.frag_shader_spv, create_info.logical_device);
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -913,7 +892,7 @@ void as::vk::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipel
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = msaa_samples;
+	multisampling.rasterizationSamples = create_info.msaa_samples;
 
 	VkPipelineDepthStencilStateCreateInfo depthStencil{};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -950,11 +929,9 @@ void as::vk::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipel
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &descriptor_set_layout;
+	pipelineLayoutInfo.pSetLayouts = &create_info.descriptor_set_layout;
 
-	if (vkCreatePipelineLayout(logical_device, &pipelineLayoutInfo, nullptr, &out_pipeline_layout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create pipeline layout!");
-	}
+	CHECK_VK_RESULT(vkCreatePipelineLayout(create_info.logical_device, &pipelineLayoutInfo, nullptr, &out_pipeline.layout));
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -968,20 +945,20 @@ void as::vk::create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipel
 	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = out_pipeline_layout;
-	pipelineInfo.renderPass = render_pass;
+	pipelineInfo.layout = out_pipeline.layout;
+	pipelineInfo.renderPass = create_info.render_pass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	if (vkCreateGraphicsPipelines(logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_graphics_pipeline) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create graphics pipeline!");
-	}
+	VkResult pipeline_creation_result = vkCreateGraphicsPipelines(create_info.logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_pipeline.pipeline);
 
-	vkDestroyShaderModule(logical_device, fragShaderModule, nullptr);
-	vkDestroyShaderModule(logical_device, vertShaderModule, nullptr);
+	vkDestroyShaderModule(create_info.logical_device, fragShaderModule, nullptr);
+	vkDestroyShaderModule(create_info.logical_device, vertShaderModule, nullptr);
+	
+	return pipeline_creation_result;
 }
 
-VkShaderModule as::vk::create_shader_module(const std::vector<char>& code, VkDevice& logical_device)
+VkShaderModule as::vk::create_shader_module(const std::vector<char>& code, VkDevice logical_device)
 {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1612,7 +1589,7 @@ std::vector<const char*> as::vk::get_required_extensions(const bool& enable_vali
 	return extensions;
 }
 
-std::vector<char> as::vk::read_file(const std::string& filename)
+std::vector<char> as::read_file(const std::string& filename)
 {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -1631,7 +1608,7 @@ std::vector<char> as::vk::read_file(const std::string& filename)
 	return buffer;
 }
 
-char* as::vk::read_file(const char* filename)
+char* as::read_file(const char* filename)
 {
 	FILE* f = fopen(filename, "rb");
 	if (!f)
@@ -1653,7 +1630,7 @@ char* as::vk::read_file(const char* filename)
 	return string;
 }
 
-void as::vk::write_file_str(const char* filename, const char* data)
+void as::write_file_str(const char* filename, const char* data)
 {
 	FILE* fptr = fopen(filename, "w");
 	if (fptr == NULL)

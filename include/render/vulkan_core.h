@@ -40,7 +40,7 @@ namespace as
 		/** Image */
 		void create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 		VkResult create_image(const image_create_info& create_info, image_data& out_image_data);
-		u32 find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties);
+		u32 find_memory_type(VkPhysicalDevice physical_device, u32 typeFilter, VkMemoryPropertyFlags properties);
 		void create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
 		void create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
 
@@ -55,9 +55,8 @@ namespace as
 
 		/** Descriptor && Shader */
 		VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);
-		void create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineLayout& out_pipeline_layout, VkDevice& logical_device, VkSampleCountFlagBits& msaa_samples, VkDescriptorSetLayout& descriptor_set_layout, VkRenderPass& render_pass); // EDIT THIS TO EXPOSE SHADERS
-		//VkResult create_graphics_pipeline()
-		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice& logical_device);
+		VkResult create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline);
+		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice logical_device);
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
 
 		/** Framebuffer */
@@ -98,9 +97,11 @@ namespace as
 		bool check_layers_support(const std::vector<const char*> layers);
 		std::vector<const char*> get_required_extensions(const bool& enable_validation_layers);
 
-		/** Files */
-		static std::vector<char> read_file(const std::string& filename);
-		static char* read_file(const char* filename);
-		static void write_file_str(const char* filename, const char* data);
 	};
+
+	/** Files */
+	std::vector<char> read_file(const std::string& filename);
+	char* read_file(const char* filename);
+	void write_file_str(const char* filename, const char* data);
+
 };

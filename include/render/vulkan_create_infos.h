@@ -55,8 +55,8 @@ namespace as
 
 		struct image_create_info
 		{
-			VkPhysicalDevice& physical_device;
-			VkDevice& logical_device;
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device;
 			u32 width; 
 			u32 height; 
 			u32 mipLevels;
@@ -81,7 +81,24 @@ namespace as
 			VkDevice logical_device;
 			VkPhysicalDevice physical_device;
 			VkFormat swap_chain_image_format; 
-			VkSampleCountFlagBits msaa_samples; 
+			VkSampleCountFlagBits msaa_samples; 			
+		};
+
+		struct pipeline_create_info
+		{
+			VkDevice logical_device;
+			VkRenderPass render_pass;
+			VkDescriptorSetLayout descriptor_set_layout;
+			VkSampleCountFlagBits msaa_samples;
+			std::vector<char> vert_shader_spv;
+			std::vector<char> frag_shader_spv;
+		};
+
+		struct command_pool
+		{
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device;
+			VkSurfaceKHR surface;
 		};
 	};
 };

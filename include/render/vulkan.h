@@ -115,12 +115,10 @@ namespace as
 			std::vector<VkPresentModeKHR> presentModes;
 		};
 
-		struct render
+		struct pipeline_data
 		{
-			VkRenderPass pass;
-			VkDescriptorSetLayout descriptor_set_layout;
-			VkPipelineLayout pipeline_layout;
-			VkPipeline graphics_pipeline;
+			VkPipeline pipeline;
+			VkPipelineLayout layout;
 		};
 
 		struct command_pool
