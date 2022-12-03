@@ -143,7 +143,7 @@ private:
 
     void initVulkan() {
         
-        as::vk::vulkan_instance_create_info instance_create_info = {};
+        as::vk::instance_create_info instance_create_info = {};
         as::vk::create_vulkan_instance(instance, instance_create_info);
         if (instance_create_info.enable_validation_layers)
         {
@@ -167,7 +167,8 @@ private:
         logical_device_create_info.validation_layers = validationLayers;
         as::vk::create_logical_device(logical_device_create_info, &device, &graphicsQueue, &presentQueue);
 
-
+		as::vk::swapchain_create_info swapchain_create_info = {};
+        //swapchain_create_info
         as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
         as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
         as::vk::create_render_pass(swapChainImageFormat, msaaSamples, renderPass, device, physicalDevice);

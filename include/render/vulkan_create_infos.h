@@ -16,13 +16,13 @@ namespace as
 {
 	namespace vk
 	{
-		struct vulkan_instance_create_info
+		struct instance_create_info
 		{
 			char app_name[255] = "Abstract Shader Engine";
 			char engine_name[255] = "Abstract Shader Engine";
 			u8 enable_validation_layers : 1;
 			const std::vector<const char*> validation_layers = { "VK_LAYER_KHRONOS_validation" }; // TODO: remove std
-			vulkan_instance_create_info() : enable_validation_layers(true) {};
+			instance_create_info() : enable_validation_layers(true) {};
 		};
 
 		struct surface_create_info
@@ -43,6 +43,14 @@ namespace as
 			VkSurfaceKHR* surface;
 			std::vector<const char*> extensions;
 			std::vector<const char*> validation_layers;
+		};
+
+		struct swapchain_create_info
+		{
+			VkDevice logical_device;
+			VkPhysicalDevice physical_device;
+			VkSurfaceKHR* surface;
+			GLFWwindow* window;
 		};
 
 		struct image_create_info

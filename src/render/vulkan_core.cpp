@@ -22,7 +22,7 @@
 #endif // TINYOBJLOADER_IMPLEMENTATION
 
 
-VkResult as::vk::create_vulkan_instance(VkInstance& out_instance, const vulkan_instance_create_info& instance_create_info)
+VkResult as::vk::create_vulkan_instance(VkInstance& out_instance, const instance_create_info& instance_create_info)
 {
 	if (instance_create_info.enable_validation_layers && !check_layers_support(instance_create_info.validation_layers))
 	{
@@ -425,6 +425,11 @@ void as::vk::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkIma
 
 	*out_swap_chain_image_format = surfaceFormat.format;
 	*out_swap_chain_extent = extent;
+}
+
+void as::vk::create_swap_chain(const swapchain_create_info& create_info, swapchain& out_swapchain)
+{
+	
 }
 
 void as::vk::cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views)
