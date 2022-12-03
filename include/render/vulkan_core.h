@@ -58,6 +58,7 @@ namespace as
 		VkResult create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline);
 		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice logical_device);
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
+		VkResult create_command_pool(const command_pool_create_info& create_info, VkCommandPool& out_command_pool);
 
 		/** Framebuffer */
 		void create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebuffers, VkDevice& logical_device, std::vector<VkImageView>& swap_chain_image_views, VkImageView& color_image_view, VkImageView& depth_image_view, VkRenderPass& render_pass, VkExtent2D& swap_chain_extent);

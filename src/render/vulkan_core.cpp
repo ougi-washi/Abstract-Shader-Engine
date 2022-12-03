@@ -547,7 +547,7 @@ VkResult as::vk::create_image(const image_create_info& create_info, image_data& 
 	imageInfo.extent.width = create_info.width;
 	imageInfo.extent.height = create_info.height;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = create_info.mipLevels;
+	imageInfo.mipLevels = create_info.mip_levels;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = create_info.format;
 	imageInfo.tiling = create_info.tiling;
@@ -981,6 +981,16 @@ VkResult as::vk::create_command_pool(VkCommandPool& out_command_pool, VkPhysical
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 	return vkCreateCommandPool(logical_device, &poolInfo, nullptr, &out_command_pool);
+}
+
+VkResult as::vk::create_command_pool(const command_pool_create_info& create_info, VkCommandPool& out_command_pool)
+{
+	QueueFamilyIndices queueFamilyIndices = find_queue_families(create_info.physical_device, create_info.surface);
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+	return vkCreateCommandPool(create_info.logical_device, &poolInfo, nullptr, &out_command_pool);
 }
 
 void as::vk::create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebuffers, VkDevice& logical_device, std::vector<VkImageView>& swap_chain_image_views, VkImageView& color_image_view, VkImageView& depth_image_view, VkRenderPass& render_pass, VkExtent2D& swap_chain_extent)

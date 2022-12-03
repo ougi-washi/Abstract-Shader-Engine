@@ -87,6 +87,7 @@ private:
     VkImage colorImage;
     VkDeviceMemory colorImageMemory;
     VkImageView colorImageView;
+    as::vk::image_data color_image;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -219,7 +220,30 @@ private:
         pipeline_create_info.vert_shader_spv = vert_shader_code;
         pipeline_create_info.frag_shader_spv = frag_shader_code;
         as::vk::create_pipeline(pipeline_create_info, graphics_pipeline);
-          as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
+        
+        as::vk::command_pool_create_info command_pool_create_info;
+        command_pool_create_info.physical_device = physicalDevice;
+        command_pool_create_info.logical_device = device;
+        command_pool_create_info.surface = &surface;
+        as::vk::create_command_pool(command_pool_create_info, commandPool);
+
+        as::vk::image_create_info color_image_create_info;
+        color_image_create_info.physical_device = physicalDevice;
+        color_image_create_info.logical_device = device;
+        color_image_create_info.height = swapchain.extent.height;
+        color_image_create_info.width = swapchain.extent.width;
+        color_image_create_info.mip_levels = 1;
+        color_image_create_info.numSamples = msaaSamples;
+        color_image_create_info.format = swapchain.image_format;
+        color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        as::vk::create_image(color_image_create_info, color_image);
+
+		//VkFormat colorFormat = swap_chain_image_format;
+		//create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
+		//out_image_view = create_image_view(&logical_device, image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
         as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
         as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
         as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render_pass, swapchain.extent);

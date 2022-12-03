@@ -59,7 +59,7 @@ namespace as
 			VkDevice logical_device;
 			u32 width; 
 			u32 height; 
-			u32 mipLevels;
+			u32 mip_levels;
 			VkSampleCountFlagBits numSamples;
 			VkFormat format;
 			VkImageTiling tiling;
@@ -94,11 +94,11 @@ namespace as
 			std::vector<char> frag_shader_spv;
 		};
 
-		struct command_pool
+		struct command_pool_create_info
 		{
 			VkPhysicalDevice physical_device;
 			VkDevice logical_device;
-			VkSurfaceKHR surface;
+			VkSurfaceKHR* surface;
 		};
 	};
 };
