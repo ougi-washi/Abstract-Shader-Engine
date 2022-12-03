@@ -175,10 +175,21 @@ private:
         swapchain_create_info.window = window;
         as::vk::create_swapchain(swapchain_create_info, swapchain);
 
-        //swapchain_create_info
-        //as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
-        as::vk::create_image_views(&swapchain.swapchain_image_views, &swapchain.swapchain_framebuffers, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &device);
+        as::vk::image_view_create_info image_view_create_info = {};
+        image_view_create_info.logical_device = device;
+        image_view_create_info.format = swapchain.swapchain_image_format;
+        image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+        image_view_create_info.mip_levels = 1;
+		u32 images_array_size = swapchain.swapchain_images.size();
+        swapchain.swapchain_image_views.resize(images_array_size);
+		for (u32 i = 0; i < images_array_size; i++)
+		{
+            image_view_create_info.image = swapchain.swapchain_images[i];
+			CHECK_VK_RESULT(create_image_view(image_view_create_info, &swapchain.swapchain_image_views[i]));
+		}
+
         as::vk::create_render_pass(swapchain.swapchain_image_format, msaaSamples, renderPass, device, physicalDevice);
+
         as::vk::create_descriptor_set_layout(device, descriptorSetLayout);
         as::vk::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
         as::vk::create_command_pool(commandPool, physicalDevice, device, surface);

@@ -69,10 +69,10 @@ namespace as
 
 		struct image_view_create_info
 		{
-			VkDevice& logical_device;
-			VkImage& image;
-			VkFormat& format;
-			VkImageAspectFlags& aspect_flags;
+			VkDevice logical_device;
+			VkImage image;
+			VkFormat format;
+			VkImageAspectFlags aspect_flags;
 			u32 mip_levels;
 		};
 	};
