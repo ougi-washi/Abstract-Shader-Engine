@@ -66,6 +66,11 @@ VkResult as::vk::create_surface(VkSurfaceKHR& out_surface, const VkInstance& ins
 	return glfwCreateWindowSurface(instance, window, nullptr, &out_surface);
 }
 
+VkResult as::vk::create_surface(const surface_create_info& create_info, VkSurfaceKHR& out_surface)
+{
+	return glfwCreateWindowSurface(create_info.instance, create_info.window, nullptr, &out_surface);
+}
+
 as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface)
 {
 	QueueFamilyIndices indices;
@@ -94,7 +99,6 @@ as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physica
 		if (indices.isComplete()) {
 			break;
 		}
-
 		i++;
 	}
 
@@ -207,6 +211,36 @@ void as::vk::pick_physical_device(VkPhysicalDevice* out_physical_device, VkSampl
 	}
 }
 
+bool as::vk::pick_physical_device(const physical_device_create_info& create_info, VkPhysicalDevice& out_physical_device, VkSampleCountFlagBits& out_msaa_samples)
+{
+	u32 deviceCount = 0;
+	vkEnumeratePhysicalDevices(create_info.instance, &deviceCount, nullptr);
+
+	if (deviceCount == 0) {
+		AS_LOG(LV_ERROR, "failed to find GPUs with Vulkan support!");
+	}
+
+	std::vector<VkPhysicalDevice> devices(deviceCount);
+	vkEnumeratePhysicalDevices(create_info.instance, &deviceCount, devices.data());
+
+	for (auto& device : devices)
+	{
+		if (is_device_suitable(device, create_info.surface))
+		{
+			out_physical_device = device;
+			out_msaa_samples = get_max_usable_sample_count(&device);
+			break;
+		}
+	}
+
+	if (out_physical_device == VK_NULL_HANDLE)
+	{
+		AS_LOG(LV_ERROR, "failed to find a suitable GPU!");
+		return false;
+	}
+	return true;
+}
+
 void as::vk::create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers)
 {
 	QueueFamilyIndices indices = find_queue_families(*physical_device, surface);
@@ -312,7 +346,8 @@ void as::vk::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkIma
 	VkExtent2D extent = choos_swap_extent(swapChainSupport.capabilities, window);
 
 	u32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
-	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) 
+	{
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
 
@@ -330,12 +365,14 @@ void as::vk::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkIma
 	QueueFamilyIndices indices = find_queue_families(*physical_device, surface);
 	u32 queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
-	if (indices.graphicsFamily != indices.presentFamily) {
+	if (indices.graphicsFamily != indices.presentFamily) 
+	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
-	else {
+	else 
+	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	}
 
@@ -378,6 +415,101 @@ void as::vk::cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_c
 	vkDestroySwapchainKHR(logical_device, swap_chain, nullptr);
 }
 
+void as::vk::create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+{
+	VkImageCreateInfo imageInfo{};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = format;
+	imageInfo.tiling = tiling;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = usage;
+	imageInfo.samples = numSamples;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateImage(logical_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create image!");
+	}
+
+	VkMemoryRequirements memRequirements;
+	vkGetImageMemoryRequirements(logical_device, image, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(logical_device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate image memory!");
+	}
+
+	vkBindImageMemory(logical_device, image, imageMemory, 0);
+}
+
+VkResult as::vk::create_image(const image_create_info& create_info, image_data& out_image_data)
+{
+	VkImageCreateInfo imageInfo{};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = create_info.width;
+	imageInfo.extent.height = create_info.height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = create_info.mipLevels;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = create_info.format;
+	imageInfo.tiling = create_info.tiling;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = create_info.usage;
+	imageInfo.samples = create_info.numSamples;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	CHECK_VK_RESULT(vkCreateImage(create_info.logical_device, &imageInfo, nullptr, &out_image_data.image));
+
+	VkMemoryRequirements memRequirements;
+	vkGetImageMemoryRequirements(create_info.logical_device, out_image_data.image, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = find_memory_type(create_info.physical_device, memRequirements.memoryTypeBits, create_info.properties);
+
+	CHECK_VK_RESULT(vkAllocateMemory(create_info.logical_device, &allocInfo, nullptr, &out_image_data.memory));
+
+	return vkBindImageMemory(create_info.logical_device, out_image_data.image, out_image_data.memory, 0);
+}
+
+u32 as::vk::find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
+
+	for (u32 i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+	AS_LOG(LV_ERROR, "failed to find suitable memory type!");
+}
+
+void as::vk::create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples)
+{
+	VkFormat colorFormat = swap_chain_image_format;
+	create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
+	out_image_view = create_image_view(&logical_device, image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+}
+
+void as::vk::create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples)
+{
+	VkFormat depthFormat = find_depth_format(physical_device);
+	create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
+	out_image_view = create_image_view(&logical_device, image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+}
+
 VkImageView as::vk::create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels)
 {
 	VkImageViewCreateInfo viewInfo{};
@@ -397,6 +529,22 @@ VkImageView as::vk::create_image_view(VkDevice* logical_device, VkImage image, V
 	}
 
 	return imageView;
+}
+
+VkResult as::vk::create_image_view(const image_view_create_info& create_info, VkImageView* image_view)
+{
+	VkImageViewCreateInfo viewInfo{};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = create_info.image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = create_info.format;
+	viewInfo.subresourceRange.aspectMask = create_info.aspect_flags;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = create_info.mip_levels;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	return vkCreateImageView(create_info.logical_device, &viewInfo, nullptr, image_view);
 }
 
 void as::vk::create_image_views(std::vector<VkImageView>* swap_chain_image_views, std::vector<VkFramebuffer>* swap_chain_framebuffers, std::vector<VkImage>* swap_chain_images, VkFormat* swap_chain_image_format, VkDevice* logical_device)
@@ -698,69 +846,6 @@ VkResult as::vk::create_command_pool(VkCommandPool& out_command_pool, VkPhysical
 	return vkCreateCommandPool(logical_device, &poolInfo, nullptr, &out_command_pool);
 }
 
-void as::vk::create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
-{
-	VkImageCreateInfo imageInfo{};
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 1;
-	imageInfo.format = format;
-	imageInfo.tiling = tiling;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = usage;
-	imageInfo.samples = numSamples;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateImage(logical_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create image!");
-	}
-
-	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(logical_device, image, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = find_memory_type(physical_device, memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(logical_device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate image memory!");
-	}
-
-	vkBindImageMemory(logical_device, image, imageMemory, 0);
-}
-
-u32 as::vk::find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties)
-{
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
-
-	for (u32 i = 0; i < memProperties.memoryTypeCount; i++) {
-		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-	AS_LOG(LV_ERROR, "failed to find suitable memory type!");
-}
-
-void as::vk::create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples)
-{
-	VkFormat colorFormat = swap_chain_image_format;
-	create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
-	out_image_view = create_image_view(&logical_device, image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-}
-
-void as::vk::create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples)
-{
-	VkFormat depthFormat = find_depth_format(physical_device);
-	create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
-	out_image_view = create_image_view(&logical_device, image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-}
-
 void as::vk::create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebuffers, VkDevice& logical_device, std::vector<VkImageView>& swap_chain_image_views, VkImageView& color_image_view, VkImageView& depth_image_view, VkRenderPass& render_pass, VkExtent2D& swap_chain_extent)
 {
 	out_swap_chain_framebuffers.resize(swap_chain_image_views.size());
@@ -781,10 +866,7 @@ void as::vk::create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_fra
 		framebufferInfo.height = swap_chain_extent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(logical_device, &framebufferInfo, nullptr, &out_swap_chain_framebuffers[i]) != VK_SUCCESS)
-		{
-			AS_LOG(LV_ERROR, "failed to create framebuffer!");
-		}
+		CHECK_VK_RESULT(vkCreateFramebuffer(logical_device, &framebufferInfo, nullptr, &out_swap_chain_framebuffers[i]));
 	}
 }
 
@@ -802,7 +884,7 @@ void as::vk::create_texture_image(VkImage& out_texture_image, const char* textur
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	CHECK_RESULT(create_buffer(stagingBuffer, physical_device, logical_device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferMemory));
+	CHECK_VK_RESULT(create_buffer(stagingBuffer, physical_device, logical_device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferMemory));
 	
 
 	void* data;

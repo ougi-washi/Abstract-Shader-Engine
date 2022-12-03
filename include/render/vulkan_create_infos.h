@@ -4,7 +4,13 @@
 
 #include "render/vulkan.h"
 
-/** This file contains all the Vulkan create infos. in order to create OP_RESULT <func> (<params> , RESULT* outResult) */
+/**
+ * This file contains all the Vulkan create infos.
+ * In order to create OP_RESULT <func> (<params> , RESULT* outResult
+ * 
+ * Note that many Vulkan types are pointers' typedef. 
+ * Therefore, it's needless to have them as a pointer here.
+ */
 
 namespace as
 {
@@ -17,6 +23,47 @@ namespace as
 			u8 enable_validation_layers : 1;
 			const std::vector<const char*> validation_layers = { "VK_LAYER_KHRONOS_validation" }; // TODO: remove std
 			vulkan_instance_create_info() : enable_validation_layers(true) {};
+		};
+
+		struct surface_create_info
+		{
+			VkInstance instance;
+			GLFWwindow* window = nullptr;
+		};
+
+		struct physical_device_create_info
+		{
+			VkInstance instance;
+			VkSurfaceKHR* surface;
+		};
+
+		struct logical_device_create_info
+		{
+			VkInstance instance;
+			VkSurfaceKHR* surface;
+		};
+
+		struct image_create_info
+		{
+			VkPhysicalDevice& physical_device;
+			VkDevice& logical_device;
+			u32 width; 
+			u32 height; 
+			u32 mipLevels;
+			VkSampleCountFlagBits numSamples;
+			VkFormat format;
+			VkImageTiling tiling;
+			VkImageUsageFlags usage;
+			VkMemoryPropertyFlags properties;
+		};
+
+		struct image_view_create_info
+		{
+			VkDevice& logical_device;
+			VkImage& image;
+			VkFormat& format;
+			VkImageAspectFlags& aspect_flags;
+			u32 mip_levels;
 		};
 	};
 };

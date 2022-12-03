@@ -125,7 +125,8 @@ private:
 
     bool framebufferResized = false;
 
-    void initWindow() {
+    void initWindow() 
+    {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -141,14 +142,24 @@ private:
     }
 
     void initVulkan() {
+        
         as::vk::vulkan_instance_create_info instance_create_info = {};
         as::vk::create_vulkan_instance(instance, instance_create_info);
         if (instance_create_info.enable_validation_layers)
         {
 			as::vk::setup_debug_messenger(&instance, &debugMessenger);
         }
-		as::vk::create_surface(surface, instance, window);
-        as::vk::pick_physical_device(&physicalDevice, &msaaSamples, &instance, &surface);
+
+        as::vk::surface_create_info surface_create_info = {};
+        surface_create_info.instance = instance;
+        surface_create_info.window = window;
+		as::vk::create_surface(surface_create_info, surface);
+
+        as::vk::physical_device_create_info physical_device_create_info = {};
+        physical_device_create_info.surface = &surface;
+        physical_device_create_info.instance = instance;
+        as::vk::pick_physical_device(physical_device_create_info, physicalDevice, msaaSamples);
+
         as::vk::create_logical_device(&device, &graphicsQueue, &presentQueue, &physicalDevice, &surface, deviceExtensions, validationLayers);
         as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
         as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);

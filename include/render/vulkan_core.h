@@ -2,9 +2,6 @@
 #include "render/vulkan.h"
 #include "render/vulkan_create_infos.h"
 
-// Stupid std include that I wanna get rid of
-#include <functional>
-
 #define VULKAN_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
 
 namespace as
@@ -16,6 +13,7 @@ namespace as
 
 		/** Surface */
 		VkResult create_surface(VkSurfaceKHR& out_surface, const VkInstance& instance, GLFWwindow* window);
+		VkResult create_surface(const surface_create_info& create_info, VkSurfaceKHR& out_surface);
 
 		/** Physical device */
 		QueueFamilyIndices find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
@@ -24,6 +22,7 @@ namespace as
 		bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
 		VkSampleCountFlagBits get_max_usable_sample_count(VkPhysicalDevice* physical_device);
 		void pick_physical_device(VkPhysicalDevice* out_physical_device, VkSampleCountFlagBits* out_msaa_samples, VkInstance* instance, VkSurfaceKHR* surface);
+		bool pick_physical_device(const physical_device_create_info& create_info, VkPhysicalDevice& out_physical_device, VkSampleCountFlagBits& out_msaa_samples);
 
 		/** Logical device */
 		void create_logical_device(VkDevice* out_logical_device, VkQueue* out_graphics_queue, VkQueue* out_present_queue, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, const std::vector<const char*> extensions, const std::vector<const char*> validation_layers);
@@ -35,8 +34,16 @@ namespace as
 		void create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>* out_swap_chain_images, VkFormat* out_swap_chain_image_format, VkExtent2D* out_swap_chain_extent, VkDevice* logical_device, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, GLFWwindow* window);
 		void cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views);
 
+		/** Image */
+		void create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+		VkResult create_image(const image_create_info& create_info, image_data& out_image_data);
+		u32 find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties);
+		void create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
+		void create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
+
 		/** Image view */
 		VkImageView create_image_view(VkDevice* logical_device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels);
+		VkResult create_image_view(const image_view_create_info& create_info, VkImageView* image_view);
 		void create_image_views(std::vector<VkImageView>* swap_chain_image_views, std::vector<VkFramebuffer>* swap_chain_framebuffers, std::vector<VkImage>* swap_chain_images, VkFormat* swap_chain_image_format, VkDevice* logical_device);
 		VkResult create_render_pass(VkFormat& swap_chain_image_format, VkSampleCountFlagBits& msaa_samples, VkRenderPass& render_pass, VkDevice& logical_device, VkPhysicalDevice& physical_device);
 		VkFormat find_supported_format(VkPhysicalDevice& physical_device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -47,12 +54,6 @@ namespace as
 		void create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineLayout& out_pipeline_layout, VkDevice& logical_device, VkSampleCountFlagBits& msaa_samples, VkDescriptorSetLayout& descriptor_set_layout, VkRenderPass& render_pass); // EDIT THIS TO EXPOSE SHADERS
 		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice& logical_device);
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
-
-		/** Memory */
-		void create_image(VkPhysicalDevice& physical_device, VkDevice& logical_device, u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-		u32 find_memory_type(VkPhysicalDevice& physical_device, u32 typeFilter, VkMemoryPropertyFlags properties);
-		void create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
-		void create_depth_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples);
 
 		/** Framebuffer */
 		void create_frame_buffers(std::vector<VkFramebuffer>& out_swap_chain_framebuffers, VkDevice& logical_device, std::vector<VkImageView>& swap_chain_image_views, VkImageView& color_image_view, VkImageView& depth_image_view, VkRenderPass& render_pass, VkExtent2D& swap_chain_extent);
