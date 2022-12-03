@@ -101,11 +101,11 @@ namespace as
 		struct swapchain
 		{
 			VkSwapchainKHR swapchainKHR;
-			std::vector<VkImage> swapchain_images;
-			VkFormat swapchain_image_format;
-			VkExtent2D swapchain_extent;
-			std::vector<VkImageView> swapchain_image_views;
-			std::vector<VkFramebuffer> swapchain_framebuffers;
+			std::vector<VkImage> images;
+			VkFormat image_format;
+			VkExtent2D extent;
+			std::vector<VkImageView> image_views;
+			std::vector<VkFramebuffer> framebuffers;
 		};
 
 		struct SwapChainSupportDetails

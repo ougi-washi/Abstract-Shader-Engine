@@ -474,11 +474,11 @@ void as::vk::create_swapchain(const swapchain_create_info& create_info, swapchai
 	CHECK_VK_RESULT(vkCreateSwapchainKHR(create_info.logical_device, &createInfo, nullptr, &out_swapchain.swapchainKHR));
 
 	vkGetSwapchainImagesKHR(create_info.logical_device, out_swapchain.swapchainKHR, &imageCount, nullptr);
-	out_swapchain.swapchain_images.resize(imageCount);
-	vkGetSwapchainImagesKHR(create_info.logical_device, out_swapchain.swapchainKHR, &imageCount, out_swapchain.swapchain_images.data());
+	out_swapchain.images.resize(imageCount);
+	vkGetSwapchainImagesKHR(create_info.logical_device, out_swapchain.swapchainKHR, &imageCount, out_swapchain.images.data());
 
-	out_swapchain.swapchain_image_format = surfaceFormat.format;
-	out_swapchain.swapchain_extent = extent;
+	out_swapchain.image_format = surfaceFormat.format;
+	out_swapchain.extent = extent;
 }
 
 void as::vk::cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views)

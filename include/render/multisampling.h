@@ -171,31 +171,31 @@ private:
 
         as::vk::image_view_create_info image_view_create_info = {};
         image_view_create_info.logical_device = device;
-        image_view_create_info.format = swapchain.swapchain_image_format;
+        image_view_create_info.format = swapchain.image_format;
         image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
         image_view_create_info.mip_levels = 1;
-		u32 images_array_size = swapchain.swapchain_images.size();
-        swapchain.swapchain_image_views.resize(images_array_size);
+		u32 images_array_size = swapchain.images.size();
+        swapchain.image_views.resize(images_array_size);
 		for (u32 i = 0; i < images_array_size; i++)
 		{
-            image_view_create_info.image = swapchain.swapchain_images[i];
-			CHECK_VK_RESULT(create_image_view(image_view_create_info, &swapchain.swapchain_image_views[i]));
+            image_view_create_info.image = swapchain.images[i];
+			CHECK_VK_RESULT(create_image_view(image_view_create_info, &swapchain.image_views[i]));
 		}
 
         as::vk::render_pass_create_info render_pass_create_info;
         render_pass_create_info.physical_device = physicalDevice;
         render_pass_create_info.logical_device = device;
         render_pass_create_info.msaa_samples = msaaSamples;
-        render_pass_create_info.swap_chain_image_format = swapchain.swapchain_image_format;
+        render_pass_create_info.swap_chain_image_format = swapchain.image_format;
         as::vk::create_render_pass(render_pass_create_info, render.pass);
 
         as::vk::create_descriptor_set_layout(device, render.descriptor_set_layout);
 
         as::vk::create_graphics_pipeline(render.graphics_pipeline, render.pipeline_layout, device, msaaSamples, render.descriptor_set_layout, render.pass);
         as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
-        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-        as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, render.pass, swapchain.swapchain_extent);
+        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
+        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
+        as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render.pass, swapchain.extent);
         as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
         as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
         as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
@@ -225,7 +225,7 @@ private:
 			{colorImage, colorImageView, colorImageMemory},
 			{depthImage, depthImageView, depthImageMemory}
 		};
-		as::vk::cleanup_swap_chain(device, swapchain.swapchainKHR, images_data, swapchain.swapchain_framebuffers, swapchain.swapchain_image_views);
+		as::vk::cleanup_swap_chain(device, swapchain.swapchainKHR, images_data, swapchain.framebuffers, swapchain.image_views);
     }
 
     void cleanup() {
@@ -290,11 +290,11 @@ private:
 
         cleanupSwapChain();
 
-		as::vk::create_swap_chain(&swapchain.swapchainKHR, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &swapchain.swapchain_extent, &device, &physicalDevice, &surface, window);
-		as::vk::create_image_views(&swapchain.swapchain_image_views, &swapchain.swapchain_framebuffers, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &device);
-		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-		as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, render.pass, swapchain.swapchain_extent);
+		as::vk::create_swap_chain(&swapchain.swapchainKHR, &swapchain.images, &swapchain.image_format, &swapchain.extent, &device, &physicalDevice, &surface, window);
+		as::vk::create_image_views(&swapchain.image_views, &swapchain.framebuffers, &swapchain.images, &swapchain.image_format, &device);
+		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
+		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
+		as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render.pass, swapchain.extent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -308,9 +308,9 @@ private:
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = render.pass;
-        renderPassInfo.framebuffer = swapchain.swapchain_framebuffers[imageIndex];
+        renderPassInfo.framebuffer = swapchain.framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapchain.swapchain_extent;
+        renderPassInfo.renderArea.extent = swapchain.extent;
 
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
@@ -326,15 +326,15 @@ private:
             VkViewport viewport{};
             viewport.x = 0.0f;
             viewport.y = 0.0f;
-            viewport.width = (float)swapchain.swapchain_extent.width;
-            viewport.height = (float)swapchain.swapchain_extent.height;
+            viewport.width = (float)swapchain.extent.width;
+            viewport.height = (float)swapchain.extent.height;
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
             VkRect2D scissor{};
             scissor.offset = {0, 0};
-            scissor.extent = swapchain.swapchain_extent;
+            scissor.extent = swapchain.extent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             VkBuffer vertexBuffers[] = {vertexBuffer};
@@ -363,7 +363,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapchain.swapchain_extent.width / (float)swapchain.swapchain_extent.height, 0.1f, 10.0f);
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapchain.extent.width / (float)swapchain.extent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
 
         void* data;
