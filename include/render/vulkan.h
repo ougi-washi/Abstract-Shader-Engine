@@ -167,15 +167,6 @@ namespace as
 
 	/** REWORK */
 
-	struct vulkan_instance_create_info
-	{
-		char app_name[255] = "Abstract Shader Engine";
-		char engine_name[255] = "Abstract Shader Engine";
-		u8 enable_validation_layers : 1;
-		const std::vector<const char*> validation_layers = { "VK_LAYER_KHRONOS_validation" }; // TODO: remove std
-		vulkan_instance_create_info() : enable_validation_layers(true) {};
-	};
-
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> graphicsFamily;
@@ -244,6 +235,107 @@ namespace as
 		VkImage image;
 		VkImageView view;
 		VkDeviceMemory memory;
+	};
+
+	struct glfw
+	{
+		GLFWwindow* window;
+	};
+
+	namespace vk
+	{
+		struct instance
+		{
+			VkInstance instance;
+			VkDebugUtilsMessengerEXT debugMessenger;
+			VkSurfaceKHR surface;
+		};
+
+		struct device
+		{
+			VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+			VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+			VkDevice device;
+		};
+
+		struct queues
+		{
+			VkQueue graphicsQueue;
+			VkQueue presentQueue;
+		};
+
+		struct swapchain
+		{
+			VkSwapchainKHR swapChain;
+			std::vector<VkImage> swapChainImages;
+			VkFormat swapChainImageFormat;
+			VkExtent2D swapChainExtent;
+			std::vector<VkImageView> swapChainImageViews;
+			std::vector<VkFramebuffer> swapChainFramebuffers;
+		};
+
+		struct render_pass
+		{
+			VkRenderPass renderPass;
+			VkDescriptorSetLayout descriptorSetLayout;
+			VkPipelineLayout pipelineLayout;
+			VkPipeline graphicsPipeline;
+		};
+
+		struct command_pool
+		{
+			VkCommandPool commandPool;
+		};
+
+		struct image_data
+		{
+			VkImage colorImage;
+			VkDeviceMemory colorImageMemory;
+			VkImageView colorImageView;
+		};
+
+		struct texture_data
+		{
+			uint32_t mipLevels;
+			VkImage textureImage;
+			VkDeviceMemory textureImageMemory;
+			VkImageView textureImageView;
+			VkSampler textureSampler;
+		};
+
+		struct model_data
+		{
+			std::vector<as::Vertex> vertices;
+			std::vector<uint32_t> indices;
+			VkBuffer vertexBuffer;
+			VkDeviceMemory vertexBufferMemory;
+			VkBuffer indexBuffer;
+			VkDeviceMemory indexBufferMemory;
+		};
+
+		struct uniform_buffers
+		{
+			std::vector<VkBuffer> uniformBuffers;
+			std::vector<VkDeviceMemory> uniformBuffersMemory;
+		};
+
+		struct descriptor
+		{
+			VkDescriptorPool descriptorPool;
+			std::vector<VkDescriptorSet> descriptorSets;
+		};
+
+		struct command_buffers
+		{
+			std::vector<VkCommandBuffer> commandBuffers;
+		};
+
+		struct synchronization
+		{
+			std::vector<VkSemaphore> imageAvailableSemaphores;
+			std::vector<VkSemaphore> renderFinishedSemaphores;
+			std::vector<VkFence> inFlightFences;
+		};
 	};
 };
 
