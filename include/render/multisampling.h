@@ -141,36 +141,36 @@ private:
     }
 
     void initVulkan() {
-        as::vulkan_instance_create_info instance_create_info = {};
-        as::create_vulkan_instance(instance, instance_create_info);
+        as::vk::vulkan_instance_create_info instance_create_info = {};
+        as::vk::create_vulkan_instance(instance, instance_create_info);
         if (instance_create_info.enable_validation_layers)
         {
-			as::setup_debug_messenger(&instance, &debugMessenger);
+			as::vk::setup_debug_messenger(&instance, &debugMessenger);
         }
-		as::create_surface(surface, instance, window);
-        as::pick_physical_device(&physicalDevice, &msaaSamples, &instance, &surface);
-        as::create_logical_device(&device, &graphicsQueue, &presentQueue, &physicalDevice, &surface, deviceExtensions, validationLayers);
-        as::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
-        as::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
-        as::create_render_pass(swapChainImageFormat, msaaSamples, renderPass, device, physicalDevice);
-        as::create_descriptor_set_layout(device, descriptorSetLayout);
-        as::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
-        as::create_command_pool(commandPool, physicalDevice, device, surface);
-        as::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-        as::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-        as::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
-        as::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
-        as::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
-        as::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
-        as::load_model(MODEL_PATH.c_str(), vertices, indices);
-        as::create_vertex_buffer(vertexBuffer, vertexBufferMemory, physicalDevice, device, vertices, commandPool, graphicsQueue);
-        as::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
-        as::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
-        as::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
-        as::create_descriptor_sets(descriptorSets, device, descriptorSetLayout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
-        as::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
-        as::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
-        as::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
+		as::vk::create_surface(surface, instance, window);
+        as::vk::pick_physical_device(&physicalDevice, &msaaSamples, &instance, &surface);
+        as::vk::create_logical_device(&device, &graphicsQueue, &presentQueue, &physicalDevice, &surface, deviceExtensions, validationLayers);
+        as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
+        as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
+        as::vk::create_render_pass(swapChainImageFormat, msaaSamples, renderPass, device, physicalDevice);
+        as::vk::create_descriptor_set_layout(device, descriptorSetLayout);
+        as::vk::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
+        as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
+        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
+        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
+        as::vk::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
+        as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
+        as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
+        as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
+        as::vk::load_model(MODEL_PATH.c_str(), vertices, indices);
+        as::vk::create_vertex_buffer(vertexBuffer, vertexBufferMemory, physicalDevice, device, vertices, commandPool, graphicsQueue);
+        as::vk::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
+        as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
+        as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
+        as::vk::create_descriptor_sets(descriptorSets, device, descriptorSetLayout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
+        as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
+        as::vk::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
+        as::vk::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
     }
 
     void mainLoop() {
@@ -183,12 +183,12 @@ private:
     }
 
     void cleanupSwapChain() {
-		std::vector<as::image_data> images_data =
+		std::vector<as::vk::image_data> images_data =
 		{
 			{colorImage, colorImageView, colorImageMemory},
 			{depthImage, depthImageView, depthImageMemory}
 		};
-		as::cleanup_swap_chain(device, swapChain, images_data, swapChainFramebuffers, swapChainImageViews);
+		as::vk::cleanup_swap_chain(device, swapChain, images_data, swapChainFramebuffers, swapChainImageViews);
     }
 
     void cleanup() {
@@ -253,11 +253,11 @@ private:
 
         cleanupSwapChain();
 
-		as::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
-		as::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
-		as::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-		as::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-		as::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
+		as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
+		as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
+		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
+		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
+		as::vk::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {

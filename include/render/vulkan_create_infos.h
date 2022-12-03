@@ -8,17 +8,17 @@
 
 namespace as
 {
-	struct vulkan_instance_create_info
+	namespace vk
 	{
-		char app_name[255] = "Abstract Shader Engine";
-		char engine_name[255] = "Abstract Shader Engine";
-		u8 enable_validation_layers : 1;
-		const std::vector<const char*> validation_layers = { "VK_LAYER_KHRONOS_validation" }; // TODO: remove std
-		vulkan_instance_create_info() : enable_validation_layers(true) {};
+		struct vulkan_instance_create_info
+		{
+			char app_name[255] = "Abstract Shader Engine";
+			char engine_name[255] = "Abstract Shader Engine";
+			u8 enable_validation_layers : 1;
+			const std::vector<const char*> validation_layers = { "VK_LAYER_KHRONOS_validation" }; // TODO: remove std
+			vulkan_instance_create_info() : enable_validation_layers(true) {};
+		};
 	};
-
 };
-
-//struct 
 
 #endif //_VULKAN_CREATE_INFO_

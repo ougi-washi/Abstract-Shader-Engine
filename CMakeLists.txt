@@ -48,7 +48,7 @@ add_subdirectory(lib/glm)
 ## CREATE ANOTHER MODULE, ADD THE DEPENDENCIES TO THE OTHER MODULE THEN BIND THEM TO THE MAIN RENDER LIB
 ## Render
 add_library(Render STATIC	src/core.cpp
-							src/render/vulkan.cpp
+							src/shader/shaderc_core.cpp
 							src/render/vulkan_core.cpp)
 
 target_include_directories(Render PUBLIC	

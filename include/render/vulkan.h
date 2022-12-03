@@ -14,8 +14,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-// SHADERC
-#include <shaderc/shaderc.h>
 
 #include <optional> // TODO: REMOVE
 #include <array> // TODO: REMOVE
@@ -92,8 +90,6 @@ namespace as
 	};
 
 
-
-
 	/** interface end */
 
 	/** memory start */
@@ -147,35 +143,10 @@ namespace as
 			out_buffer(nullptr) {};
 	};
 
-	struct shader_binaries
-	{
-		u32* binaries;
-		u32 size;
-
-		shader_binaries() : binaries(nullptr), size(0) {};
-	};
-
-	struct shader_compile_info
-	{
-		char* file_name;
-		char* source;
-		shaderc_shader_kind kind;
-		u8 optimize : 1;
-	};
 
 	/** shader end */
 
 	/** REWORK */
-
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> presentFamily;
-
-		bool isComplete() {
-			return graphicsFamily.has_value() && presentFamily.has_value();
-		}
-	};
 
 	struct Vertex {
 		glm::vec3 pos;
@@ -223,20 +194,6 @@ namespace as
 		alignas(16) glm::mat4 proj;
 	};
 
-	struct SwapChainSupportDetails 
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
-	struct image_data
-	{
-		VkImage image;
-		VkImageView view;
-		VkDeviceMemory memory;
-	};
-
 	struct glfw
 	{
 		GLFWwindow* window;
@@ -274,6 +231,13 @@ namespace as
 			std::vector<VkFramebuffer> swapChainFramebuffers;
 		};
 
+		struct SwapChainSupportDetails
+		{
+			VkSurfaceCapabilitiesKHR capabilities;
+			std::vector<VkSurfaceFormatKHR> formats;
+			std::vector<VkPresentModeKHR> presentModes;
+		};
+
 		struct render_pass
 		{
 			VkRenderPass renderPass;
@@ -289,9 +253,9 @@ namespace as
 
 		struct image_data
 		{
-			VkImage colorImage;
-			VkDeviceMemory colorImageMemory;
-			VkImageView colorImageView;
+			VkImage image;
+			VkImageView view;
+			VkDeviceMemory memory;
 		};
 
 		struct texture_data
@@ -336,6 +300,16 @@ namespace as
 			std::vector<VkSemaphore> renderFinishedSemaphores;
 			std::vector<VkFence> inFlightFences;
 		};
+
+		struct QueueFamilyIndices
+		{
+			std::optional<uint32_t> graphicsFamily;
+			std::optional<uint32_t> presentFamily;
+
+			bool isComplete() {
+				return graphicsFamily.has_value() && presentFamily.has_value();
+			}
+		};
 	};
 };
 
@@ -347,6 +321,5 @@ namespace std
 		}
 	};
 };
-
 
 #endif //_VULKAN_
