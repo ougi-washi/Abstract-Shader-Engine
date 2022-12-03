@@ -56,6 +56,7 @@ namespace as
 		/** Descriptor && Shader */
 		VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);
 		void create_graphics_pipeline(VkPipeline& out_graphics_pipeline, VkPipelineLayout& out_pipeline_layout, VkDevice& logical_device, VkSampleCountFlagBits& msaa_samples, VkDescriptorSetLayout& descriptor_set_layout, VkRenderPass& render_pass); // EDIT THIS TO EXPOSE SHADERS
+		//VkResult create_graphics_pipeline()
 		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice& logical_device);
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
 

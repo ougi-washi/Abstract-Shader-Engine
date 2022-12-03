@@ -76,11 +76,11 @@ private:
     VkQueue presentQueue;
 
     as::vk::swapchain swapchain;
-
-    VkRenderPass renderPass;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    as::vk::render render;
+    //VkRenderPass render.pass;
+    //VkDescriptorSetLayout render.descriptor_set_layout;
+    //VkPipelineLayout render.pipeline_layout;
+    //VkPipeline render.graphics_pipeline;
 
     VkCommandPool commandPool;
 
@@ -187,14 +187,15 @@ private:
         render_pass_create_info.logical_device = device;
         render_pass_create_info.msaa_samples = msaaSamples;
         render_pass_create_info.swap_chain_image_format = swapchain.swapchain_image_format;
-        as::vk::create_render_pass(render_pass_create_info, renderPass);
+        as::vk::create_render_pass(render_pass_create_info, render.pass);
 
-        as::vk::create_descriptor_set_layout(device, descriptorSetLayout);
-        as::vk::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
+        as::vk::create_descriptor_set_layout(device, render.descriptor_set_layout);
+
+        as::vk::create_graphics_pipeline(render.graphics_pipeline, render.pipeline_layout, device, msaaSamples, render.descriptor_set_layout, render.pass);
         as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
         as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
         as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-        as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, renderPass, swapchain.swapchain_extent);
+        as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, render.pass, swapchain.swapchain_extent);
         as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
         as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
         as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
@@ -203,7 +204,7 @@ private:
         as::vk::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
         as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
-        as::vk::create_descriptor_sets(descriptorSets, device, descriptorSetLayout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
+        as::vk::create_descriptor_sets(descriptorSets, device, render.descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
         as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
         as::vk::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
@@ -230,9 +231,9 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-        vkDestroyRenderPass(device, renderPass, nullptr);
+        vkDestroyPipeline(device, render.graphics_pipeline, nullptr);
+        vkDestroyPipelineLayout(device, render.pipeline_layout, nullptr);
+        vkDestroyRenderPass(device, render.pass, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroyBuffer(device, uniformBuffers[i], nullptr);
@@ -247,7 +248,7 @@ private:
         vkDestroyImage(device, textureImage, nullptr);
         vkFreeMemory(device, textureImageMemory, nullptr);
 
-        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(device, render.descriptor_set_layout, nullptr);
 
         vkDestroyBuffer(device, indexBuffer, nullptr);
         vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -293,7 +294,7 @@ private:
 		as::vk::create_image_views(&swapchain.swapchain_image_views, &swapchain.swapchain_framebuffers, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &device);
 		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
 		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
-		as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, renderPass, swapchain.swapchain_extent);
+		as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, render.pass, swapchain.swapchain_extent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -306,7 +307,7 @@ private:
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.renderPass = render.pass;
         renderPassInfo.framebuffer = swapchain.swapchain_framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapchain.swapchain_extent;
@@ -320,7 +321,7 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render.graphics_pipeline);
 
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -342,7 +343,7 @@ private:
 
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render.pipeline_layout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
