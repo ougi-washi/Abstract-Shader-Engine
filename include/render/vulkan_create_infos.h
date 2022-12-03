@@ -75,6 +75,14 @@ namespace as
 			VkImageAspectFlags aspect_flags;
 			u32 mip_levels;
 		};
+
+		struct render_pass_create_info
+		{
+			VkDevice logical_device;
+			VkPhysicalDevice physical_device;
+			VkFormat swap_chain_image_format; 
+			VkSampleCountFlagBits msaa_samples; 
+		};
 	};
 };
 

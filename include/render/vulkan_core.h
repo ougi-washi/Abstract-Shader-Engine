@@ -49,8 +49,9 @@ namespace as
 		VkResult create_image_view(const image_view_create_info& create_info, VkImageView* image_view);
 		void create_image_views(std::vector<VkImageView>* swap_chain_image_views, std::vector<VkFramebuffer>* swap_chain_framebuffers, std::vector<VkImage>* swap_chain_images, VkFormat* swap_chain_image_format, VkDevice* logical_device);
 		VkResult create_render_pass(VkFormat& swap_chain_image_format, VkSampleCountFlagBits& msaa_samples, VkRenderPass& render_pass, VkDevice& logical_device, VkPhysicalDevice& physical_device);
+		VkResult create_render_pass(const render_pass_create_info& create_info, VkRenderPass& out_render_pass);
 		VkFormat find_supported_format(VkPhysicalDevice& physical_device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-		VkFormat find_depth_format(VkPhysicalDevice& physical_device);
+		VkFormat find_depth_format(VkPhysicalDevice physical_device);
 
 		/** Descriptor && Shader */
 		VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);

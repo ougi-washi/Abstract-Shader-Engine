@@ -75,12 +75,6 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
-    /*VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;*/
     as::vk::swapchain swapchain;
 
     VkRenderPass renderPass;
@@ -188,7 +182,12 @@ private:
 			CHECK_VK_RESULT(create_image_view(image_view_create_info, &swapchain.swapchain_image_views[i]));
 		}
 
-        as::vk::create_render_pass(swapchain.swapchain_image_format, msaaSamples, renderPass, device, physicalDevice);
+        as::vk::render_pass_create_info render_pass_create_info;
+        render_pass_create_info.physical_device = physicalDevice;
+        render_pass_create_info.logical_device = device;
+        render_pass_create_info.msaa_samples = msaaSamples;
+        render_pass_create_info.swap_chain_image_format = swapchain.swapchain_image_format;
+        as::vk::create_render_pass(render_pass_create_info, renderPass);
 
         as::vk::create_descriptor_set_layout(device, descriptorSetLayout);
         as::vk::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
