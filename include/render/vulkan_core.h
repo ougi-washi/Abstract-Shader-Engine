@@ -19,7 +19,7 @@ namespace as
 		//QueueFamilyIndices find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
 		QueueFamilyIndices find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
 		bool check_device_extension_support(VkPhysicalDevice& physical_device, const std::vector<const char*> extensions);
-		SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface);
+		SwapChainSupportDetails query_swap_chain_support(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
 		bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR* surface);
 		VkSampleCountFlagBits get_max_usable_sample_count(VkPhysicalDevice* physical_device);
 		void pick_physical_device(VkPhysicalDevice* out_physical_device, VkSampleCountFlagBits* out_msaa_samples, VkInstance* instance, VkSurfaceKHR* surface);
@@ -34,7 +34,7 @@ namespace as
 		VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D choos_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 		void create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkImage>* out_swap_chain_images, VkFormat* out_swap_chain_image_format, VkExtent2D* out_swap_chain_extent, VkDevice* logical_device, VkPhysicalDevice* physical_device, VkSurfaceKHR* surface, GLFWwindow* window);
-		void create_swap_chain(const swapchain_create_info& create_info, as::vk::swapchain& out_swapchain);
+		void create_swapchain(const swapchain_create_info& create_info, as::vk::swapchain& out_swapchain);
 		void cleanup_swap_chain(VkDevice& logical_device, VkSwapchainKHR& swap_chain, std::vector<image_data>& images_data, std::vector<VkFramebuffer>& frame_buffers, std::vector<VkImageView>& swap_chain_image_views);
 
 		/** Image */

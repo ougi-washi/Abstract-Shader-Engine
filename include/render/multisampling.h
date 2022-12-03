@@ -75,12 +75,13 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
-    VkSwapchainKHR swapChain;
+    /*VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<VkFramebuffer> swapChainFramebuffers;*/
+    as::vk::swapchain swapchain;
 
     VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout;
@@ -168,16 +169,22 @@ private:
         as::vk::create_logical_device(logical_device_create_info, &device, &graphicsQueue, &presentQueue);
 
 		as::vk::swapchain_create_info swapchain_create_info = {};
+        swapchain_create_info.logical_device = device;
+        swapchain_create_info.physical_device = physicalDevice;
+        swapchain_create_info.surface = &surface;
+        swapchain_create_info.window = window;
+        as::vk::create_swapchain(swapchain_create_info, swapchain);
+
         //swapchain_create_info
-        as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
-        as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
-        as::vk::create_render_pass(swapChainImageFormat, msaaSamples, renderPass, device, physicalDevice);
+        //as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
+        as::vk::create_image_views(&swapchain.swapchain_image_views, &swapchain.swapchain_framebuffers, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &device);
+        as::vk::create_render_pass(swapchain.swapchain_image_format, msaaSamples, renderPass, device, physicalDevice);
         as::vk::create_descriptor_set_layout(device, descriptorSetLayout);
         as::vk::create_graphics_pipeline(graphicsPipeline, pipelineLayout, device, msaaSamples, descriptorSetLayout, renderPass);
         as::vk::create_command_pool(commandPool, physicalDevice, device, surface);
-        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-        as::vk::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
+        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
+        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
+        as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, renderPass, swapchain.swapchain_extent);
         as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
         as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
         as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
@@ -207,7 +214,7 @@ private:
 			{colorImage, colorImageView, colorImageMemory},
 			{depthImage, depthImageView, depthImageMemory}
 		};
-		as::vk::cleanup_swap_chain(device, swapChain, images_data, swapChainFramebuffers, swapChainImageViews);
+		as::vk::cleanup_swap_chain(device, swapchain.swapchainKHR, images_data, swapchain.swapchain_framebuffers, swapchain.swapchain_image_views);
     }
 
     void cleanup() {
@@ -272,11 +279,11 @@ private:
 
         cleanupSwapChain();
 
-		as::vk::create_swap_chain(&swapChain, &swapChainImages, &swapChainImageFormat, &swapChainExtent, &device, &physicalDevice, &surface, window);
-		as::vk::create_image_views(&swapChainImageViews, &swapChainFramebuffers, &swapChainImages, &swapChainImageFormat, &device);
-		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapChainImageFormat, swapChainExtent, msaaSamples);
-		as::vk::create_frame_buffers(swapChainFramebuffers, device, swapChainImageViews, colorImageView, depthImageView, renderPass, swapChainExtent);
+		as::vk::create_swap_chain(&swapchain.swapchainKHR, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &swapchain.swapchain_extent, &device, &physicalDevice, &surface, window);
+		as::vk::create_image_views(&swapchain.swapchain_image_views, &swapchain.swapchain_framebuffers, &swapchain.swapchain_images, &swapchain.swapchain_image_format, &device);
+		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
+		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.swapchain_image_format, swapchain.swapchain_extent, msaaSamples);
+		as::vk::create_frame_buffers(swapchain.swapchain_framebuffers, device, swapchain.swapchain_image_views, colorImageView, depthImageView, renderPass, swapchain.swapchain_extent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -290,9 +297,9 @@ private:
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.framebuffer = swapchain.swapchain_framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
+        renderPassInfo.renderArea.extent = swapchain.swapchain_extent;
 
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
@@ -308,15 +315,15 @@ private:
             VkViewport viewport{};
             viewport.x = 0.0f;
             viewport.y = 0.0f;
-            viewport.width = (float) swapChainExtent.width;
-            viewport.height = (float) swapChainExtent.height;
+            viewport.width = (float)swapchain.swapchain_extent.width;
+            viewport.height = (float)swapchain.swapchain_extent.height;
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
             VkRect2D scissor{};
             scissor.offset = {0, 0};
-            scissor.extent = swapChainExtent;
+            scissor.extent = swapchain.swapchain_extent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
             VkBuffer vertexBuffers[] = {vertexBuffer};
@@ -345,7 +352,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
+        ubo.proj = glm::perspective(glm::radians(45.0f), swapchain.swapchain_extent.width / (float)swapchain.swapchain_extent.height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
 
         void* data;
@@ -358,7 +365,7 @@ private:
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchainKHR, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
@@ -400,7 +407,7 @@ private:
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {swapChain};
+        VkSwapchainKHR swapChains[] = { swapchain.swapchainKHR};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
 
