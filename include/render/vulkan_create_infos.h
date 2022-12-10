@@ -60,7 +60,7 @@ namespace as
 			u32 width; 
 			u32 height; 
 			u32 mip_levels;
-			VkSampleCountFlagBits numSamples;
+			VkSampleCountFlagBits num_samples;
 			VkFormat format;
 			VkImageTiling tiling;
 			VkImageUsageFlags usage;
@@ -99,6 +99,71 @@ namespace as
 			VkPhysicalDevice physical_device;
 			VkDevice logical_device;
 			VkSurfaceKHR* surface;
+		};
+
+		struct framebuffers_create_info
+		{
+			VkDevice logical_device;
+			std::vector<VkImageView> swap_chain_image_views; 
+			VkImageView color_image_view;
+			VkImageView depth_image_view; 
+			VkRenderPass render_pass;
+			VkExtent2D swap_chain_extent;
+		};
+
+		struct texture_image_create_info
+		{
+			char texture_path[255] = "";
+			VkPhysicalDevice physical_device; 
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			VkQueue graphics_queue;
+			VkDeviceMemory texture_image_memory;
+		};
+
+		struct buffer_create_info
+		{
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device;
+			VkDeviceSize size;
+			VkBufferUsageFlags usage; 
+			VkMemoryPropertyFlags properties; 
+		};
+
+		struct transition_image_layout_info
+		{
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			VkQueue graphics_queue;
+			VkImage image; 
+			VkFormat format; 
+			VkImageLayout old_layout; 
+			VkImageLayout new_layout; 
+			u32 mip_levels;
+		};
+
+		struct copy_buffer_to_image_info
+		{
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			VkQueue graphics_queue; 
+			VkBuffer buffer;
+			VkImage image;
+			u32 width;
+			u32 height;
+		};
+
+		struct generate_mipmaps_info
+		{
+			VkPhysicalDevice physical_device; 
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			VkQueue queue; 
+			VkImage image; 
+			VkFormat imageFormat; 
+			i32 tex_width; 
+			i32 tex_height;
+			u32 mip_levels;
 		};
 	};
 };

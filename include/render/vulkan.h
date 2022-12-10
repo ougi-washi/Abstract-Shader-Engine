@@ -135,11 +135,9 @@ namespace as
 
 		struct texture_data
 		{
-			uint32_t mipLevels;
-			VkImage textureImage;
-			VkDeviceMemory textureImageMemory;
-			VkImageView textureImageView;
-			VkSampler textureSampler;
+			image_data image_data;
+			VkSampler sampler;
+			u32 mip_levels;
 		};
 
 		struct model_data

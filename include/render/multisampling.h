@@ -84,20 +84,10 @@ private:
 
     VkCommandPool commandPool;
 
-    VkImage colorImage;
-    VkDeviceMemory colorImageMemory;
-    VkImageView colorImageView;
-    as::vk::image_data color_image;
+	as::vk::image_data color_image;
+	as::vk::image_data depth_image;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-
-    uint32_t mipLevels;
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    as::vk::texture_data texture;
 
     std::vector<as::Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -135,6 +125,40 @@ private:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
+    }
+
+    void create_image_resources()
+    {
+		as::vk::image_create_info color_image_create_info;
+		color_image_create_info.physical_device = physicalDevice;
+		color_image_create_info.logical_device = device;
+		color_image_create_info.height = swapchain.extent.height;
+		color_image_create_info.width = swapchain.extent.width;
+		color_image_create_info.mip_levels = 1;
+		color_image_create_info.num_samples = msaaSamples;
+		color_image_create_info.format = swapchain.image_format;
+		color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		as::vk::create_image(color_image_create_info, color_image);
+		as::vk::image_view_create_info color_image_view_create_info;
+		color_image_view_create_info.logical_device = device;
+		color_image_view_create_info.image = color_image.image;
+		color_image_view_create_info.mip_levels = 1;
+		color_image_view_create_info.format = swapchain.image_format;
+		color_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+		as::vk::create_image_view(color_image_view_create_info, color_image.view);
+
+		VkFormat supported_depth_format = as::vk::find_depth_format(physicalDevice);
+		as::vk::image_create_info depth_image_create_info = color_image_create_info;
+		depth_image_create_info.format = supported_depth_format;
+		depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		as::vk::create_image(depth_image_create_info, depth_image);
+		as::vk::image_view_create_info depth_image_view_create_info = color_image_view_create_info;
+		depth_image_view_create_info.image = depth_image.image;
+		depth_image_view_create_info.format = supported_depth_format;
+		depth_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+		as::vk::create_image_view(depth_image_view_create_info, depth_image.view);
     }
 
     void initVulkan() {
@@ -180,7 +204,7 @@ private:
 		for (u32 i = 0; i < images_array_size; i++)
 		{
             image_view_create_info.image = swapchain.images[i];
-			CHECK_VK_RESULT(create_image_view(image_view_create_info, &swapchain.image_views[i]));
+			CHECK_VK_RESULT(create_image_view(image_view_create_info, swapchain.image_views[i]));
 		}
 
         as::vk::render_pass_create_info render_pass_create_info;
@@ -227,36 +251,36 @@ private:
         command_pool_create_info.surface = &surface;
         as::vk::create_command_pool(command_pool_create_info, commandPool);
 
-        as::vk::image_create_info color_image_create_info;
-        color_image_create_info.physical_device = physicalDevice;
-        color_image_create_info.logical_device = device;
-        color_image_create_info.height = swapchain.extent.height;
-        color_image_create_info.width = swapchain.extent.width;
-        color_image_create_info.mip_levels = 1;
-        color_image_create_info.numSamples = msaaSamples;
-        color_image_create_info.format = swapchain.image_format;
-        color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-        color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        as::vk::create_image(color_image_create_info, color_image);
+        // color and depth image data
+        create_image_resources();
+        
+        as::vk::framebuffers_create_info framebuffers_create_info;
+        framebuffers_create_info.color_image_view = color_image.view;
+        framebuffers_create_info.depth_image_view = depth_image.view;
+        framebuffers_create_info.logical_device = device;
+        framebuffers_create_info.render_pass = render_pass;
+        framebuffers_create_info.swap_chain_extent = swapchain.extent;
+        framebuffers_create_info.swap_chain_image_views = swapchain.image_views;
+        as::vk::create_framebuffers(framebuffers_create_info, swapchain.framebuffers);
 
-		//VkFormat colorFormat = swap_chain_image_format;
-		//create_image(physical_device, logical_device, swap_chain_extent.width, swap_chain_extent.height, 1, msaa_samples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, image_memory);
-		//out_image_view = create_image_view(&logical_device, image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        as::vk::texture_image_create_info texture_image_create_info;
+        strcpy(texture_image_create_info.texture_path, TEXTURE_PATH.c_str());
+        texture_image_create_info.physical_device = physicalDevice;
+        texture_image_create_info.logical_device = device;
+        texture_image_create_info.graphics_queue = graphicsQueue;
+        texture_image_create_info.command_pool = commandPool;
+        texture_image_create_info.texture_image_memory = texture.image_data.memory;
+        as::vk::create_texture_image(texture_image_create_info, texture);
 
-        as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-        as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-        as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render_pass, swapchain.extent);
-        as::vk::create_texture_image(textureImage, TEXTURE_PATH.c_str(), mipLevels, physicalDevice, device, commandPool, graphicsQueue, textureImageMemory);
-        as::vk::create_texture_image_view(textureImageView, device, textureImage, mipLevels);
-        as::vk::create_texture_sampler(textureSampler, physicalDevice, device, mipLevels);
+        as::vk::create_texture_image_view(texture.image_data.view, device, texture.image_data.image, texture.mip_levels);
+        as::vk::create_texture_sampler(texture.sampler, physicalDevice, device, texture.mip_levels);
         as::vk::load_model(MODEL_PATH.c_str(), vertices, indices);
         as::vk::create_vertex_buffer(vertexBuffer, vertexBufferMemory, physicalDevice, device, vertices, commandPool, graphicsQueue);
         as::vk::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
         as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_sets(descriptorSets, device, descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
-        as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, textureImageView, textureSampler);
+        as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, texture.image_data.view, texture.sampler);
         as::vk::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
     }
@@ -273,8 +297,8 @@ private:
     void cleanupSwapChain() {
 		std::vector<as::vk::image_data> images_data =
 		{
-			{colorImage, colorImageView, colorImageMemory},
-			{depthImage, depthImageView, depthImageMemory}
+			color_image,
+            depth_image
 		};
 		as::vk::cleanup_swap_chain(device, swapchain.swapchainKHR, images_data, swapchain.framebuffers, swapchain.image_views);
     }
@@ -293,11 +317,11 @@ private:
 
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
-        vkDestroySampler(device, textureSampler, nullptr);
-        vkDestroyImageView(device, textureImageView, nullptr);
+        vkDestroySampler(device, texture.sampler, nullptr);
+        vkDestroyImageView(device, texture.image_data.view, nullptr);
 
-        vkDestroyImage(device, textureImage, nullptr);
-        vkFreeMemory(device, textureImageMemory, nullptr);
+        vkDestroyImage(device, texture.image_data.image, nullptr);
+        vkFreeMemory(device, texture.image_data.memory, nullptr);
 
         vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
 
@@ -343,9 +367,8 @@ private:
 
 		as::vk::create_swap_chain(&swapchain.swapchainKHR, &swapchain.images, &swapchain.image_format, &swapchain.extent, &device, &physicalDevice, &surface, window);
 		as::vk::create_image_views(&swapchain.image_views, &swapchain.framebuffers, &swapchain.images, &swapchain.image_format, &device);
-		as::vk::create_color_resources(colorImageView, physicalDevice, device, colorImage, colorImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-		as::vk::create_depth_resources(depthImageView, physicalDevice, device, depthImage, depthImageMemory, swapchain.image_format, swapchain.extent, msaaSamples);
-		as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, colorImageView, depthImageView, render_pass, swapchain.extent);
+		create_image_resources();
+		as::vk::create_frame_buffers(swapchain.framebuffers, device, swapchain.image_views, color_image.view, depth_image.view, render_pass, swapchain.extent);
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
