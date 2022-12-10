@@ -272,11 +272,38 @@ private:
         texture_image_create_info.texture_image_memory = texture.image_data.memory;
         as::vk::create_texture_image(texture_image_create_info, texture);
 
-        as::vk::create_texture_image_view(texture.image_data.view, device, texture.image_data.image, texture.mip_levels);
-        as::vk::create_texture_sampler(texture.sampler, physicalDevice, device, texture.mip_levels);
+        as::vk::image_view_create_info texture_image_view_create_info;
+        texture_image_view_create_info.logical_device = device;
+        texture_image_view_create_info.image = texture.image_data.image;
+        texture_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+        texture_image_view_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+        texture_image_view_create_info.mip_levels = texture.mip_levels;
+        as::vk::create_image_view(texture_image_view_create_info, texture.image_data.view);
+        
+        as::vk::sampler_create_info sampler_create_info;
+        sampler_create_info.logical_device = device;
+        sampler_create_info.physical_device = physicalDevice;
+        sampler_create_info.mip_levels = texture.mip_levels;
+        as::vk::create_sampler(sampler_create_info, texture.sampler);
+
         as::vk::load_model(MODEL_PATH.c_str(), vertices, indices);
-        as::vk::create_vertex_buffer(vertexBuffer, vertexBufferMemory, physicalDevice, device, vertices, commandPool, graphicsQueue);
-        as::vk::create_index_buffer(indexBuffer, indexBufferMemory, physicalDevice, device, indices, commandPool, graphicsQueue);
+
+        as::vk::vertex_buffer_create_info vertex_buffer_create_info;
+        vertex_buffer_create_info.physical_device = physicalDevice;
+        vertex_buffer_create_info.logical_device = device;
+        vertex_buffer_create_info.queue = graphicsQueue;
+        vertex_buffer_create_info.command_pool = commandPool;
+        vertex_buffer_create_info.vertices = vertices;
+        as::vk::create_vertex_buffer(vertex_buffer_create_info, vertexBuffer, vertexBufferMemory);
+
+        as::vk::index_buffer_create_info index_buffer_create_info;
+        index_buffer_create_info.physical_device = physicalDevice;
+        index_buffer_create_info.logical_device = device;
+        index_buffer_create_info.queue = graphicsQueue;
+        index_buffer_create_info.command_pool = commandPool;
+        index_buffer_create_info.indices = indices;
+        as::vk::create_index_buffer(index_buffer_create_info, indexBuffer, indexBufferMemory);
+
         as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
         as::vk::create_descriptor_sets(descriptorSets, device, descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);

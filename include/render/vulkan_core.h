@@ -69,6 +69,7 @@ namespace as
 		void create_texture_image(const texture_image_create_info& create_info, texture_data& out_texture_data);
 		void create_texture_image_view(VkImageView& out_texture_image_view, VkDevice& logical_device, VkImage& image, const u32& mip_levels);
 		VkResult create_texture_sampler(VkSampler& out_texture_sampler, VkPhysicalDevice& physical_device, VkDevice& logical_device, const u32& mip_levels);
+		VkResult create_sampler(const sampler_create_info& create_info, VkSampler& out_sampler);
 		VkResult create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkDeviceSize& size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& buffer_memory);
 		VkResult create_buffer(buffer_create_info& create_info, VkBuffer& out_buffer, VkDeviceMemory& out_memory);
 		void transition_image_layout(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, u32 mipLevels);
@@ -83,8 +84,11 @@ namespace as
 		/** Model && Buffer */
 		void load_model(const char* modle_path, std::vector<Vertex>& out_vertices, std::vector<u32>& out_indices);
 		void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue);
+		void copy_buffer(copy_buffer_info& info);
 		void create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<Vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue);
+		void create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory);
 		void create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue);
+		void create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory);
 		void create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight);
 		VkResult create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDevice& logical_device, const i8& max_frames_in_flight);
 		VkResult create_descriptor_sets(std::vector<VkDescriptorSet>& out_descriptor_sets, VkDevice& logical_device, VkDescriptorSetLayout& descriptor_set_layout, VkDescriptorPool& descriptor_pool, const i8& max_frames_in_flight);;

@@ -1191,6 +1191,32 @@ VkResult as::vk::create_texture_sampler(VkSampler& out_texture_sampler, VkPhysic
 	return vkCreateSampler(logical_device, &samplerInfo, nullptr, &out_texture_sampler);
 }
 
+VkResult as::vk::create_sampler(const sampler_create_info& create_info, VkSampler& out_sampler)
+{
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(create_info.physical_device, &properties);
+
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(create_info.mip_levels);
+	samplerInfo.mipLodBias = 0.0f;
+
+	return vkCreateSampler(create_info.logical_device, &samplerInfo, nullptr, &out_sampler);
+}
+
 VkResult as::vk::create_buffer(VkBuffer& out_buffer, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkDeviceSize& size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& buffer_memory)
 {
 	VkBufferCreateInfo bufferInfo{};
@@ -1663,6 +1689,17 @@ void as::vk::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize 
 	end_single_time_commands(logical_device, command_pool, command_buffer, queue);
 }
 
+void as::vk::copy_buffer(copy_buffer_info& info)
+{
+	VkCommandBuffer command_buffer = begin_single_time_commands(info.logical_device, info.command_pool);
+
+	VkBufferCopy copy_region{};
+	copy_region.size = info.size;
+	vkCmdCopyBuffer(command_buffer, info.src_buffer, info.dst_buffer, 1, &copy_region);
+
+	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.queue);
+}
+
 void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<Vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
 {
 	VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
@@ -1684,6 +1721,42 @@ void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& v
 	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
 }
 
+void as::vk::create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory)
+{
+	VkDeviceSize buffer_size = sizeof(create_info.vertices[0]) * create_info.vertices.size();
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	as::vk::buffer_create_info buffer_create_info;
+	buffer_create_info.physical_device = create_info.physical_device;
+	buffer_create_info.logical_device = create_info.logical_device;
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	CHECK_VK_RESULT(create_buffer(buffer_create_info, staging_buffer, staging_buffer_memory));
+
+	void* data;
+	vkMapMemory(create_info.logical_device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, create_info.vertices.data(), (size_t)buffer_size);
+	vkUnmapMemory(create_info.logical_device, staging_buffer_memory);
+
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	CHECK_VK_RESULT(create_buffer(buffer_create_info, out_vertex_buffer, out_vertex_buffer_memory));
+	
+	as::vk::copy_buffer_info copy_buffer_info;
+	copy_buffer_info.src_buffer = staging_buffer;
+	copy_buffer_info.dst_buffer = out_vertex_buffer;
+	copy_buffer_info.size = buffer_size;
+	copy_buffer_info.logical_device = create_info.logical_device;
+	copy_buffer_info.queue = create_info.queue;
+	copy_buffer_info.command_pool = create_info.command_pool;
+	copy_buffer(copy_buffer_info);
+
+	vkDestroyBuffer(create_info.logical_device, staging_buffer, nullptr);
+	vkFreeMemory(create_info.logical_device, staging_buffer_memory, nullptr);
+}
+
 void as::vk::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue)
 {
 	VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
@@ -1703,6 +1776,42 @@ void as::vk::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& ind
 
 	vkDestroyBuffer(logical_device, staging_buffer, nullptr);
 	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
+}
+
+void as::vk::create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory)
+{
+	VkDeviceSize buffer_size = sizeof(create_info.indices[0]) * create_info.indices.size();
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	as::vk::buffer_create_info buffer_create_info;
+	buffer_create_info.physical_device = create_info.physical_device;
+	buffer_create_info.logical_device = create_info.logical_device;
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	CHECK_VK_RESULT(create_buffer(buffer_create_info, staging_buffer, staging_buffer_memory));
+
+	void* data;
+	vkMapMemory(create_info.logical_device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, create_info.indices.data(), (size_t)buffer_size);
+	vkUnmapMemory(create_info.logical_device, staging_buffer_memory);
+
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	CHECK_VK_RESULT(create_buffer(buffer_create_info, out_index_buffer, out_index_buffer_memory));
+
+	as::vk::copy_buffer_info copy_buffer_info;
+	copy_buffer_info.src_buffer = staging_buffer;
+	copy_buffer_info.dst_buffer = out_index_buffer;
+	copy_buffer_info.size = buffer_size;
+	copy_buffer_info.logical_device = create_info.logical_device;
+	copy_buffer_info.queue = create_info.queue;
+	copy_buffer_info.command_pool = create_info.command_pool;
+	copy_buffer(copy_buffer_info);
+
+	vkDestroyBuffer(create_info.logical_device, staging_buffer, nullptr);
+	vkFreeMemory(create_info.logical_device, staging_buffer_memory, nullptr);
 }
 
 void as::vk::create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight)

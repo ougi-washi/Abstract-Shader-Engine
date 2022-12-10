@@ -142,6 +142,16 @@ namespace as
 			u32 mip_levels;
 		};
 
+		struct copy_buffer_info
+		{
+			VkBuffer src_buffer; 
+			VkBuffer dst_buffer; 
+			VkDeviceSize size; 
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			VkQueue queue;
+		};
+
 		struct copy_buffer_to_image_info
 		{
 			VkDevice logical_device; 
@@ -164,6 +174,31 @@ namespace as
 			i32 tex_width; 
 			i32 tex_height;
 			u32 mip_levels;
+		};
+
+		struct sampler_create_info
+		{
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device; 
+			u32 mip_levels;
+		};
+
+		struct vertex_buffer_create_info
+		{
+			VkPhysicalDevice physical_device; 
+			VkDevice logical_device;
+			VkCommandPool command_pool; 
+			VkQueue queue;
+			std::vector<Vertex> vertices;
+		};
+
+		struct index_buffer_create_info
+		{
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device;
+			VkCommandPool command_pool;
+			VkQueue queue;
+			std::vector<u32> indices;
 		};
 	};
 };
