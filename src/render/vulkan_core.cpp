@@ -1827,7 +1827,7 @@ void as::vk::create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, 
 	}
 }
 
-VkResult as::vk::create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDevice& logical_device, const i8& max_frames_in_flight)
+VkResult as::vk::create_descriptor_pool(VkDevice& logical_device, const i8& max_frames_in_flight, VkDescriptorPool& descriptor_pool)
 {
 	std::array<VkDescriptorPoolSize, 2> pool_sizes{};
 	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1841,8 +1841,27 @@ VkResult as::vk::create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDev
 	poolInfo.pPoolSizes = pool_sizes.data();
 	poolInfo.maxSets = static_cast<uint32_t>(max_frames_in_flight);
 
-	return vkCreateDescriptorPool(logical_device, &poolInfo, nullptr, &descriptor_tool);
+	return vkCreateDescriptorPool(logical_device, &poolInfo, nullptr, &descriptor_pool);
 }
+
+void as::vk::create_uniform_buffers(const uniform_buffers_create_info& create_info, std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory)
+{
+	out_uniform_buffers.resize(create_info.max_frames_in_flight);
+	out_uniform_buffers_memory.resize(create_info.max_frames_in_flight);
+
+	as::vk::buffer_create_info buffer_create_info;
+	buffer_create_info.physical_device = create_info.physical_device;
+	buffer_create_info.logical_device = create_info.logical_device;
+	buffer_create_info.size = sizeof(UniformBufferObject);
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+	for (i8 i = 0; i < create_info.max_frames_in_flight; i++)
+	{
+		CHECK_VK_RESULT(create_buffer(buffer_create_info, out_uniform_buffers[i], out_uniform_buffers_memory[i]));
+	}
+}
+
 
 VkResult as::vk::create_descriptor_sets(std::vector<VkDescriptorSet>& out_descriptor_sets, VkDevice& logical_device, VkDescriptorSetLayout& descriptor_set_layout, VkDescriptorPool& descriptor_pool, const i8& max_frames_in_flight)
 {
@@ -1855,6 +1874,19 @@ VkResult as::vk::create_descriptor_sets(std::vector<VkDescriptorSet>& out_descri
 
 	out_descriptor_sets.resize(max_frames_in_flight);
 	return vkAllocateDescriptorSets(logical_device, &alloc_info, out_descriptor_sets.data());
+}
+
+VkResult as::vk::create_descriptor_sets(const descriptor_sets_create_info& create_info, std::vector<VkDescriptorSet>& out_descriptor_sets)
+{
+	std::vector<VkDescriptorSetLayout> layouts(create_info.max_frames_in_flight, create_info.descriptor_set_layout);
+	VkDescriptorSetAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = create_info.descriptor_pool;
+	alloc_info.descriptorSetCount = static_cast<uint32_t>(create_info.max_frames_in_flight);
+	alloc_info.pSetLayouts = layouts.data();
+
+	out_descriptor_sets.resize(create_info.max_frames_in_flight);
+	return vkAllocateDescriptorSets(create_info.logical_device, &alloc_info, out_descriptor_sets.data());
 }
 
 void as::vk::update_descriptor_sets(VkDevice& logical_device, std::vector<VkDescriptorSet>& out_descriptor_sets, std::vector<VkBuffer>& uniform_buffers, const i8& max_frames_in_flight, VkImageView& image_view, VkSampler& image_sampler)
@@ -1893,6 +1925,42 @@ void as::vk::update_descriptor_sets(VkDevice& logical_device, std::vector<VkDesc
 	}
 }
 
+void as::vk::update_descriptor_sets(const descriptor_sets_update_info& update_info, std::vector<VkDescriptorSet>& out_descriptor_sets)
+{
+	for (size_t i = 0; i < update_info.max_frames_in_flight; i++)
+	{
+		VkDescriptorBufferInfo buffer_info{};
+		buffer_info.buffer = update_info.uniform_buffers[i];
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(UniformBufferObject);
+
+		VkDescriptorImageInfo image_info{};
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = update_info.image_view;
+		image_info.sampler = update_info.image_sampler;
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = out_descriptor_sets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = out_descriptor_sets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &image_info;
+
+		vkUpdateDescriptorSets(update_info.logical_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
+}
+
 VkResult as::vk::create_command_buffers(std::vector<VkCommandBuffer>& command_buffers, VkDevice& logical_device, VkCommandPool& command_pool, const i8& max_frames_in_flight)
 {
 	command_buffers.resize(max_frames_in_flight);
@@ -1904,6 +1972,19 @@ VkResult as::vk::create_command_buffers(std::vector<VkCommandBuffer>& command_bu
 	alloc_info.commandBufferCount = (uint32_t)command_buffers.size();
 
 	return vkAllocateCommandBuffers(logical_device, &alloc_info, command_buffers.data());
+}
+
+VkResult as::vk::create_command_buffers(const command_buffers_create_info& create_info, std::vector<VkCommandBuffer>& command_buffers)
+{
+	command_buffers.resize(create_info.max_frames_in_flight);
+
+	VkCommandBufferAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = create_info.command_pool;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandBufferCount = (uint32_t)command_buffers.size();
+
+	return vkAllocateCommandBuffers(create_info.logical_device, &alloc_info, command_buffers.data());
 }
 
 void as::vk::create_sync_objects(VkDevice& logical_device, std::vector<VkSemaphore>& image_available_semaphores, std::vector<VkSemaphore>& render_finished_semaphores, std::vector<VkFence>& inflight_fences, const i8& max_frames_in_flight)
@@ -1927,6 +2008,27 @@ void as::vk::create_sync_objects(VkDevice& logical_device, std::vector<VkSemapho
 		{
 			AS_LOG(LV_ERROR, "failed to create synchronization objects for a frame!");
 		}
+	}
+}
+
+void as::vk::create_sync_objects(const sync_objects_create_info& create_info, std::vector<VkSemaphore>& out_image_available_semaphores, std::vector<VkSemaphore>& out_render_finished_semaphores, std::vector<VkFence>& out_inflight_fences)
+{
+	out_image_available_semaphores.resize(create_info.max_frames_in_flight);
+	out_render_finished_semaphores.resize(create_info.max_frames_in_flight);
+	out_inflight_fences.resize(create_info.max_frames_in_flight);
+
+	VkSemaphoreCreateInfo semaphore_info{};
+	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < create_info.max_frames_in_flight; i++)
+	{
+		CHECK_VK_RESULT(vkCreateSemaphore(create_info.logical_device, &semaphore_info, nullptr, &out_image_available_semaphores[i]));
+		CHECK_VK_RESULT(vkCreateSemaphore(create_info.logical_device, &semaphore_info, nullptr, &out_render_finished_semaphores[i]));
+		CHECK_VK_RESULT(vkCreateFence(create_info.logical_device, &fenceInfo, nullptr, &out_inflight_fences[i]));
 	}
 }
 

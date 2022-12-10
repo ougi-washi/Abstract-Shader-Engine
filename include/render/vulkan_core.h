@@ -90,13 +90,18 @@ namespace as
 		void create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue);
 		void create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory);
 		void create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight);
-		VkResult create_descriptor_pool(VkDescriptorPool& descriptor_tool, VkDevice& logical_device, const i8& max_frames_in_flight);
+		void create_uniform_buffers(const uniform_buffers_create_info& create_info, std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory);
+		VkResult create_descriptor_pool(VkDevice& logical_device, const i8& max_frames_in_flight, VkDescriptorPool& descriptor_pool);
 		VkResult create_descriptor_sets(std::vector<VkDescriptorSet>& out_descriptor_sets, VkDevice& logical_device, VkDescriptorSetLayout& descriptor_set_layout, VkDescriptorPool& descriptor_pool, const i8& max_frames_in_flight);;
+		VkResult create_descriptor_sets(const descriptor_sets_create_info& create_info, std::vector<VkDescriptorSet>& out_descriptor_sets);
 		void update_descriptor_sets(VkDevice& logical_device, std::vector<VkDescriptorSet>& out_descriptor_sets, std::vector<VkBuffer>& uniform_buffers, const i8& max_frames_in_flight, VkImageView& image_view, VkSampler& image_sampler);;
+		void update_descriptor_sets(const descriptor_sets_update_info& update_info, std::vector<VkDescriptorSet>& out_descriptor_sets);
 		VkResult create_command_buffers(std::vector<VkCommandBuffer>& command_buffers, VkDevice& logical_device, VkCommandPool& command_pool, const i8& max_frames_in_flight);
+		VkResult create_command_buffers(const command_buffers_create_info& create_info, std::vector<VkCommandBuffer>& command_buffers);
 
 		/** Synchronization */
 		void create_sync_objects(VkDevice& logical_device, std::vector<VkSemaphore>& image_available_semaphores, std::vector<VkSemaphore>& render_finished_semaphores, std::vector<VkFence>& inflight_fences, const i8& max_frames_in_flight);
+		void create_sync_objects(const sync_objects_create_info& create_info, std::vector<VkSemaphore>& out_image_available_semaphores, std::vector<VkSemaphore>& out_render_finished_semaphores, std::vector<VkFence>& out_inflight_fences);
 
 		/** Debug */
 		VkResult setup_debug_messenger(VkInstance* instance, VkDebugUtilsMessengerEXT* debug_messenger);

@@ -5,7 +5,7 @@
 #include "render/vulkan.h"
 
 /**
- * This file contains all the Vulkan create infos.
+ * This file contains all the Vulkan function params.
  * In order to create OP_RESULT <func> (<params> , RESULT* outResult
  * 
  * Note that many Vulkan types are pointers' typedef. 
@@ -199,6 +199,43 @@ namespace as
 			VkCommandPool command_pool;
 			VkQueue queue;
 			std::vector<u32> indices;
+		};
+
+		struct uniform_buffers_create_info
+		{
+			VkPhysicalDevice physical_device;
+			VkDevice logical_device; 
+			i8 max_frames_in_flight;
+		};
+
+		struct descriptor_sets_create_info
+		{
+			VkDevice logical_device; 
+			VkDescriptorSetLayout descriptor_set_layout; 
+			VkDescriptorPool descriptor_pool;
+			i8 max_frames_in_flight;
+		};
+
+		struct descriptor_sets_update_info
+		{
+			VkDevice logical_device;
+			std::vector<VkBuffer> uniform_buffers; 
+			i8 max_frames_in_flight;
+			VkImageView image_view; 
+			VkSampler image_sampler;
+		};
+
+		struct command_buffers_create_info
+		{
+			VkDevice logical_device; 
+			VkCommandPool command_pool; 
+			i8 max_frames_in_flight;
+		};
+
+		struct sync_objects_create_info
+		{
+			VkDevice logical_device; 
+			i8 max_frames_in_flight;
 		};
 	};
 };

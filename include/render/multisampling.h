@@ -304,12 +304,39 @@ private:
         index_buffer_create_info.indices = indices;
         as::vk::create_index_buffer(index_buffer_create_info, indexBuffer, indexBufferMemory);
 
-        as::vk::create_uniform_buffers(uniformBuffers, uniformBuffersMemory, physicalDevice, device, MAX_FRAMES_IN_FLIGHT);
-        as::vk::create_descriptor_pool(descriptorPool, device, MAX_FRAMES_IN_FLIGHT);
-        as::vk::create_descriptor_sets(descriptorSets, device, descriptor_set_layout, descriptorPool, MAX_FRAMES_IN_FLIGHT);
-        as::vk::update_descriptor_sets(device, descriptorSets, uniformBuffers, MAX_FRAMES_IN_FLIGHT, texture.image_data.view, texture.sampler);
-        as::vk::create_command_buffers(commandBuffers, device, commandPool, MAX_FRAMES_IN_FLIGHT);
-        as::vk::create_sync_objects(device, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences, MAX_FRAMES_IN_FLIGHT);
+        as::vk::uniform_buffers_create_info uniform_buffers_create_info;
+        uniform_buffers_create_info.physical_device = physicalDevice;
+        uniform_buffers_create_info.logical_device = device;
+        uniform_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+        as::vk::create_uniform_buffers(uniform_buffers_create_info, uniformBuffers, uniformBuffersMemory);
+       
+        as::vk::create_descriptor_pool(device, MAX_FRAMES_IN_FLIGHT, descriptorPool);
+       
+        as::vk::descriptor_sets_create_info descriptor_sets_create_info;
+        descriptor_sets_create_info.logical_device = device;
+        descriptor_sets_create_info.descriptor_pool = descriptorPool;
+        descriptor_sets_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+        descriptor_sets_create_info.descriptor_set_layout = descriptor_set_layout;
+        as::vk::create_descriptor_sets(descriptor_sets_create_info, descriptorSets);
+       
+        as::vk::descriptor_sets_update_info descriptor_sets_update_info;
+        descriptor_sets_update_info.logical_device = device;
+        descriptor_sets_update_info.image_view = texture.image_data.view;
+        descriptor_sets_update_info.image_sampler = texture.sampler;
+        descriptor_sets_update_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+        descriptor_sets_update_info.uniform_buffers = uniformBuffers;
+        as::vk::update_descriptor_sets(descriptor_sets_update_info, descriptorSets);
+
+        as::vk::command_buffers_create_info command_buffers_create_info;
+        command_buffers_create_info.logical_device = device;
+        command_buffers_create_info.command_pool = commandPool;
+        command_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+        as::vk::create_command_buffers(command_buffers_create_info, commandBuffers);
+
+        as::vk::sync_objects_create_info sync_objects_create_info;
+        sync_objects_create_info.logical_device = device;
+        sync_objects_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+        as::vk::create_sync_objects(sync_objects_create_info, imageAvailableSemaphores, renderFinishedSemaphores, inFlightFences);
     }
 
     void mainLoop() {
