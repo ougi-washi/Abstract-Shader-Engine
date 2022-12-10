@@ -49,7 +49,8 @@ add_subdirectory(lib/glm)
 ## Render
 add_library(Render STATIC	src/core.cpp
 							src/shader/shaderc_core.cpp
-							src/render/vulkan_core.cpp)
+							src/render/vulkan_core.cpp
+							src/render/vulkan_engine.cpp)
 
 target_include_directories(Render PUBLIC	
 								${PROJECT_SOURCE_DIR}/include
