@@ -15,6 +15,6 @@ int main()
 		}
 	*/
 
-	as::vk::run();
+	//as::vk::run();
 	 return EXIT_SUCCESS;
 }
