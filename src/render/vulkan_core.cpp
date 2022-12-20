@@ -827,13 +827,13 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-	auto bindingDescription = Vertex::getBindingDescription();
-	auto attributeDescriptions = Vertex::getAttributeDescriptions();
+	auto bindingDescription = Vertex::get_binding_description();
+	auto attribute_descriptions = Vertex::get_attribute_descriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attributeDescriptions.size());
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attribute_descriptions.size());
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+	vertexInputInfo.pVertexAttributeDescriptions = attribute_descriptions.data();
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1627,7 +1627,7 @@ void as::vk::load_model(const char* modle_path, std::vector<Vertex>& out_vertice
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			vertex.texCoord = {
+			vertex.tex_coord = {
 				attrib.texcoords[2 * index.texcoord_index + 0],
 				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 			};

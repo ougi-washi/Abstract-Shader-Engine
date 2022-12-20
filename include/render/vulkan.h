@@ -21,16 +21,15 @@
 #include <unordered_map>// TODO: REMOVE
 #include <functional> // TODO: REMOVE
 
-
 namespace as
 {
 
 	struct Vertex {
 		glm::vec3 pos;
 		glm::vec3 color;
-		glm::vec2 texCoord;
+		glm::vec2 tex_coord;
 
-		static VkVertexInputBindingDescription getBindingDescription() {
+		static VkVertexInputBindingDescription get_binding_description() {
 			VkVertexInputBindingDescription bindingDescription{};
 			bindingDescription.binding = 0;
 			bindingDescription.stride = sizeof(Vertex);
@@ -39,33 +38,35 @@ namespace as
 			return bindingDescription;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+		static std::array<VkVertexInputAttributeDescription, 3> get_attribute_descriptions() 
+		{
+			std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions{};
 
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Vertex, pos);
+			attribute_descriptions[0].binding = 0;
+			attribute_descriptions[0].location = 0;
+			attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attribute_descriptions[0].offset = offsetof(Vertex, pos);
 
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, color);
+			attribute_descriptions[1].binding = 0;
+			attribute_descriptions[1].location = 1;
+			attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attribute_descriptions[1].offset = offsetof(Vertex, color);
 
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+			attribute_descriptions[2].binding = 0;
+			attribute_descriptions[2].location = 2;
+			attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+			attribute_descriptions[2].offset = offsetof(Vertex, tex_coord);
 
-			return attributeDescriptions;
+			return attribute_descriptions;
 		}
 
 		bool operator==(const Vertex& other) const {
-			return pos == other.pos && color == other.color && texCoord == other.texCoord;
+			return pos == other.pos && color == other.color && tex_coord == other.tex_coord;
 		}
 	};
 
-	struct uniform_buffer_object {
+	struct uniform_buffer_object 
+	{
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
@@ -190,7 +191,7 @@ namespace std
 {
 	template<> struct hash<::as::Vertex> {
 		size_t operator()(::as::Vertex const& vertex) const {
-			return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
+			return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.tex_coord) << 1);
 		}
 	};
 };
