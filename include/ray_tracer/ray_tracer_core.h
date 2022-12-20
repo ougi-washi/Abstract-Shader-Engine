@@ -1,5 +1,5 @@
 #pragma once
-#include "ray_tracer/ray_tracer.h"
+#include "ray_tracer.h"
 #include <iostream> // TODO: I HATE THIS, to remove
 
 namespace as

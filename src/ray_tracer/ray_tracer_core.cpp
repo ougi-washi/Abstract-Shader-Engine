@@ -1,4 +1,4 @@
-#include "ray_tracer/ray_tracer_core.h"
+#include "ray_tracer_core.h"
 
 /** GENERAL */
 #include <float.h> 

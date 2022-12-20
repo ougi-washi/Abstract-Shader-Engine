@@ -36,7 +36,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	link_directories(${VULKAN_PATH}/Bin;${VULKAN_PATH}/Lib;)
 endif()
 
-
 # GLFW
 message(STATUS "Adding GLFW library")
 add_subdirectory(lib/glfw)
@@ -45,40 +44,51 @@ add_subdirectory(lib/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
-## CREATE ANOTHER MODULE, ADD THE DEPENDENCIES TO THE OTHER MODULE THEN BIND THEM TO THE MAIN RENDER LIB
-## Render
-add_library(Render STATIC	src/core.cpp
-							src/shader/shaderc_core.cpp
-							src/render/vulkan_core.cpp
-							src/render/vulkan_engine.cpp)
+# core
+message(STATUS "Adding main abstract shader library")
+add_library(core STATIC "src/core/core.cpp")
+target_include_directories(core PUBLIC ${PROJECT_SOURCE_DIR}/include/core)
+target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
+									glfw
+									glm)
 
-target_include_directories(Render PUBLIC	
-								${PROJECT_SOURCE_DIR}/include
+# shader
+message(STATUS "Adding shader library")
+add_library(shader STATIC src/shader/shaderc_core.cpp)
+target_include_directories(shader PUBLIC ${PROJECT_SOURCE_DIR}/include/shader)
+target_link_libraries(shader PUBLIC core 
+									shaderc_combinedd)
+
+## render
+message(STATUS "Adding render library")
+add_library(render STATIC	src/render/vulkan_core.cpp
+							src/render/vulkan_engine.cpp)
+target_include_directories(render PUBLIC	
+								${PROJECT_SOURCE_DIR}/include/render
 								${PROJECT_SOURCE_DIR}/lib/stb
 								${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
+target_link_libraries(render PUBLIC	core
+									shader
+									vulkan-1)
 
-target_link_libraries(Render PUBLIC  
-							OpenMP::OpenMP_CXX
-							shaderc_combinedd
-							vulkan-1
-							glfw 
-							glm)
-
-## Path tracer
-add_library(RayTracer STATIC	src/ray_tracer/ray_tracer.cpp
+## ray tracer
+message(STATUS "Adding ray tracer library")
+add_library(ray_tracer STATIC	src/ray_tracer/ray_tracer.cpp
 								src/ray_tracer/ray_tracer_core.cpp)
-target_link_libraries(RayTracer PUBLIC Render)
+target_include_directories(ray_tracer PUBLIC ${PROJECT_SOURCE_DIR}/include/ray_tracer)
+target_link_libraries(ray_tracer PUBLIC core
+										render)
 
 # Link Dependencies 
 
 find_package(OpenMP REQUIRED)
 
-
 add_executable(${PROJECT_NAME} main.cpp)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC 
-							Render 
-							RayTracer)
+target_link_libraries(${PROJECT_NAME} PUBLIC	core
+												shader
+												render 
+												ray_tracer)
 
 ## Definitions
 if(MSVC)

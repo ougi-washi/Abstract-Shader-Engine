@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <iostream> // STD HAS BAD COMPILE TIME
 
 // Base types

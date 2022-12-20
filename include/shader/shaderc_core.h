@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader/shaderc.h"
+#include "shaderc.h"
 
 namespace as
 {

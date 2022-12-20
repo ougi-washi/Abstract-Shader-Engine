@@ -1,5 +1,5 @@
-#include "render/vulkan_engine.h"
-#include "shader/shaderc_core.h"
+#include "vulkan_engine.h"
+#include "shaderc_core.h"
 
 void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 {
@@ -343,6 +343,25 @@ void as::vk::record_command_buffer(VkCommandBuffer commandBuffer, uint32_t image
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to record command buffer!");
 	}
+}
+
+void as::vk::update_uniform_buffer(uint32_t currentImage, engine in_engine)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject ubo{};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain_.extent.width / (float)in_engine.swapchain_.extent.height, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	void* data;
+	vkMapMemory(in_engine.device, in_engine.uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+	memcpy(data, &ubo, sizeof(ubo));
+	vkUnmapMemory(in_engine.device, in_engine.uniformBuffersMemory[currentImage]);
 }
 
 void as::vk::cleanup(engine in_engine, as::window in_window)

@@ -1,6 +1,6 @@
 #pragma once
-#include "render/vulkan.h"
-#include "render/vulkan_create_infos.h"
+#include "vulkan.h"
+#include "vulkan_create_infos.h"
 
 #define VULKAN_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
 

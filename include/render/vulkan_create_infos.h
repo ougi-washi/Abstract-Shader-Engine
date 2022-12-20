@@ -1,8 +1,7 @@
 #ifndef _VULKAN_CREATE_INFO_
 #define _VULKAN_CREATE_INFO_
 
-
-#include "render/vulkan.h"
+#include "vulkan.h"
 
 /**
  * This file contains all the Vulkan function params.
