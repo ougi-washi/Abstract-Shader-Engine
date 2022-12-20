@@ -70,40 +70,6 @@ VkResult as::vk::create_surface(const surface_create_info& create_info, VkSurfac
 {
 	return glfwCreateWindowSurface(create_info.instance, create_info.window, nullptr, &out_surface);
 }
-//
-//as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice& physical_device, VkSurfaceKHR* surface)
-//{
-//	QueueFamilyIndices indices;
-//
-//	u32 queueFamilyCount = 0;
-//	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, nullptr);
-//
-//	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-//	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, queueFamilies.data());
-//
-//	int i = 0;
-//	for (const auto& queueFamily : queueFamilies) 
-//	{
-//		if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-//			indices.graphicsFamily = i;
-//		}
-//
-//		VkBool32 presentSupport = false;
-//		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, *surface, &presentSupport);
-//
-//		if (presentSupport) 
-//		{
-//			indices.presentFamily = i;
-//		}
-//
-//		if (indices.isComplete()) {
-//			break;
-//		}
-//		i++;
-//	}
-//
-//	return indices;
-//}
 
 as::vk::QueueFamilyIndices as::vk::find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR* surface)
 {
@@ -1816,7 +1782,7 @@ void as::vk::create_index_buffer(const index_buffer_create_info& create_info, Vk
 
 void as::vk::create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight)
 {
-	VkDeviceSize buffer_size = sizeof(UniformBufferObject);
+	VkDeviceSize buffer_size = sizeof(uniform_buffer_object);
 
 	out_uniform_buffers.resize(max_frames_in_flight);
 	out_uniform_buffers_memory.resize(max_frames_in_flight);
@@ -1852,7 +1818,7 @@ void as::vk::create_uniform_buffers(const uniform_buffers_create_info& create_in
 	as::vk::buffer_create_info buffer_create_info;
 	buffer_create_info.physical_device = create_info.physical_device;
 	buffer_create_info.logical_device = create_info.logical_device;
-	buffer_create_info.size = sizeof(UniformBufferObject);
+	buffer_create_info.size = sizeof(uniform_buffer_object);
 	buffer_create_info.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
@@ -1896,7 +1862,7 @@ void as::vk::update_descriptor_sets(VkDevice& logical_device, std::vector<VkDesc
 		VkDescriptorBufferInfo buffer_info{};
 		buffer_info.buffer = uniform_buffers[i];
 		buffer_info.offset = 0;
-		buffer_info.range = sizeof(UniformBufferObject);
+		buffer_info.range = sizeof(uniform_buffer_object);
 
 		VkDescriptorImageInfo image_info{};
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1932,7 +1898,7 @@ void as::vk::update_descriptor_sets(const descriptor_sets_update_info& update_in
 		VkDescriptorBufferInfo buffer_info{};
 		buffer_info.buffer = update_info.uniform_buffers[i];
 		buffer_info.offset = 0;
-		buffer_info.range = sizeof(UniformBufferObject);
+		buffer_info.range = sizeof(uniform_buffer_object);
 
 		VkDescriptorImageInfo image_info{};
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

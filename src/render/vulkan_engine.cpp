@@ -63,7 +63,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	for (u32 i = 0; i < images_array_size; i++)
 	{
 		image_view_create_info.image = in_engine.swapchain_.images[i];
-		CHECK_VK_RESULT(create_image_view(image_view_create_info, in_engine.swapchain_.image_views[i]));
+		CHECK_VK_RESULT(as::vk::create_image_view(image_view_create_info, in_engine.swapchain_.image_views[i]));
 	}
 
 	as::vk::render_pass_create_info render_pass_create_info;
@@ -207,7 +207,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		recreate_swapchain(in_engine, in_window);
+		as::vk::recreate_swapchain(in_engine, in_window);
 		return;
 	}
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) 
@@ -215,12 +215,12 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 		AS_LOG(LV_ERROR,"failed to acquire swap chain image!");
 	}
 
-	update_uniform_buffer(in_engine.currentFrame, in_engine);
+	as::vk::update_uniform_buffer(in_engine.currentFrame, in_engine);
 
 	vkResetFences(in_engine.device, 1, &in_engine.inFlightFences[in_engine.currentFrame]);
 
 	vkResetCommandBuffer(in_engine.commandBuffers[in_engine.currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-	record_command_buffer(in_engine.commandBuffers[in_engine.currentFrame], imageIndex, in_engine);
+	as::vk::record_command_buffer(in_engine.commandBuffers[in_engine.currentFrame], imageIndex, in_engine);
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -257,9 +257,12 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) 
 	{
 		as::framebuffer_resized = false;
-		recreate_swapchain(in_engine, in_window);
+		as::vk::recreate_swapchain(in_engine, in_window);
 	}
-	CHECK_VK_RESULT(result);
+	else 
+	{
+		CHECK_VK_RESULT(result);
+	}
 	
 	in_engine.currentFrame = (in_engine.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -269,7 +272,7 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 	while (!glfwWindowShouldClose(in_window.GLFW))
 	{
 		glfwPollEvents();
-		draw_frame(in_engine, in_window);
+		as::vk::draw_frame(in_engine, in_window);
 	}
 
 	vkDeviceWaitIdle(in_engine.device);
@@ -297,11 +300,11 @@ void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 
 	vkDeviceWaitIdle(in_engine.device);
 
-	cleanup_swapchain(in_engine);
+	as::vk::cleanup_swapchain(in_engine);
 
 	as::vk::create_swap_chain(&in_engine.swapchain_.swapchainKHR, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.swapchain_.extent, &in_engine.device, &in_engine.physicalDevice, &in_engine.surface, in_window.GLFW);
 	as::vk::create_image_views(&in_engine.swapchain_.image_views, &in_engine.swapchain_.framebuffers, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.device);
-	create_image_resources(in_engine);
+	as::vk::create_image_resources(in_engine);
 	as::vk::create_frame_buffers(in_engine.swapchain_.framebuffers, in_engine.device, in_engine.swapchain_.image_views, in_engine.color_image.view, in_engine.depth_image.view, in_engine.render_pass, in_engine.swapchain_.extent);
 }
 
@@ -366,7 +369,7 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	UniformBufferObject ubo{};
+	uniform_buffer_object ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain_.extent.width / (float)in_engine.swapchain_.extent.height, 0.1f, 10.0f);
@@ -380,7 +383,7 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 
 void as::vk::cleanup(engine& in_engine, as::window& in_window)
 {
-	cleanup_swapchain(in_engine);
+	as::vk::cleanup_swapchain(in_engine);
 
 	vkDestroyPipeline(in_engine.device, in_engine.graphics_pipeline.pipeline, nullptr);
 	vkDestroyPipelineLayout(in_engine.device, in_engine.graphics_pipeline.layout, nullptr);
