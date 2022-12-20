@@ -1,6 +1,6 @@
 #include "vulkan_engine.h"
 #include "shaderc_core.h"
-
+#include "utility.h"
 
 void as::framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height)
 {
@@ -76,24 +76,30 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout);
 
 	// vertex shader
-	as::sc::shader_compile_info compile_info_vertex = {};
-	compile_info_vertex.file_name = new char[]("main");
-	compile_info_vertex.source = as::read_file("shaders/shader.vert");
-	compile_info_vertex.kind = shaderc_glsl_vertex_shader;
-	as::sc::shader_binaries out_vertex_shader_bin;
-	as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // cache and compare next time, do not compile every time
-	as::sc::write_shader_bin("shaders/vert.spv", out_vertex_shader_bin);
-	std::vector<char> vert_shader_code = as::read_file(std::string("shaders/vert.spv"));
+	//as::sc::shader_compile_info compile_info_vertex = {};
+	//compile_info_vertex.file_name = new char[]("main");
+	//compile_info_vertex.source = as::util::read_file("shaders/shader.vert");
+	//compile_info_vertex.kind = shaderc_glsl_vertex_shader;
+	//as::sc::shader_binaries out_vertex_shader_bin;
+	//as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // cache and compare next time, do not compile every time
+	//as::sc::write_shader_bin("shaders/vert.spv", out_vertex_shader_bin);
+	//std::vector<char> vert_shader_code = as::util::read_file(std::string("shaders/vert.spv"));
+	std::vector<char> vert_shader_code;
+	char vert_shader_path[] = "shaders/shader.vert";
+	sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 
 	// fragment shader
-	as::sc::shader_compile_info compile_info_frag = {};
-	compile_info_frag.file_name = new char[]("main");
-	compile_info_frag.source = as::read_file("shaders/shader.frag");
-	compile_info_frag.kind = shaderc_glsl_fragment_shader;
-	as::sc::shader_binaries out_frag_shader_bin;
-	as::sc::compile_shader(&out_frag_shader_bin, compile_info_frag); // cache and compare next time, do not compile every time
-	as::sc::write_shader_bin("shaders/frag.spv", out_frag_shader_bin);
-	std::vector<char> frag_shader_code = as::read_file(std::string("shaders/frag.spv"));
+	//as::sc::shader_compile_info compile_info_frag = {};
+	//compile_info_frag.file_name = new char[]("main");
+	//compile_info_frag.source = as::util::read_file("shaders/shader.frag");
+	//compile_info_frag.kind = shaderc_glsl_fragment_shader;
+	//as::sc::shader_binaries out_frag_shader_bin;
+	//as::sc::compile_shader(&out_frag_shader_bin, compile_info_frag); // cache and compare next time, do not compile every time
+	//as::sc::write_shader_bin("shaders/frag.spv", out_frag_shader_bin);
+	//std::vector<char> frag_shader_code = as::util::read_file(std::string("shaders/frag.spv"));
+	std::vector<char> frag_shader_code;
+	char frag_shader_path[] = "shaders/shader.frag";
+	sc::compile_fragment_shader(frag_shader_path, frag_shader_code);
 
 	as::vk::pipeline_create_info pipeline_create_info;
 	pipeline_create_info.logical_device = in_engine.device;
@@ -153,7 +159,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	vertex_buffer_create_info.queue = in_engine.graphicsQueue;
 	vertex_buffer_create_info.command_pool = in_engine.commandPool;
 	vertex_buffer_create_info.vertices = in_engine.vertices;
-	as::vk::create_vertex_buffer(vertex_buffer_create_info, in_engine.vertexBuffer, in_engine.vertexBufferMemory);
+	as::vk::create_vertex_buffer(vertex_buffer_create_info, in_engine.vertex_buffer, in_engine.vertex_buffer_memory);
 
 	as::vk::index_buffer_create_info index_buffer_create_info;
 	index_buffer_create_info.physical_device = in_engine.physicalDevice;
@@ -161,13 +167,13 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	index_buffer_create_info.queue = in_engine.graphicsQueue;
 	index_buffer_create_info.command_pool = in_engine.commandPool;
 	index_buffer_create_info.indices = in_engine.indices;
-	as::vk::create_index_buffer(index_buffer_create_info, in_engine.indexBuffer, in_engine.indexBufferMemory);
+	as::vk::create_index_buffer(index_buffer_create_info, in_engine.index_buffer, in_engine.index_buffer_memory);
 
 	as::vk::uniform_buffers_create_info uniform_buffers_create_info;
 	uniform_buffers_create_info.physical_device = in_engine.physicalDevice;
 	uniform_buffers_create_info.logical_device = in_engine.device;
 	uniform_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	as::vk::create_uniform_buffers(uniform_buffers_create_info, in_engine.uniformBuffers, in_engine.uniformBuffersMemory);
+	as::vk::create_uniform_buffers(uniform_buffers_create_info, in_engine.buffers, in_engine.memory);
 
 	as::vk::create_descriptor_pool(in_engine.device, MAX_FRAMES_IN_FLIGHT, in_engine.descriptorPool);
 
@@ -183,7 +189,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	descriptor_sets_update_info.image_view = in_engine.texture.image_data.view;
 	descriptor_sets_update_info.image_sampler = in_engine.texture.sampler;
 	descriptor_sets_update_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	descriptor_sets_update_info.uniform_buffers = in_engine.uniformBuffers;
+	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
 	as::vk::update_descriptor_sets(descriptor_sets_update_info, in_engine.descriptorSets);
 
 	as::vk::command_buffers_create_info command_buffers_create_info;
@@ -347,11 +353,11 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	scissor.extent = in_engine.swapchain_.extent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	VkBuffer vertexBuffers[] = { in_engine.vertexBuffer };
+	VkBuffer vertexBuffers[] = { in_engine.vertex_buffer };
 	VkDeviceSize offsets[] = { 0 };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	vkCmdBindIndexBuffer(commandBuffer, in_engine.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, in_engine.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &in_engine.descriptorSets[in_engine.currentFrame], 0, nullptr);
 
@@ -376,9 +382,9 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 	ubo.proj[1][1] *= -1;
 
 	void* data;
-	vkMapMemory(in_engine.device, in_engine.uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+	vkMapMemory(in_engine.device, in_engine.memory[currentImage], 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(in_engine.device, in_engine.uniformBuffersMemory[currentImage]);
+	vkUnmapMemory(in_engine.device, in_engine.memory[currentImage]);
 }
 
 void as::vk::cleanup(engine& in_engine, as::window& in_window)
@@ -390,8 +396,8 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	vkDestroyRenderPass(in_engine.device, in_engine.render_pass, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroyBuffer(in_engine.device, in_engine.uniformBuffers[i], nullptr);
-		vkFreeMemory(in_engine.device, in_engine.uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(in_engine.device, in_engine.buffers[i], nullptr);
+		vkFreeMemory(in_engine.device, in_engine.memory[i], nullptr);
 	}
 
 	vkDestroyDescriptorPool(in_engine.device, in_engine.descriptorPool, nullptr);
@@ -404,11 +410,11 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDescriptorSetLayout(in_engine.device, in_engine.descriptor_set_layout, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.indexBuffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.indexBufferMemory, nullptr);
+	vkDestroyBuffer(in_engine.device, in_engine.index_buffer, nullptr);
+	vkFreeMemory(in_engine.device, in_engine.index_buffer_memory, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.vertexBuffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.vertexBufferMemory, nullptr);
+	vkDestroyBuffer(in_engine.device, in_engine.vertex_buffer, nullptr);
+	vkFreeMemory(in_engine.device, in_engine.vertex_buffer_memory, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(in_engine.device, in_engine.render_finished_semaphores[i], nullptr);

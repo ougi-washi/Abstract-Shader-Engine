@@ -141,8 +141,8 @@ as::vk::SwapChainSupportDetails as::vk::query_swap_chain_support(VkPhysicalDevic
 	vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, *surface, &presentModeCount, nullptr);
 
 	if (presentModeCount != 0) {
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, *surface, &presentModeCount, details.presentModes.data());
+		details.present_modes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, *surface, &presentModeCount, details.present_modes.data());
 	}
 
 	return details;
@@ -158,7 +158,7 @@ bool as::vk::is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR* 
 	bool swapChainAdequate = false;
 	if (extensionsSupported) {
 		SwapChainSupportDetails swapChainSupport = query_swap_chain_support(physical_device, surface);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.present_modes.empty();
 	}
 
 	VkPhysicalDeviceFeatures supportedFeatures;
@@ -342,7 +342,7 @@ void as::vk::create_swap_chain(VkSwapchainKHR* out_swap_chain, std::vector<VkIma
 	SwapChainSupportDetails swapChainSupport = query_swap_chain_support(*physical_device, surface);
 
 	VkSurfaceFormatKHR surfaceFormat = choose_swap_surface_format(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.presentModes);
+	VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.present_modes);
 	VkExtent2D extent = choos_swap_extent(swapChainSupport.capabilities, window);
 
 	u32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -398,7 +398,7 @@ void as::vk::create_swapchain(const swapchain_create_info& create_info, swapchai
 	SwapChainSupportDetails swapChainSupport = query_swap_chain_support(create_info.physical_device, create_info.surface);
 
 	VkSurfaceFormatKHR surfaceFormat = choose_swap_surface_format(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.presentModes);
+	VkPresentModeKHR presentMode = choose_swap_present_mode(swapChainSupport.present_modes);
 	VkExtent2D extent = choos_swap_extent(swapChainSupport.capabilities, create_info.window);
 
 	u32 imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -2073,57 +2073,4 @@ std::vector<const char*> as::vk::get_required_extensions(const bool& enable_vali
 	}
 
 	return extensions;
-}
-
-std::vector<char> as::read_file(const std::string& filename)
-{
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
-
-	size_t fileSize = (size_t)file.tellg();
-	std::vector<char> buffer(fileSize);
-
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
-
-	file.close();
-
-	return buffer;
-}
-
-char* as::read_file(const char* filename)
-{
-	FILE* f = fopen(filename, "rb");
-	if (!f)
-	{
-		AS_LOG(LV_WARNING, "File [" + std::string(filename) + "] not found, a crash may occur");
-		return nullptr;
-	}
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	char* string = (char*)malloc(fsize + 1);
-	if (string)
-	{
-		fread(string, fsize, 1, f);
-		fclose(f);
-		string[fsize] = 0;
-	}
-	return string;
-}
-
-void as::write_file_str(const char* filename, const char* data)
-{
-	FILE* fptr = fopen(filename, "w");
-	if (fptr == NULL)
-	{
-		printf("Error!");
-		exit(1);
-	}
-	fprintf(fptr, "%s", data);
-	fclose(fptr);
 }

@@ -24,7 +24,8 @@
 namespace as
 {
 
-	struct vertex {
+	struct vertex 
+	{
 		glm::vec3 pos;
 		glm::vec3 color;
 		glm::vec2 tex_coord;
@@ -114,7 +115,7 @@ namespace as
 		{
 			VkSurfaceCapabilitiesKHR capabilities;
 			std::vector<VkSurfaceFormatKHR> formats;
-			std::vector<VkPresentModeKHR> presentModes;
+			std::vector<VkPresentModeKHR> present_modes;
 		};
 
 		struct pipeline_data
@@ -146,16 +147,16 @@ namespace as
 		{
 			std::vector<as::vertex> vertices;
 			std::vector<uint32_t> indices;
-			VkBuffer vertexBuffer;
-			VkDeviceMemory vertexBufferMemory;
-			VkBuffer indexBuffer;
-			VkDeviceMemory indexBufferMemory;
+			VkBuffer vertex_buffer;
+			VkDeviceMemory vertex_buffer_memory;
+			VkBuffer index_buffer;
+			VkDeviceMemory index_buffer_memory;
 		};
 
 		struct uniform_buffers
 		{
-			std::vector<VkBuffer> uniformBuffers;
-			std::vector<VkDeviceMemory> uniformBuffersMemory;
+			std::vector<VkBuffer> buffers;
+			std::vector<VkDeviceMemory> memory;
 		};
 
 		struct descriptor

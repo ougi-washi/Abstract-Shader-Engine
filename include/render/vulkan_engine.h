@@ -91,13 +91,13 @@ namespace as
 
 			std::vector<as::vertex> vertices;
 			std::vector<uint32_t> indices;
-			VkBuffer vertexBuffer;
-			VkDeviceMemory vertexBufferMemory;
-			VkBuffer indexBuffer;
-			VkDeviceMemory indexBufferMemory;
+			VkBuffer vertex_buffer;
+			VkDeviceMemory vertex_buffer_memory;
+			VkBuffer index_buffer;
+			VkDeviceMemory index_buffer_memory;
 
-			std::vector<VkBuffer> uniformBuffers;
-			std::vector<VkDeviceMemory> uniformBuffersMemory;
+			std::vector<VkBuffer> buffers;
+			std::vector<VkDeviceMemory> memory;
 
 			VkDescriptorPool descriptorPool;
 			std::vector<VkDescriptorSet> descriptorSets;
@@ -110,7 +110,6 @@ namespace as
 
 			u32 currentFrame = 0;
 		};
-
 
 		void create_image_resources(as::vk::engine& in_engine);
 

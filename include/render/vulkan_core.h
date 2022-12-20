@@ -114,10 +114,4 @@ namespace as
 		std::vector<const char*> get_required_extensions(const bool& enable_validation_layers);
 
 	};
-
-	/** Files */
-	std::vector<char> read_file(const std::string& filename);
-	char* read_file(const char* filename);
-	void write_file_str(const char* filename, const char* data);
-
 };

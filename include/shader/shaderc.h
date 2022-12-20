@@ -13,6 +13,7 @@ namespace as
 			u32 size;
 
 			shader_binaries() : binaries(nullptr), size(0) {};
+			operator bool() const { return binaries!= nullptr; }
 		};
 
 		struct shader_compile_info
