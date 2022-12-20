@@ -1,6 +1,25 @@
 #include "vulkan_engine.h"
 #include "shaderc_core.h"
 
+
+void as::framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height)
+{
+	as::framebuffer_resized = true;
+}
+
+void as::init_window(window& in_window)
+{
+	glfwInit();
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+	in_window.GLFW = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	if (in_window.GLFW)
+	{
+		glfwSetWindowUserPointer(in_window.GLFW, nullptr);
+		glfwSetFramebufferSizeCallback(in_window.GLFW, framebuffer_resize_callback);
+	}
+}
+
 void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 {
 	as::vk::instance_create_info instance_create_info = {};
@@ -179,7 +198,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	as::vk::create_sync_objects(sync_objects_create_info, in_engine.imageAvailableSemaphores, in_engine.renderFinishedSemaphores, in_engine.inFlightFences);
 }
 
-void as::vk::draw_frame(engine& in_engine, as::window in_window)
+void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 {
 	vkWaitForFences(in_engine.device, 1, &in_engine.inFlightFences[in_engine.currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -191,8 +210,9 @@ void as::vk::draw_frame(engine& in_engine, as::window in_window)
 		recreate_swapchain(in_engine, in_window);
 		return;
 	}
-	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-		("failed to acquire swap chain image!");
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) 
+	{
+		AS_LOG(LV_ERROR,"failed to acquire swap chain image!");
 	}
 
 	update_uniform_buffer(in_engine.currentFrame, in_engine);
@@ -218,9 +238,7 @@ void as::vk::draw_frame(engine& in_engine, as::window in_window)
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(in_engine.graphicsQueue, 1, &submitInfo, in_engine.inFlightFences[in_engine.currentFrame]) != VK_SUCCESS) {
-		throw std::runtime_error("failed to submit draw command buffer!");
-	}
+	CHECK_VK_RESULT(vkQueueSubmit(in_engine.graphicsQueue, 1, &submitInfo, in_engine.inFlightFences[in_engine.currentFrame]));
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -236,13 +254,13 @@ void as::vk::draw_frame(engine& in_engine, as::window in_window)
 
 	result = vkQueuePresentKHR(in_engine.presentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || in_engine.framebufferResized) {
-		in_window.framebuffer_resized = false;
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) 
+	{
+		as::framebuffer_resized = false;
 		recreate_swapchain(in_engine, in_window);
 	}
-	else if (result != VK_SUCCESS) {
-		throw std::runtime_error("failed to present swap chain image!");
-	}
+	CHECK_VK_RESULT(result);
+	
 	in_engine.currentFrame = (in_engine.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -257,7 +275,7 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 	vkDeviceWaitIdle(in_engine.device);
 }
 
-void as::vk::cleanupSwapChain(engine& in_engine)
+void as::vk::cleanup_swapchain(engine& in_engine)
 {
 	std::vector<as::vk::image_data> images_data =
 	{
@@ -267,7 +285,7 @@ void as::vk::cleanupSwapChain(engine& in_engine)
 	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain_.swapchainKHR, images_data, in_engine.swapchain_.framebuffers, in_engine.swapchain_.image_views);
 }
 
-void as::vk::recreate_swapchain(engine in_engine, as::window in_window)
+void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(in_window.GLFW, &width, &height);
@@ -279,7 +297,7 @@ void as::vk::recreate_swapchain(engine in_engine, as::window in_window)
 
 	vkDeviceWaitIdle(in_engine.device);
 
-	cleanupSwapChain(in_engine);
+	cleanup_swapchain(in_engine);
 
 	as::vk::create_swap_chain(&in_engine.swapchain_.swapchainKHR, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.swapchain_.extent, &in_engine.device, &in_engine.physicalDevice, &in_engine.surface, in_window.GLFW);
 	as::vk::create_image_views(&in_engine.swapchain_.image_views, &in_engine.swapchain_.framebuffers, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.device);
@@ -287,14 +305,12 @@ void as::vk::recreate_swapchain(engine in_engine, as::window in_window)
 	as::vk::create_frame_buffers(in_engine.swapchain_.framebuffers, in_engine.device, in_engine.swapchain_.image_views, in_engine.color_image.view, in_engine.depth_image.view, in_engine.render_pass, in_engine.swapchain_.extent);
 }
 
-void as::vk::record_command_buffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, engine in_engine)
+void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, engine& in_engine)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
+	CHECK_VK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -340,12 +356,10 @@ void as::vk::record_command_buffer(VkCommandBuffer commandBuffer, uint32_t image
 
 	vkCmdEndRenderPass(commandBuffer);
 
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to record command buffer!");
-	}
+	CHECK_VK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-void as::vk::update_uniform_buffer(uint32_t currentImage, engine in_engine)
+void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -364,9 +378,9 @@ void as::vk::update_uniform_buffer(uint32_t currentImage, engine in_engine)
 	vkUnmapMemory(in_engine.device, in_engine.uniformBuffersMemory[currentImage]);
 }
 
-void as::vk::cleanup(engine in_engine, as::window in_window)
+void as::vk::cleanup(engine& in_engine, as::window& in_window)
 {
-	cleanupSwapChain(in_engine);
+	cleanup_swapchain(in_engine);
 
 	vkDestroyPipeline(in_engine.device, in_engine.graphics_pipeline.pipeline, nullptr);
 	vkDestroyPipelineLayout(in_engine.device, in_engine.graphics_pipeline.layout, nullptr);
@@ -447,4 +461,13 @@ void as::vk::create_image_resources(engine& in_engine)
 	depth_image_view_create_info.format = supported_depth_format;
 	depth_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view);
+}
+
+void as::vk::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+	PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func) 
+	{
+		func(instance, debugMessenger, pAllocator);
+	}
 }

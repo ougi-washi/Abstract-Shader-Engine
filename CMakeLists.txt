@@ -46,7 +46,7 @@ add_subdirectory(lib/glm)
 
 # core
 message(STATUS "Adding main abstract shader library")
-add_library(core STATIC "src/core/core.cpp")
+add_library(core STATIC src/core/core.cpp)
 target_include_directories(core PUBLIC ${PROJECT_SOURCE_DIR}/include/core)
 target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
 									glfw
@@ -56,8 +56,8 @@ target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
 message(STATUS "Adding shader library")
 add_library(shader STATIC src/shader/shaderc_core.cpp)
 target_include_directories(shader PUBLIC ${PROJECT_SOURCE_DIR}/include/shader)
-target_link_libraries(shader PUBLIC core 
-									shaderc_combinedd)
+target_link_libraries(shader PUBLIC core
+									shaderc_sharedd)
 
 ## render
 message(STATUS "Adding render library")

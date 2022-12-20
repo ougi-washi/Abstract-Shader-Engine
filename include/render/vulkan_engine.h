@@ -40,12 +40,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		func(instance, debugMessenger, pAllocator);
-	}
-}
 
 struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
@@ -58,26 +52,12 @@ namespace as
 	struct window
 	{
 		GLFWwindow* GLFW;
-		static u8 framebuffer_resized;
 	};
+	static u8 framebuffer_resized;
 
-	void framebufferResizeCallback(GLFWwindow* window, i32 width, i32 height)
-	{
-		window::framebuffer_resized = true;
-	};
+	void framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height);;
 
-	void init_window(as::window& in_window)
-	{
-		glfwInit();
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-		in_window.GLFW = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-		if (in_window.GLFW)
-		{
-			glfwSetWindowUserPointer(in_window.GLFW, nullptr);
-			glfwSetFramebufferSizeCallback(in_window.GLFW, framebufferResizeCallback);
-		}
-	}
+	void init_window(as::window& in_window);
 
 	namespace vk
 	{
@@ -127,9 +107,8 @@ namespace as
 			std::vector<VkSemaphore> imageAvailableSemaphores;
 			std::vector<VkSemaphore> renderFinishedSemaphores;
 			std::vector<VkFence> inFlightFences;
-			uint32_t currentFrame = 0;
 
-			bool framebufferResized = false;
+			u32 currentFrame = 0;
 		};
 
 
@@ -137,19 +116,21 @@ namespace as
 
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window);
 
-		void draw_frame(as::vk::engine& in_engine, as::window in_window);
+		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
 
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
 
-		void cleanupSwapChain(as::vk::engine& in_engine);
+		void cleanup_swapchain(as::vk::engine& in_engine);
 
-		void cleanup(as::vk::engine in_engine, as::window in_window);
+		void cleanup(as::vk::engine& in_engine, as::window& in_window);
 
-		void recreate_swapchain(as::vk::engine in_engine, as::window in_window);
+		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
 
-		void record_command_buffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, as::vk::engine in_engine);
+		void record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, as::vk::engine& in_engine);
 
-		void update_uniform_buffer(uint32_t currentImage, as::vk::engine in_engine);
+		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
+
+		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 
 	}
 }
