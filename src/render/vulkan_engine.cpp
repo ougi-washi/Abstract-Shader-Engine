@@ -75,28 +75,10 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 
 	as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout);
 
-	// vertex shader
-	//as::sc::shader_compile_info compile_info_vertex = {};
-	//compile_info_vertex.file_name = new char[]("main");
-	//compile_info_vertex.source = as::util::read_file("shaders/shader.vert");
-	//compile_info_vertex.kind = shaderc_glsl_vertex_shader;
-	//as::sc::shader_binaries out_vertex_shader_bin;
-	//as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // cache and compare next time, do not compile every time
-	//as::sc::write_shader_bin("shaders/vert.spv", out_vertex_shader_bin);
-	//std::vector<char> vert_shader_code = as::util::read_file(std::string("shaders/vert.spv"));
 	std::vector<char> vert_shader_code;
 	char vert_shader_path[] = "shaders/shader.vert";
 	sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 
-	// fragment shader
-	//as::sc::shader_compile_info compile_info_frag = {};
-	//compile_info_frag.file_name = new char[]("main");
-	//compile_info_frag.source = as::util::read_file("shaders/shader.frag");
-	//compile_info_frag.kind = shaderc_glsl_fragment_shader;
-	//as::sc::shader_binaries out_frag_shader_bin;
-	//as::sc::compile_shader(&out_frag_shader_bin, compile_info_frag); // cache and compare next time, do not compile every time
-	//as::sc::write_shader_bin("shaders/frag.spv", out_frag_shader_bin);
-	//std::vector<char> frag_shader_code = as::util::read_file(std::string("shaders/frag.spv"));
 	std::vector<char> frag_shader_code;
 	char frag_shader_path[] = "shaders/shader.frag";
 	sc::compile_fragment_shader(frag_shader_path, frag_shader_code);

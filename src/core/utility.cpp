@@ -8,7 +8,6 @@
 #include <windows.h>
 #endif
 
-
 FILE* as::util::try_open_file(const char* file_path, const char* mode)
 {
 	FILE* fptr = fopen(file_path, mode);
@@ -102,8 +101,14 @@ i32 as::util::does_dir_exist(const char* path)
 	int statRC = stat(path, &info);
 	if (statRC != 0)
 	{
-		if (errno == ENOENT) { return 0; } // something along the path does not exist
-		if (errno == ENOTDIR) { return 0; } // something in path prefix is not a dir
+		if (errno == ENOENT) // something along the path does not exist
+		{ 
+			return 0; 
+		} 
+		if (errno == ENOTDIR)  // something in path prefix is not a dir
+		{
+			return 0;
+		}
 		return -1;
 	}
 
