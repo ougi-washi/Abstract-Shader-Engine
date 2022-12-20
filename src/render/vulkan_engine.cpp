@@ -195,15 +195,15 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	as::vk::sync_objects_create_info sync_objects_create_info;
 	sync_objects_create_info.logical_device = in_engine.device;
 	sync_objects_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	as::vk::create_sync_objects(sync_objects_create_info, in_engine.imageAvailableSemaphores, in_engine.renderFinishedSemaphores, in_engine.inFlightFences);
+	as::vk::create_sync_objects(sync_objects_create_info, in_engine.image_available_semaphores, in_engine.render_finished_semaphores, in_engine.in_flight_fences);
 }
 
 void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 {
-	vkWaitForFences(in_engine.device, 1, &in_engine.inFlightFences[in_engine.currentFrame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(in_engine.device, 1, &in_engine.in_flight_fences[in_engine.currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	VkResult result = vkAcquireNextImageKHR(in_engine.device, in_engine.swapchain_.swapchainKHR, UINT64_MAX, in_engine.imageAvailableSemaphores[in_engine.currentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(in_engine.device, in_engine.swapchain_.swapchainKHR, UINT64_MAX, in_engine.image_available_semaphores[in_engine.currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -217,7 +217,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 
 	as::vk::update_uniform_buffer(in_engine.currentFrame, in_engine);
 
-	vkResetFences(in_engine.device, 1, &in_engine.inFlightFences[in_engine.currentFrame]);
+	vkResetFences(in_engine.device, 1, &in_engine.in_flight_fences[in_engine.currentFrame]);
 
 	vkResetCommandBuffer(in_engine.commandBuffers[in_engine.currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 	as::vk::record_command_buffer(in_engine.commandBuffers[in_engine.currentFrame], imageIndex, in_engine);
@@ -225,7 +225,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = { in_engine.imageAvailableSemaphores[in_engine.currentFrame] };
+	VkSemaphore waitSemaphores[] = { in_engine.image_available_semaphores[in_engine.currentFrame] };
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -234,11 +234,11 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &in_engine.commandBuffers[in_engine.currentFrame];
 
-	VkSemaphore signalSemaphores[] = { in_engine.renderFinishedSemaphores[in_engine.currentFrame] };
+	VkSemaphore signalSemaphores[] = { in_engine.render_finished_semaphores[in_engine.currentFrame] };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	CHECK_VK_RESULT(vkQueueSubmit(in_engine.graphicsQueue, 1, &submitInfo, in_engine.inFlightFences[in_engine.currentFrame]));
+	CHECK_VK_RESULT(vkQueueSubmit(in_engine.graphicsQueue, 1, &submitInfo, in_engine.in_flight_fences[in_engine.currentFrame]));
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -411,9 +411,9 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	vkFreeMemory(in_engine.device, in_engine.vertexBufferMemory, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroySemaphore(in_engine.device, in_engine.renderFinishedSemaphores[i], nullptr);
-		vkDestroySemaphore(in_engine.device, in_engine.imageAvailableSemaphores[i], nullptr);
-		vkDestroyFence(in_engine.device, in_engine.inFlightFences[i], nullptr);
+		vkDestroySemaphore(in_engine.device, in_engine.render_finished_semaphores[i], nullptr);
+		vkDestroySemaphore(in_engine.device, in_engine.image_available_semaphores[i], nullptr);
+		vkDestroyFence(in_engine.device, in_engine.in_flight_fences[i], nullptr);
 	}
 
 	vkDestroyCommandPool(in_engine.device, in_engine.commandPool, nullptr);

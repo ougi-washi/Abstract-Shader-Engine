@@ -827,12 +827,12 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-	auto bindingDescription = Vertex::get_binding_description();
-	auto attribute_descriptions = Vertex::get_attribute_descriptions();
+	auto binding_description = vertex::get_binding_description();
+	auto attribute_descriptions = vertex::get_attribute_descriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attribute_descriptions.size());
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.pVertexBindingDescriptions = &binding_description;
 	vertexInputInfo.pVertexAttributeDescriptions = attribute_descriptions.data();
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1604,7 +1604,7 @@ void as::vk::generate_mipmaps(generate_mipmaps_info& info)
 	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.queue);
 }
 
-void as::vk::load_model(const char* modle_path, std::vector<Vertex>& out_vertices, std::vector<u32>& out_indices)
+void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertices, std::vector<u32>& out_indices)
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -1615,11 +1615,11 @@ void as::vk::load_model(const char* modle_path, std::vector<Vertex>& out_vertice
 		throw std::runtime_error(warn + err);
 	}
 
-	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+	std::unordered_map<vertex, uint32_t> uniqueVertices{};
 
 	for (const auto& shape : shapes) {
 		for (const auto& index : shape.mesh.indices) {
-			Vertex vertex{};
+			vertex vertex{};
 
 			vertex.pos = {
 				attrib.vertices[3 * index.vertex_index + 0],
@@ -1666,7 +1666,7 @@ void as::vk::copy_buffer(copy_buffer_info& info)
 	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.queue);
 }
 
-void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<Vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
+void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
 {
 	VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
 

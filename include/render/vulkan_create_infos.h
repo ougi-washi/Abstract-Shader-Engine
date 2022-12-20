@@ -188,7 +188,7 @@ namespace as
 			VkDevice logical_device;
 			VkCommandPool command_pool; 
 			VkQueue queue;
-			std::vector<Vertex> vertices;
+			std::vector<vertex> vertices;
 		};
 
 		struct index_buffer_create_info

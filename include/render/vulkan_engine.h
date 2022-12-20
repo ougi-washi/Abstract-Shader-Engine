@@ -89,7 +89,7 @@ namespace as
 
 			as::vk::texture_data texture;
 
-			std::vector<as::Vertex> vertices;
+			std::vector<as::vertex> vertices;
 			std::vector<uint32_t> indices;
 			VkBuffer vertexBuffer;
 			VkDeviceMemory vertexBufferMemory;
@@ -104,9 +104,9 @@ namespace as
 
 			std::vector<VkCommandBuffer> commandBuffers;
 
-			std::vector<VkSemaphore> imageAvailableSemaphores;
-			std::vector<VkSemaphore> renderFinishedSemaphores;
-			std::vector<VkFence> inFlightFences;
+			std::vector<VkSemaphore> image_available_semaphores;
+			std::vector<VkSemaphore> render_finished_semaphores;
+			std::vector<VkFence> in_flight_fences;
 
 			u32 currentFrame = 0;
 		};
