@@ -67,7 +67,6 @@ bool as::sc::compile_vertex_shader(char* file_path, std::vector<char>& out_spv)
 	return compile_shader_with_cache(file_path, shaderc_glsl_vertex_shader, out_spv);
 }
 
-
 bool as::sc::compile_fragment_shader(char* file_path, std::vector<char>& out_spv)
 {
 	return compile_shader_with_cache(file_path, shaderc_glsl_fragment_shader, out_spv);
