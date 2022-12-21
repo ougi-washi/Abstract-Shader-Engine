@@ -1,5 +1,5 @@
 # Abstract Shader Engine
-A small vulkan compute engine for path tracing and generating scenes with shapes.
+Yet another vulkan engine. This one is small though.
 
 ## Requirements
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
