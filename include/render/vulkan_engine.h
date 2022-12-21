@@ -34,7 +34,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-
 struct uniform_buffer_object {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
@@ -49,9 +48,9 @@ namespace as
 	};
 	static u8 framebuffer_resized;
 
-	void framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height);;
+	void framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height);
 
-	void init_window(const u32& width, const u32& height, as::window& in_window);
+	void init_window(as::window& in_window, const u32& width, const u32& height);
 
 	namespace vk
 	{
@@ -97,6 +96,7 @@ namespace as
 			std::vector<VkSemaphore> render_finished_semaphores;
 			std::vector<VkFence> in_flight_fences;
 
+			u8 max_frames_in_flight;
 			u32 currentFrame = 0;
 
 			// temp 
@@ -105,6 +105,7 @@ namespace as
 
 		// init
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window);
+		void init_vulkan(as::vk::engine& in_engine, as::window& in_window, const u8& max_frames_in_flight);
 		
 		// main functionality
 		void draw_frame(as::vk::engine& in_engine, as::window& in_window);

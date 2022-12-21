@@ -7,7 +7,7 @@ void as::framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height)
 	as::framebuffer_resized = true;
 }
 
-void as::init_window(const u32& width, const u32& height, as::window& in_window)
+void as::init_window(as::window& in_window, const u32& width, const u32& height)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -22,6 +22,13 @@ void as::init_window(const u32& width, const u32& height, as::window& in_window)
 
 void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 {
+	init_vulkan(in_engine, in_window, 2);
+}
+
+void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max_frames_in_flight)
+{
+	in_engine.max_frames_in_flight = max_frames_in_flight;
+
 	as::vk::instance_create_info instance_create_info = {};
 	CHECK_VK_RESULT(as::vk::create_vulkan_instance(in_engine.instance, instance_create_info));
 	if (instance_create_info.enable_validation_layers)
@@ -82,15 +89,30 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	as::vk::command_buffers_create_info command_buffers_create_info;
 	command_buffers_create_info.logical_device = in_engine.device;
 	command_buffers_create_info.command_pool = in_engine.commandPool;
-	command_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+	command_buffers_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	CHECK_VK_RESULT(as::vk::create_command_buffers(command_buffers_create_info, in_engine.commandBuffers));
 
 	as::vk::sync_objects_create_info sync_objects_create_info;
 	sync_objects_create_info.logical_device = in_engine.device;
-	sync_objects_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+	sync_objects_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	as::vk::create_sync_objects(sync_objects_create_info, in_engine.image_available_semaphores, in_engine.render_finished_semaphores, in_engine.in_flight_fences);
 
 	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout));
+
+	as::vk::uniform_buffers_create_info uniform_buffers_create_info;
+	uniform_buffers_create_info.physical_device = in_engine.physicalDevice;
+	uniform_buffers_create_info.logical_device = in_engine.device;
+	uniform_buffers_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
+	as::vk::create_uniform_buffers(uniform_buffers_create_info, in_engine.buffers, in_engine.memory);
+
+	as::vk::create_descriptor_pool(in_engine.device, in_engine.max_frames_in_flight, in_engine.descriptorPool);
+
+	as::vk::descriptor_sets_create_info descriptor_sets_create_info;
+	descriptor_sets_create_info.logical_device = in_engine.device;
+	descriptor_sets_create_info.descriptor_pool = in_engine.descriptorPool;
+	descriptor_sets_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
+	descriptor_sets_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
+	as::vk::create_descriptor_sets(descriptor_sets_create_info, in_engine.descriptorSets);
 
 	std::vector<char> vert_shader_code;
 	char vert_shader_path[] = "shaders/shader.vert";
@@ -162,26 +184,11 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	index_buffer_create_info.indices = in_engine.viking_room_model.indices;
 	as::vk::create_index_buffer(index_buffer_create_info, in_engine.viking_room_model.index_buffer, in_engine.viking_room_model.index_buffer_memory);
 
-	as::vk::uniform_buffers_create_info uniform_buffers_create_info;
-	uniform_buffers_create_info.physical_device = in_engine.physicalDevice;
-	uniform_buffers_create_info.logical_device = in_engine.device;
-	uniform_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	as::vk::create_uniform_buffers(uniform_buffers_create_info, in_engine.buffers, in_engine.memory);
-
-	as::vk::create_descriptor_pool(in_engine.device, MAX_FRAMES_IN_FLIGHT, in_engine.descriptorPool);
-
-	as::vk::descriptor_sets_create_info descriptor_sets_create_info;
-	descriptor_sets_create_info.logical_device = in_engine.device;
-	descriptor_sets_create_info.descriptor_pool = in_engine.descriptorPool;
-	descriptor_sets_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	descriptor_sets_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
-	as::vk::create_descriptor_sets(descriptor_sets_create_info, in_engine.descriptorSets);
-
 	as::vk::descriptor_sets_update_info descriptor_sets_update_info;
 	descriptor_sets_update_info.logical_device = in_engine.device;
 	descriptor_sets_update_info.image_view = in_engine.texture.image_data.view;
 	descriptor_sets_update_info.image_sampler = in_engine.texture.sampler;
-	descriptor_sets_update_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+	descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
 	as::vk::update_descriptor_sets(descriptor_sets_update_info, in_engine.descriptorSets);
 }
@@ -252,7 +259,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 		CHECK_VK_RESULT(result);
 	}
 	
-	in_engine.currentFrame = (in_engine.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	in_engine.currentFrame = (in_engine.currentFrame + 1) % in_engine.max_frames_in_flight;
 }
 
 void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
@@ -372,7 +379,7 @@ void as::vk::create_image_resources(engine& in_engine)
 	color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	as::vk::create_image(color_image_create_info, in_engine.color_image);
+	CHECK_VK_RESULT(as::vk::create_image(color_image_create_info, in_engine.color_image));
 
 	as::vk::image_view_create_info color_image_view_create_info;
 	color_image_view_create_info.logical_device = in_engine.device;
@@ -380,18 +387,18 @@ void as::vk::create_image_resources(engine& in_engine)
 	color_image_view_create_info.mip_levels = 1;
 	color_image_view_create_info.format = in_engine.swapchain.image_format;
 	color_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-	as::vk::create_image_view(color_image_view_create_info, in_engine.color_image.view);
+	CHECK_VK_RESULT(as::vk::create_image_view(color_image_view_create_info, in_engine.color_image.view));
 
 	VkFormat supported_depth_format = as::vk::find_depth_format(in_engine.physicalDevice);
 	as::vk::image_create_info depth_image_create_info = color_image_create_info;
 	depth_image_create_info.format = supported_depth_format;
 	depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	as::vk::create_image(depth_image_create_info, in_engine.depth_image);
+	CHECK_VK_RESULT(as::vk::create_image(depth_image_create_info, in_engine.depth_image));
 	as::vk::image_view_create_info depth_image_view_create_info = color_image_view_create_info;
 	depth_image_view_create_info.image = in_engine.depth_image.image;
 	depth_image_view_create_info.format = supported_depth_format;
 	depth_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-	as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view);
+	CHECK_VK_RESULT(as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view));
 }
 
 void as::vk::cleanup_swapchain(engine& in_engine)
@@ -412,7 +419,7 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	vkDestroyPipelineLayout(in_engine.device, in_engine.graphics_pipeline.layout, nullptr);
 	vkDestroyRenderPass(in_engine.device, in_engine.render_pass, nullptr);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < in_engine.max_frames_in_flight; i++) {
 		vkDestroyBuffer(in_engine.device, in_engine.buffers[i], nullptr);
 		vkFreeMemory(in_engine.device, in_engine.memory[i], nullptr);
 	}
@@ -433,7 +440,7 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	vkDestroyBuffer(in_engine.device, in_engine.viking_room_model.vertex_buffer, nullptr);
 	vkFreeMemory(in_engine.device, in_engine.viking_room_model.vertex_buffer_memory, nullptr);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < in_engine.max_frames_in_flight; i++) {
 		vkDestroySemaphore(in_engine.device, in_engine.render_finished_semaphores[i], nullptr);
 		vkDestroySemaphore(in_engine.device, in_engine.image_available_semaphores[i], nullptr);
 		vkDestroyFence(in_engine.device, in_engine.in_flight_fences[i], nullptr);

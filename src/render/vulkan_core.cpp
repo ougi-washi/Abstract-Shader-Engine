@@ -860,7 +860,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_NONE; // Currently it doesn't cull anything but maybe we want to expose it later per object and have a render pass per object
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -892,7 +892,8 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
-	std::vector<VkDynamicState> dynamicStates = {
+	std::vector<VkDynamicState> dynamicStates = 
+	{
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR
 	};
