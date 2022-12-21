@@ -443,7 +443,8 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDevice(in_engine.device, nullptr);
 
-	if (enableValidationLayers) {
+	if (enableValidationLayers) 
+	{
 		DestroyDebugUtilsMessengerEXT(in_engine.instance, in_engine.debugMessenger, nullptr);
 	}
 
