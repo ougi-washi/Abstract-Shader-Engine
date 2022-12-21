@@ -76,7 +76,7 @@ namespace as
 			VkQueue graphicsQueue;
 			VkQueue presentQueue;
 
-			as::vk::swapchain swapchain_;
+			as::vk::swapchain swapchain;
 
 			VkRenderPass render_pass;
 			VkDescriptorSetLayout descriptor_set_layout;

@@ -48,16 +48,31 @@ bool as::sc::compile_shader(shader_binaries* out_compiled_shader, const shader_c
 bool as::sc::compile_shader_with_cache(char* file_path, const shaderc_shader_kind& kind, std::vector<char>& out_spv)
 {
 	char* source = util::read_file(file_path);
+	if (!source)
+	{
+		return false;
+	}
 	as::sc::shader_compile_info compile_info_vertex = {};
 	compile_info_vertex.file_name = new char[]("main");
 	compile_info_vertex.source = source;
 	compile_info_vertex.kind = kind;
 	std::string glsl_file_path = util::get_current_path() + std::string("/cache/") + std::string(file_path) + ".glsl";
 	std::string spv_file_path = util::get_current_path() + std::string("/cache/") + std::string(file_path) + ".spv";
-	as::util::write_file_str(glsl_file_path.c_str(), source); // TODO: add version for caching (to check later)
-	as::sc::shader_binaries out_vertex_shader_bin;
-	bool result = as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // TODO: cache and compare next time, do not compile every time
-	as::sc::write_shader_bin(spv_file_path.c_str(), out_vertex_shader_bin);
+	std::vector<char> glsl_file_content = as::util::read_file(glsl_file_path);
+	bool already_compiled = false;
+	bool result = false;
+	if (glsl_file_content.data() && *glsl_file_content.data() == *source && util::does_file_exist(spv_file_path))
+	{
+		already_compiled = true;
+		result = true;
+	}
+	if (!already_compiled)
+	{
+		as::util::write_file_str(glsl_file_path.c_str(), source); // TODO: add version for caching (to check later)
+		as::sc::shader_binaries out_vertex_shader_bin;
+		result = as::sc::compile_shader(&out_vertex_shader_bin, compile_info_vertex); // TODO: cache and compare next time, do not compile every time
+		as::sc::write_shader_bin(spv_file_path.c_str(), out_vertex_shader_bin);
+	}
 	out_spv = as::util::read_file(spv_file_path);
 	return result;
 }

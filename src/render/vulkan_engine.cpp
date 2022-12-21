@@ -51,26 +51,26 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	swapchain_create_info.physical_device = in_engine.physicalDevice;
 	swapchain_create_info.surface = &in_engine.surface;
 	swapchain_create_info.window = in_window.GLFW;
-	as::vk::create_swapchain(swapchain_create_info, in_engine.swapchain_);
+	as::vk::create_swapchain(swapchain_create_info, in_engine.swapchain);
 
 	as::vk::image_view_create_info image_view_create_info = {};
 	image_view_create_info.logical_device = in_engine.device;
-	image_view_create_info.format = in_engine.swapchain_.image_format;
+	image_view_create_info.format = in_engine.swapchain.image_format;
 	image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 	image_view_create_info.mip_levels = 1;
-	u32 images_array_size = in_engine.swapchain_.images.size();
-	in_engine.swapchain_.image_views.resize(images_array_size);
+	u32 images_array_size = in_engine.swapchain.images.size();
+	in_engine.swapchain.image_views.resize(images_array_size);
 	for (u32 i = 0; i < images_array_size; i++)
 	{
-		image_view_create_info.image = in_engine.swapchain_.images[i];
-		CHECK_VK_RESULT(as::vk::create_image_view(image_view_create_info, in_engine.swapchain_.image_views[i]));
+		image_view_create_info.image = in_engine.swapchain.images[i];
+		CHECK_VK_RESULT(as::vk::create_image_view(image_view_create_info, in_engine.swapchain.image_views[i]));
 	}
 
 	as::vk::render_pass_create_info render_pass_create_info;
 	render_pass_create_info.physical_device = in_engine.physicalDevice;
 	render_pass_create_info.logical_device = in_engine.device;
 	render_pass_create_info.msaa_samples = in_engine.msaaSamples;
-	render_pass_create_info.swap_chain_image_format = in_engine.swapchain_.image_format;
+	render_pass_create_info.swap_chain_image_format = in_engine.swapchain.image_format;
 	as::vk::create_render_pass(render_pass_create_info, in_engine.render_pass);
 
 	as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout);
@@ -106,9 +106,9 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	framebuffers_create_info.depth_image_view = in_engine.depth_image.view;
 	framebuffers_create_info.logical_device = in_engine.device;
 	framebuffers_create_info.render_pass = in_engine.render_pass;
-	framebuffers_create_info.swap_chain_extent = in_engine.swapchain_.extent;
-	framebuffers_create_info.swap_chain_image_views = in_engine.swapchain_.image_views;
-	as::vk::create_framebuffers(framebuffers_create_info, in_engine.swapchain_.framebuffers);
+	framebuffers_create_info.swap_chain_extent = in_engine.swapchain.extent;
+	framebuffers_create_info.swap_chain_image_views = in_engine.swapchain.image_views;
+	as::vk::create_framebuffers(framebuffers_create_info, in_engine.swapchain.framebuffers);
 
 	as::vk::texture_image_create_info texture_image_create_info;
 	strcpy(texture_image_create_info.texture_path, TEXTURE_PATH.c_str());
@@ -191,7 +191,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 	vkWaitForFences(in_engine.device, 1, &in_engine.in_flight_fences[in_engine.currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	VkResult result = vkAcquireNextImageKHR(in_engine.device, in_engine.swapchain_.swapchainKHR, UINT64_MAX, in_engine.image_available_semaphores[in_engine.currentFrame], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(in_engine.device, in_engine.swapchain.swapchainKHR, UINT64_MAX, in_engine.image_available_semaphores[in_engine.currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -234,7 +234,7 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { in_engine.swapchain_.swapchainKHR };
+	VkSwapchainKHR swapChains[] = { in_engine.swapchain.swapchainKHR };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
@@ -273,7 +273,7 @@ void as::vk::cleanup_swapchain(engine& in_engine)
 		in_engine.color_image,
 		in_engine.depth_image
 	};
-	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain_.swapchainKHR, images_data, in_engine.swapchain_.framebuffers, in_engine.swapchain_.image_views);
+	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain.swapchainKHR, images_data, in_engine.swapchain.framebuffers, in_engine.swapchain.image_views);
 }
 
 void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
@@ -290,10 +290,10 @@ void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 
 	as::vk::cleanup_swapchain(in_engine);
 
-	as::vk::create_swap_chain(&in_engine.swapchain_.swapchainKHR, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.swapchain_.extent, &in_engine.device, &in_engine.physicalDevice, &in_engine.surface, in_window.GLFW);
-	as::vk::create_image_views(&in_engine.swapchain_.image_views, &in_engine.swapchain_.framebuffers, &in_engine.swapchain_.images, &in_engine.swapchain_.image_format, &in_engine.device);
+	as::vk::create_swap_chain(&in_engine.swapchain.swapchainKHR, &in_engine.swapchain.images, &in_engine.swapchain.image_format, &in_engine.swapchain.extent, &in_engine.device, &in_engine.physicalDevice, &in_engine.surface, in_window.GLFW);
+	as::vk::create_image_views(&in_engine.swapchain.image_views, &in_engine.swapchain.framebuffers, &in_engine.swapchain.images, &in_engine.swapchain.image_format, &in_engine.device);
 	as::vk::create_image_resources(in_engine);
-	as::vk::create_frame_buffers(in_engine.swapchain_.framebuffers, in_engine.device, in_engine.swapchain_.image_views, in_engine.color_image.view, in_engine.depth_image.view, in_engine.render_pass, in_engine.swapchain_.extent);
+	as::vk::create_frame_buffers(in_engine.swapchain.framebuffers, in_engine.device, in_engine.swapchain.image_views, in_engine.color_image.view, in_engine.depth_image.view, in_engine.render_pass, in_engine.swapchain.extent);
 }
 
 void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, engine& in_engine)
@@ -306,9 +306,9 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = in_engine.render_pass;
-	renderPassInfo.framebuffer = in_engine.swapchain_.framebuffers[imageIndex];
+	renderPassInfo.framebuffer = in_engine.swapchain.framebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = in_engine.swapchain_.extent;
+	renderPassInfo.renderArea.extent = in_engine.swapchain.extent;
 
 	std::array<VkClearValue, 2> clearValues{};
 	clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -324,15 +324,15 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)in_engine.swapchain_.extent.width;
-	viewport.height = (float)in_engine.swapchain_.extent.height;
+	viewport.width = (float)in_engine.swapchain.extent.width;
+	viewport.height = (float)in_engine.swapchain.extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = in_engine.swapchain_.extent;
+	scissor.extent = in_engine.swapchain.extent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	VkBuffer vertexBuffers[] = { in_engine.vertex_buffer };
@@ -360,7 +360,7 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 	uniform_buffer_object ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain_.extent.width / (float)in_engine.swapchain_.extent.height, 0.1f, 10.0f);
+	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
 	void* data;
@@ -425,20 +425,21 @@ void as::vk::create_image_resources(engine& in_engine)
 	as::vk::image_create_info color_image_create_info;
 	color_image_create_info.physical_device = in_engine.physicalDevice;
 	color_image_create_info.logical_device = in_engine.device;
-	color_image_create_info.height = in_engine.swapchain_.extent.height;
-	color_image_create_info.width = in_engine.swapchain_.extent.width;
+	color_image_create_info.height = in_engine.swapchain.extent.height;
+	color_image_create_info.width = in_engine.swapchain.extent.width;
 	color_image_create_info.mip_levels = 1;
 	color_image_create_info.num_samples = in_engine.msaaSamples;
-	color_image_create_info.format = in_engine.swapchain_.image_format;
+	color_image_create_info.format = in_engine.swapchain.image_format;
 	color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	as::vk::create_image(color_image_create_info, in_engine.color_image);
+
 	as::vk::image_view_create_info color_image_view_create_info;
 	color_image_view_create_info.logical_device = in_engine.device;
 	color_image_view_create_info.image = in_engine.color_image.image;
 	color_image_view_create_info.mip_levels = 1;
-	color_image_view_create_info.format = in_engine.swapchain_.image_format;
+	color_image_view_create_info.format = in_engine.swapchain.image_format;
 	color_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 	as::vk::create_image_view(color_image_view_create_info, in_engine.color_image.view);
 

@@ -115,6 +115,12 @@ i32 as::util::does_dir_exist(const char* path)
 	return (info.st_mode & S_IFDIR) ? 1 : 0;
 }
 
+bool as::util::does_file_exist(const std::string& path)
+{
+	struct stat buffer;
+	return (stat(path.c_str(), &buffer) == 0);
+}
+
 void as::util::replace_char(std::string& string_to_update, const char& source, const char& target)
 {
 	for (char& current_path_char : string_to_update)
