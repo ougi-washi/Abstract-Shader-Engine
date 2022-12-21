@@ -107,18 +107,21 @@ namespace as
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window);
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window, const u8& max_frames_in_flight);
 		
-		// main functionality
-		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
+		// main functionalities
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
+		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
+
+		// internal 
+		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
 		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
 		void record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, as::vk::engine& in_engine);
-		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
 		void create_image_resources(as::vk::engine& in_engine);
 
 		// cleanup
-		void cleanup_swapchain(as::vk::engine& in_engine);
 		void cleanup(as::vk::engine& in_engine, as::window& in_window);
+		void cleanup_swapchain(as::vk::engine& in_engine);
 
+		// debug
 		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 	}
 }

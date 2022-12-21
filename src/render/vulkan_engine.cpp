@@ -193,6 +193,37 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	as::vk::update_descriptor_sets(descriptor_sets_update_info, in_engine.descriptorSets);
 }
 
+void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
+{
+	while (!glfwWindowShouldClose(in_window.GLFW))
+	{
+		glfwPollEvents();
+		as::vk::draw_frame(in_engine, in_window);
+	}
+
+	vkDeviceWaitIdle(in_engine.device);
+}
+
+void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	uniform_buffer_object ubo{};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	void* data;
+	vkMapMemory(in_engine.device, in_engine.memory[currentImage], 0, sizeof(ubo), 0, &data);
+	memcpy(data, &ubo, sizeof(ubo));
+	vkUnmapMemory(in_engine.device, in_engine.memory[currentImage]);
+}
+
+
 void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 {
 	vkWaitForFences(in_engine.device, 1, &in_engine.in_flight_fences[in_engine.currentFrame], VK_TRUE, UINT64_MAX);
@@ -205,9 +236,9 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 		as::vk::recreate_swapchain(in_engine, in_window);
 		return;
 	}
-	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) 
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 	{
-		AS_LOG(LV_ERROR,"failed to acquire swap chain image!");
+		AS_LOG(LV_ERROR, "failed to acquire swap chain image!");
 	}
 
 	as::vk::update_uniform_buffer(in_engine.currentFrame, in_engine);
@@ -249,29 +280,19 @@ void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 
 	result = vkQueuePresentKHR(in_engine.presentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) 
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized)
 	{
 		as::framebuffer_resized = false;
 		as::vk::recreate_swapchain(in_engine, in_window);
 	}
-	else 
+	else
 	{
 		CHECK_VK_RESULT(result);
 	}
-	
+
 	in_engine.currentFrame = (in_engine.currentFrame + 1) % in_engine.max_frames_in_flight;
 }
 
-void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
-{
-	while (!glfwWindowShouldClose(in_window.GLFW))
-	{
-		glfwPollEvents();
-		as::vk::draw_frame(in_engine, in_window);
-	}
-
-	vkDeviceWaitIdle(in_engine.device);
-}
 
 void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 {
@@ -347,25 +368,6 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	CHECK_VK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
-void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	uniform_buffer_object ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
-
-	void* data;
-	vkMapMemory(in_engine.device, in_engine.memory[currentImage], 0, sizeof(ubo), 0, &data);
-	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(in_engine.device, in_engine.memory[currentImage]);
-}
-
 void as::vk::create_image_resources(engine& in_engine)
 {
 	as::vk::image_create_info color_image_create_info;
@@ -401,15 +403,6 @@ void as::vk::create_image_resources(engine& in_engine)
 	CHECK_VK_RESULT(as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view));
 }
 
-void as::vk::cleanup_swapchain(engine& in_engine)
-{
-	std::vector<as::vk::image_data> images_data =
-	{
-		in_engine.color_image,
-		in_engine.depth_image
-	};
-	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain.swapchainKHR, images_data, in_engine.swapchain.framebuffers, in_engine.swapchain.image_views);
-}
 
 void as::vk::cleanup(engine& in_engine, as::window& in_window)
 {
@@ -461,6 +454,16 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	glfwDestroyWindow(in_window.GLFW);
 
 	glfwTerminate();
+}
+
+void as::vk::cleanup_swapchain(engine& in_engine)
+{
+	std::vector<as::vk::image_data> images_data =
+	{
+		in_engine.color_image,
+		in_engine.depth_image
+	};
+	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain.swapchainKHR, images_data, in_engine.swapchain.framebuffers, in_engine.swapchain.image_views);
 }
 
 void as::vk::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
