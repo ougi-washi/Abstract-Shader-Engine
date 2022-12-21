@@ -782,21 +782,21 @@ VkFormat as::vk::find_depth_format(VkPhysicalDevice physical_device)
 
 VkResult as::vk::create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout)
 {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.pImmutableSamplers = nullptr;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	VkDescriptorSetLayoutBinding ubo_layout_binding{};
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.pImmutableSamplers = nullptr;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	VkDescriptorSetLayoutBinding sampler_layout_binding{};
+	sampler_layout_binding.binding = 1;
+	sampler_layout_binding.descriptorCount = 1;
+	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	sampler_layout_binding.pImmutableSamplers = nullptr;
+	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { ubo_layout_binding, sampler_layout_binding };
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<u32>(bindings.size());
@@ -807,22 +807,31 @@ VkResult as::vk::create_descriptor_set_layout(VkDevice& logical_device, VkDescri
 
 VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline)
 {
-	VkShaderModule vertShaderModule = create_shader_module(create_info.vert_shader_spv, create_info.logical_device);
-	VkShaderModule fragShaderModule = create_shader_module(create_info.frag_shader_spv, create_info.logical_device);
+	std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+	std::vector<VkShaderModule> shader_modules;
+	for (const spv& current_vert_shader : create_info.vert_shaders)
+	{
+		VkShaderModule vert_shader_module = create_shader_module(current_vert_shader, create_info.logical_device);
+		shader_modules.push_back(vert_shader_module);
+		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
+		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		vert_shader_stage_info.module = vert_shader_module;
+		vert_shader_stage_info.pName = "main";
+		shader_stages.push_back(vert_shader_stage_info);
+	}
 
-	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vertShaderStageInfo.module = vertShaderModule;
-	vertShaderStageInfo.pName = "main";
-
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShaderModule;
-	fragShaderStageInfo.pName = "main";
-
-	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+	for (const spv& current_frag_shader : create_info.frag_shaders)
+	{
+		VkShaderModule frag_shader_module = create_shader_module(current_frag_shader, create_info.logical_device);
+		shader_modules.push_back(frag_shader_module);
+		VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
+		frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		frag_shader_stage_info.module = frag_shader_module;
+		frag_shader_stage_info.pName = "main";
+		shader_stages.push_back(frag_shader_stage_info);
+	}
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -901,8 +910,8 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.stageCount = shader_stages.size();
+	pipelineInfo.pStages = shader_stages.data();
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
@@ -918,8 +927,10 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 
 	VkResult pipeline_creation_result = vkCreateGraphicsPipelines(create_info.logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_pipeline.pipeline);
 
-	vkDestroyShaderModule(create_info.logical_device, fragShaderModule, nullptr);
-	vkDestroyShaderModule(create_info.logical_device, vertShaderModule, nullptr);
+	for (VkShaderModule& shader_module_to_destroy : shader_modules)
+	{
+		vkDestroyShaderModule(create_info.logical_device, shader_module_to_destroy, nullptr);
+	}
 	
 	return pipeline_creation_result;
 }
@@ -932,9 +943,7 @@ VkShaderModule as::vk::create_shader_module(const std::vector<char>& code, VkDev
 	createInfo.pCode = reinterpret_cast<const u32*>(code.data());
 
 	VkShaderModule shaderModule;
-	if (vkCreateShaderModule(logical_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create shader module!");
-	}
+	CHECK_VK_RESULT(vkCreateShaderModule(logical_device, &createInfo, nullptr, &shaderModule));
 
 	return shaderModule;
 }

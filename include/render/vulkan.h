@@ -24,6 +24,8 @@
 namespace as
 {
 
+	typedef std::vector<char> spv;
+
 	struct vertex 
 	{
 		glm::vec3 pos;
@@ -79,6 +81,7 @@ namespace as
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
 	};
+
 
 	struct glfw
 	{

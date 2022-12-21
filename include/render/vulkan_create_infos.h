@@ -89,8 +89,8 @@ namespace as
 			VkRenderPass render_pass;
 			VkDescriptorSetLayout descriptor_set_layout;
 			VkSampleCountFlagBits msaa_samples;
-			std::vector<char> vert_shader_spv;
-			std::vector<char> frag_shader_spv;
+			std::vector<spv> vert_shaders;
+			std::vector<spv> frag_shaders;
 		};
 
 		struct command_pool_create_info

@@ -7,12 +7,12 @@ void as::framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height)
 	as::framebuffer_resized = true;
 }
 
-void as::init_window(window& in_window)
+void as::init_window(const u32& width, const u32& height, as::window& in_window)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	in_window.GLFW = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	in_window.GLFW = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
 	if (in_window.GLFW)
 	{
 		glfwSetWindowUserPointer(in_window.GLFW, nullptr);
@@ -23,16 +23,16 @@ void as::init_window(window& in_window)
 void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 {
 	as::vk::instance_create_info instance_create_info = {};
-	as::vk::create_vulkan_instance(in_engine.instance, instance_create_info);
+	CHECK_VK_RESULT(as::vk::create_vulkan_instance(in_engine.instance, instance_create_info));
 	if (instance_create_info.enable_validation_layers)
 	{
-		as::vk::setup_debug_messenger(&in_engine.instance, &in_engine.debugMessenger);
+		CHECK_VK_RESULT(as::vk::setup_debug_messenger(&in_engine.instance, &in_engine.debugMessenger));
 	}
 
 	as::vk::surface_create_info surface_create_info = {};
 	surface_create_info.instance = in_engine.instance;
 	surface_create_info.window = in_window.GLFW;
-	as::vk::create_surface(surface_create_info, in_engine.surface);
+	CHECK_VK_RESULT(as::vk::create_surface(surface_create_info, in_engine.surface));
 
 	as::vk::physical_device_create_info physical_device_create_info = {};
 	physical_device_create_info.surface = &in_engine.surface;
@@ -71,9 +71,26 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	render_pass_create_info.logical_device = in_engine.device;
 	render_pass_create_info.msaa_samples = in_engine.msaaSamples;
 	render_pass_create_info.swap_chain_image_format = in_engine.swapchain.image_format;
-	as::vk::create_render_pass(render_pass_create_info, in_engine.render_pass);
+	CHECK_VK_RESULT(as::vk::create_render_pass(render_pass_create_info, in_engine.render_pass));
 
-	as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout);
+	as::vk::command_pool_create_info command_pool_create_info;
+	command_pool_create_info.physical_device = in_engine.physicalDevice;
+	command_pool_create_info.logical_device = in_engine.device;
+	command_pool_create_info.surface = &in_engine.surface;
+	CHECK_VK_RESULT(as::vk::create_command_pool(command_pool_create_info, in_engine.commandPool));
+
+	as::vk::command_buffers_create_info command_buffers_create_info;
+	command_buffers_create_info.logical_device = in_engine.device;
+	command_buffers_create_info.command_pool = in_engine.commandPool;
+	command_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+	CHECK_VK_RESULT(as::vk::create_command_buffers(command_buffers_create_info, in_engine.commandBuffers));
+
+	as::vk::sync_objects_create_info sync_objects_create_info;
+	sync_objects_create_info.logical_device = in_engine.device;
+	sync_objects_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+	as::vk::create_sync_objects(sync_objects_create_info, in_engine.image_available_semaphores, in_engine.render_finished_semaphores, in_engine.in_flight_fences);
+
+	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout));
 
 	std::vector<char> vert_shader_code;
 	char vert_shader_path[] = "shaders/shader.vert";
@@ -88,15 +105,9 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	pipeline_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
 	pipeline_create_info.render_pass = in_engine.render_pass;
 	pipeline_create_info.msaa_samples = in_engine.msaaSamples;
-	pipeline_create_info.vert_shader_spv = vert_shader_code;
-	pipeline_create_info.frag_shader_spv = frag_shader_code;
+	pipeline_create_info.vert_shaders.push_back(vert_shader_code);
+	pipeline_create_info.frag_shaders.push_back(frag_shader_code);
 	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
-
-	as::vk::command_pool_create_info command_pool_create_info;
-	command_pool_create_info.physical_device = in_engine.physicalDevice;
-	command_pool_create_info.logical_device = in_engine.device;
-	command_pool_create_info.surface = &in_engine.surface;
-	as::vk::create_command_pool(command_pool_create_info, in_engine.commandPool);
 
 	// color and depth image data
 	as::vk::create_image_resources(in_engine);
@@ -111,7 +122,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	as::vk::create_framebuffers(framebuffers_create_info, in_engine.swapchain.framebuffers);
 
 	as::vk::texture_image_create_info texture_image_create_info;
-	strcpy(texture_image_create_info.texture_path, TEXTURE_PATH.c_str());
+	strcpy(texture_image_create_info.texture_path, "textures/viking_room.png");
 	texture_image_create_info.physical_device = in_engine.physicalDevice;
 	texture_image_create_info.logical_device = in_engine.device;
 	texture_image_create_info.graphics_queue = in_engine.graphicsQueue;
@@ -133,7 +144,7 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	sampler_create_info.mip_levels = in_engine.texture.mip_levels;
 	as::vk::create_sampler(sampler_create_info, in_engine.texture.sampler);
 
-	as::vk::load_model(MODEL_PATH.c_str(), in_engine.viking_room_model.vertices, in_engine.viking_room_model.indices);
+	as::vk::load_model("models/viking_room.obj", in_engine.viking_room_model.vertices, in_engine.viking_room_model.indices);
 
 	as::vk::vertex_buffer_create_info vertex_buffer_create_info;
 	vertex_buffer_create_info.physical_device = in_engine.physicalDevice;
@@ -173,17 +184,6 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	descriptor_sets_update_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
 	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
 	as::vk::update_descriptor_sets(descriptor_sets_update_info, in_engine.descriptorSets);
-
-	as::vk::command_buffers_create_info command_buffers_create_info;
-	command_buffers_create_info.logical_device = in_engine.device;
-	command_buffers_create_info.command_pool = in_engine.commandPool;
-	command_buffers_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	as::vk::create_command_buffers(command_buffers_create_info, in_engine.commandBuffers);
-
-	as::vk::sync_objects_create_info sync_objects_create_info;
-	sync_objects_create_info.logical_device = in_engine.device;
-	sync_objects_create_info.max_frames_in_flight = MAX_FRAMES_IN_FLIGHT;
-	as::vk::create_sync_objects(sync_objects_create_info, in_engine.image_available_semaphores, in_engine.render_finished_semaphores, in_engine.in_flight_fences);
 }
 
 void as::vk::draw_frame(engine& in_engine, as::window& in_window)

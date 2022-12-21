@@ -18,12 +18,6 @@
 #include <set>
 #include <unordered_map>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
-
-const std::string MODEL_PATH = "models/viking_room.obj";
-const std::string TEXTURE_PATH = "textures/viking_room.png";
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char*> validationLayers = {
@@ -57,7 +51,7 @@ namespace as
 
 	void framebuffer_resize_callback(GLFWwindow* window, i32 width, i32 height);;
 
-	void init_window(as::window& in_window);
+	void init_window(const u32& width, const u32& height, as::window& in_window);
 
 	namespace vk
 	{
@@ -112,7 +106,7 @@ namespace as
 		// init
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window);
 		
-		// 
+		// main functionality
 		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
 		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
