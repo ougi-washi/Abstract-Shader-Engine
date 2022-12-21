@@ -45,7 +45,7 @@ bool as::sc::compile_shader(shader_binaries* out_compiled_shader, const shader_c
 	return false;
 }
 
-bool as::sc::compile_shader_with_cache(char* file_path, const shaderc_shader_kind& kind, std::vector<char>& out_spv)
+bool as::sc::compile_shader_with_cache(const char* file_path, const shaderc_shader_kind& kind, std::vector<char>& out_spv)
 {
 	char* source = util::read_file(file_path);
 	if (!source)
@@ -81,12 +81,12 @@ bool as::sc::compile_shader_with_cache(char* file_path, const shaderc_shader_kin
 	return result;
 }
 
-bool as::sc::compile_vertex_shader(char* file_path, std::vector<char>& out_spv)
+bool as::sc::compile_vertex_shader(const char* file_path, std::vector<char>& out_spv)
 {
 	return compile_shader_with_cache(file_path, shaderc_glsl_vertex_shader, out_spv);
 }
 
-bool as::sc::compile_fragment_shader(char* file_path, std::vector<char>& out_spv)
+bool as::sc::compile_fragment_shader(const char* file_path, std::vector<char>& out_spv)
 {
 	return compile_shader_with_cache(file_path, shaderc_glsl_fragment_shader, out_spv);
 }

@@ -206,7 +206,9 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 
 void as::vk::create_shader(engine& in_engine, const char* in_path, as::spv& out_shader_binaries)
 {
-	
+	spv vert_shader_code;
+	const char* vert_shader_path = in_path;
+	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 }
 
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)

@@ -818,6 +818,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 		vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vert_shader_stage_info.module = vert_shader_module;
 		vert_shader_stage_info.pName = "main";
+		// vert_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
 		shader_stages.push_back(vert_shader_stage_info);
 	}
 
@@ -830,6 +831,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 		frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		frag_shader_stage_info.module = frag_shader_module;
 		frag_shader_stage_info.pName = "main";
+		// frag_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
 		shader_stages.push_back(frag_shader_stage_info);
 	}
 
@@ -925,7 +927,6 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	pipelineInfo.renderPass = create_info.render_pass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
 	VkResult pipeline_creation_result = vkCreateGraphicsPipelines(create_info.logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_pipeline.pipeline);
 
 	for (VkShaderModule& shader_module_to_destroy : shader_modules)
