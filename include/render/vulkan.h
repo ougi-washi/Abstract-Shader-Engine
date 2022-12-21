@@ -40,24 +40,30 @@ namespace as
 			return binding_description;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 3> get_attribute_descriptions() 
+		static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() 
 		{
-			std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions{};
+			std::vector<VkVertexInputAttributeDescription> attribute_descriptions{};
 
-			attribute_descriptions[0].binding = 0;
-			attribute_descriptions[0].location = 0;
-			attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attribute_descriptions[0].offset = offsetof(vertex, pos);
+			VkVertexInputAttributeDescription pos_attribute_description;
+			pos_attribute_description.binding = 0;
+			pos_attribute_description.location = 0;
+			pos_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT;
+			pos_attribute_description.offset = offsetof(vertex, pos);
+			attribute_descriptions.push_back(pos_attribute_description);
 
-			attribute_descriptions[1].binding = 0;
-			attribute_descriptions[1].location = 1;
-			attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attribute_descriptions[1].offset = offsetof(vertex, color);
+			VkVertexInputAttributeDescription color_attribute_description;
+			color_attribute_description.binding = 0;
+			color_attribute_description.location = 1;
+			color_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT;
+			color_attribute_description.offset = offsetof(vertex, color);
+			attribute_descriptions.push_back(color_attribute_description);
 
-			attribute_descriptions[2].binding = 0;
-			attribute_descriptions[2].location = 2;
-			attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attribute_descriptions[2].offset = offsetof(vertex, tex_coord);
+			VkVertexInputAttributeDescription tex_coor_attribute_description;
+			tex_coor_attribute_description.binding = 0;
+			tex_coor_attribute_description.location = 2;
+			tex_coor_attribute_description.format = VK_FORMAT_R32G32_SFLOAT;
+			tex_coor_attribute_description.offset = offsetof(vertex, tex_coord);
+			attribute_descriptions.push_back(tex_coor_attribute_description);
 
 			return attribute_descriptions;
 		}

@@ -41,7 +41,7 @@ const bool enableValidationLayers = true;
 #endif
 
 
-struct UniformBufferObject {
+struct uniform_buffer_object {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
@@ -89,11 +89,6 @@ namespace as
 
 			as::vk::texture_data texture;
 
-			std::vector<as::vertex> vertices;
-			std::vector<uint32_t> indices;
-			VkBuffer vertex_buffer;
-			VkDeviceMemory vertex_buffer_memory;
-			VkBuffer index_buffer;
 			VkDeviceMemory index_buffer_memory;
 
 			std::vector<VkBuffer> buffers;
@@ -109,6 +104,9 @@ namespace as
 			std::vector<VkFence> in_flight_fences;
 
 			u32 currentFrame = 0;
+
+			// temp 
+			vk::model_data viking_room_model;
 		};
 
 		void create_image_resources(as::vk::engine& in_engine);

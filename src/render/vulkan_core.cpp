@@ -827,8 +827,8 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-	auto binding_description = vertex::get_binding_description();
-	auto attribute_descriptions = vertex::get_attribute_descriptions();
+	VkVertexInputBindingDescription binding_description = vertex::get_binding_description();
+	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = vertex::get_attribute_descriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<u32>(attribute_descriptions.size());

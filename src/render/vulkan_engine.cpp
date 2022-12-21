@@ -77,11 +77,11 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 
 	std::vector<char> vert_shader_code;
 	char vert_shader_path[] = "shaders/shader.vert";
-	sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
+	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 
 	std::vector<char> frag_shader_code;
 	char frag_shader_path[] = "shaders/shader.frag";
-	sc::compile_fragment_shader(frag_shader_path, frag_shader_code);
+	as::sc::compile_fragment_shader(frag_shader_path, frag_shader_code);
 
 	as::vk::pipeline_create_info pipeline_create_info;
 	pipeline_create_info.logical_device = in_engine.device;
@@ -133,23 +133,23 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window)
 	sampler_create_info.mip_levels = in_engine.texture.mip_levels;
 	as::vk::create_sampler(sampler_create_info, in_engine.texture.sampler);
 
-	as::vk::load_model(MODEL_PATH.c_str(), in_engine.vertices, in_engine.indices);
+	as::vk::load_model(MODEL_PATH.c_str(), in_engine.viking_room_model.vertices, in_engine.viking_room_model.indices);
 
 	as::vk::vertex_buffer_create_info vertex_buffer_create_info;
 	vertex_buffer_create_info.physical_device = in_engine.physicalDevice;
 	vertex_buffer_create_info.logical_device = in_engine.device;
 	vertex_buffer_create_info.queue = in_engine.graphicsQueue;
 	vertex_buffer_create_info.command_pool = in_engine.commandPool;
-	vertex_buffer_create_info.vertices = in_engine.vertices;
-	as::vk::create_vertex_buffer(vertex_buffer_create_info, in_engine.vertex_buffer, in_engine.vertex_buffer_memory);
+	vertex_buffer_create_info.vertices = in_engine.viking_room_model.vertices;
+	as::vk::create_vertex_buffer(vertex_buffer_create_info, in_engine.viking_room_model.vertex_buffer, in_engine.viking_room_model.vertex_buffer_memory);
 
 	as::vk::index_buffer_create_info index_buffer_create_info;
 	index_buffer_create_info.physical_device = in_engine.physicalDevice;
 	index_buffer_create_info.logical_device = in_engine.device;
 	index_buffer_create_info.queue = in_engine.graphicsQueue;
 	index_buffer_create_info.command_pool = in_engine.commandPool;
-	index_buffer_create_info.indices = in_engine.indices;
-	as::vk::create_index_buffer(index_buffer_create_info, in_engine.index_buffer, in_engine.index_buffer_memory);
+	index_buffer_create_info.indices = in_engine.viking_room_model.indices;
+	as::vk::create_index_buffer(index_buffer_create_info, in_engine.viking_room_model.index_buffer, in_engine.viking_room_model.index_buffer_memory);
 
 	as::vk::uniform_buffers_create_info uniform_buffers_create_info;
 	uniform_buffers_create_info.physical_device = in_engine.physicalDevice;
@@ -335,15 +335,15 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	scissor.extent = in_engine.swapchain.extent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	VkBuffer vertexBuffers[] = { in_engine.vertex_buffer };
+	VkBuffer vertexBuffers[] = { in_engine.viking_room_model.vertex_buffer };
 	VkDeviceSize offsets[] = { 0 };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	vkCmdBindIndexBuffer(commandBuffer, in_engine.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, in_engine.viking_room_model.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &in_engine.descriptorSets[in_engine.currentFrame], 0, nullptr);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(in_engine.indices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(in_engine.viking_room_model.indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -392,11 +392,11 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDescriptorSetLayout(in_engine.device, in_engine.descriptor_set_layout, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.index_buffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.index_buffer_memory, nullptr);
+	vkDestroyBuffer(in_engine.device, in_engine.viking_room_model.index_buffer, nullptr);
+	vkFreeMemory(in_engine.device, in_engine.viking_room_model.index_buffer_memory, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.vertex_buffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.vertex_buffer_memory, nullptr);
+	vkDestroyBuffer(in_engine.device, in_engine.viking_room_model.vertex_buffer, nullptr);
+	vkFreeMemory(in_engine.device, in_engine.viking_room_model.vertex_buffer_memory, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(in_engine.device, in_engine.render_finished_semaphores[i], nullptr);
