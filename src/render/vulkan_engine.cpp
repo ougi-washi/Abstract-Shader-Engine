@@ -266,16 +266,6 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 	vkDeviceWaitIdle(in_engine.device);
 }
 
-void as::vk::cleanup_swapchain(engine& in_engine)
-{
-	std::vector<as::vk::image_data> images_data =
-	{
-		in_engine.color_image,
-		in_engine.depth_image
-	};
-	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain.swapchainKHR, images_data, in_engine.swapchain.framebuffers, in_engine.swapchain.image_views);
-}
-
 void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 {
 	int width = 0, height = 0;
@@ -369,6 +359,51 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 	vkUnmapMemory(in_engine.device, in_engine.memory[currentImage]);
 }
 
+void as::vk::create_image_resources(engine& in_engine)
+{
+	as::vk::image_create_info color_image_create_info;
+	color_image_create_info.physical_device = in_engine.physicalDevice;
+	color_image_create_info.logical_device = in_engine.device;
+	color_image_create_info.height = in_engine.swapchain.extent.height;
+	color_image_create_info.width = in_engine.swapchain.extent.width;
+	color_image_create_info.mip_levels = 1;
+	color_image_create_info.num_samples = in_engine.msaaSamples;
+	color_image_create_info.format = in_engine.swapchain.image_format;
+	color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	as::vk::create_image(color_image_create_info, in_engine.color_image);
+
+	as::vk::image_view_create_info color_image_view_create_info;
+	color_image_view_create_info.logical_device = in_engine.device;
+	color_image_view_create_info.image = in_engine.color_image.image;
+	color_image_view_create_info.mip_levels = 1;
+	color_image_view_create_info.format = in_engine.swapchain.image_format;
+	color_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+	as::vk::create_image_view(color_image_view_create_info, in_engine.color_image.view);
+
+	VkFormat supported_depth_format = as::vk::find_depth_format(in_engine.physicalDevice);
+	as::vk::image_create_info depth_image_create_info = color_image_create_info;
+	depth_image_create_info.format = supported_depth_format;
+	depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	as::vk::create_image(depth_image_create_info, in_engine.depth_image);
+	as::vk::image_view_create_info depth_image_view_create_info = color_image_view_create_info;
+	depth_image_view_create_info.image = in_engine.depth_image.image;
+	depth_image_view_create_info.format = supported_depth_format;
+	depth_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+	as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view);
+}
+
+void as::vk::cleanup_swapchain(engine& in_engine)
+{
+	std::vector<as::vk::image_data> images_data =
+	{
+		in_engine.color_image,
+		in_engine.depth_image
+	};
+	as::vk::cleanup_swap_chain(in_engine.device, in_engine.swapchain.swapchainKHR, images_data, in_engine.swapchain.framebuffers, in_engine.swapchain.image_views);
+}
+
 void as::vk::cleanup(engine& in_engine, as::window& in_window)
 {
 	as::vk::cleanup_swapchain(in_engine);
@@ -418,41 +453,6 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 	glfwDestroyWindow(in_window.GLFW);
 
 	glfwTerminate();
-}
-
-void as::vk::create_image_resources(engine& in_engine)
-{
-	as::vk::image_create_info color_image_create_info;
-	color_image_create_info.physical_device = in_engine.physicalDevice;
-	color_image_create_info.logical_device = in_engine.device;
-	color_image_create_info.height = in_engine.swapchain.extent.height;
-	color_image_create_info.width = in_engine.swapchain.extent.width;
-	color_image_create_info.mip_levels = 1;
-	color_image_create_info.num_samples = in_engine.msaaSamples;
-	color_image_create_info.format = in_engine.swapchain.image_format;
-	color_image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-	color_image_create_info.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	color_image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	as::vk::create_image(color_image_create_info, in_engine.color_image);
-
-	as::vk::image_view_create_info color_image_view_create_info;
-	color_image_view_create_info.logical_device = in_engine.device;
-	color_image_view_create_info.image = in_engine.color_image.image;
-	color_image_view_create_info.mip_levels = 1;
-	color_image_view_create_info.format = in_engine.swapchain.image_format;
-	color_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-	as::vk::create_image_view(color_image_view_create_info, in_engine.color_image.view);
-
-	VkFormat supported_depth_format = as::vk::find_depth_format(in_engine.physicalDevice);
-	as::vk::image_create_info depth_image_create_info = color_image_create_info;
-	depth_image_create_info.format = supported_depth_format;
-	depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	as::vk::create_image(depth_image_create_info, in_engine.depth_image);
-	as::vk::image_view_create_info depth_image_view_create_info = color_image_view_create_info;
-	depth_image_view_create_info.image = in_engine.depth_image.image;
-	depth_image_view_create_info.format = supported_depth_format;
-	depth_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-	as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view);
 }
 
 void as::vk::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)

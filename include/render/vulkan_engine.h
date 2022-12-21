@@ -109,23 +109,24 @@ namespace as
 			vk::model_data viking_room_model;
 		};
 
-		void create_image_resources(as::vk::engine& in_engine);
-
+		// init
 		void init_vulkan(as::vk::engine& in_engine, as::window& in_window);
-
+		
+		// 
 		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
-
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
+		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
+		void record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, as::vk::engine& in_engine);
+		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
 
+		// cleanup
 		void cleanup_swapchain(as::vk::engine& in_engine);
-
 		void cleanup(as::vk::engine& in_engine, as::window& in_window);
 
-		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
 
-		void record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, as::vk::engine& in_engine);
+		void create_image_resources(as::vk::engine& in_engine);
 
-		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
+
 
 		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 

@@ -30,7 +30,7 @@ namespace as
 		glm::vec3 color;
 		glm::vec2 tex_coord;
 
-		static VkVertexInputBindingDescription get_binding_description() 
+		static VkVertexInputBindingDescription get_binding_description() //TODO: move from here
 		{
 			VkVertexInputBindingDescription binding_description{};
 			binding_description.binding = 0;
@@ -40,7 +40,7 @@ namespace as
 			return binding_description;
 		}
 
-		static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() 
+		static std::vector<VkVertexInputAttributeDescription> get_attribute_descriptions() //TODO: move from here
 		{
 			std::vector<VkVertexInputAttributeDescription> attribute_descriptions{};
 
