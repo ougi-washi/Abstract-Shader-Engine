@@ -114,11 +114,11 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	descriptor_sets_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
 	as::vk::create_descriptor_sets(descriptor_sets_create_info, in_engine.descriptorSets);
 
-	std::vector<char> vert_shader_code;
+	spv vert_shader_code;
 	char vert_shader_path[] = "shaders/shader.vert";
 	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 
-	std::vector<char> frag_shader_code;
+	spv frag_shader_code;
 	char frag_shader_path[] = "shaders/shader.frag";
 	as::sc::compile_fragment_shader(frag_shader_path, frag_shader_code);
 
@@ -202,6 +202,11 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 	}
 
 	vkDeviceWaitIdle(in_engine.device);
+}
+
+void as::vk::create_shader(engine& in_engine, const char* in_path, as::spv& out_shader_binaries)
+{
+	
 }
 
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)

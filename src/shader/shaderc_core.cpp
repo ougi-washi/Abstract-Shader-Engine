@@ -58,7 +58,11 @@ bool as::sc::compile_shader_with_cache(char* file_path, const shaderc_shader_kin
 	compile_info_vertex.kind = kind;
 	std::string glsl_file_path = util::get_current_path() + std::string("/cache/") + std::string(file_path) + ".glsl";
 	std::string spv_file_path = util::get_current_path() + std::string("/cache/") + std::string(file_path) + ".spv";
-	std::vector<char> glsl_file_content = as::util::read_file(glsl_file_path);
+	std::vector<char> glsl_file_content;
+	if (util::does_file_exist(glsl_file_path))
+	{
+		glsl_file_content = as::util::read_file(glsl_file_path);
+	}
 	bool already_compiled = false;
 	bool result = false;
 	if (glsl_file_content.data() && *glsl_file_content.data() == *source && util::does_file_exist(spv_file_path))

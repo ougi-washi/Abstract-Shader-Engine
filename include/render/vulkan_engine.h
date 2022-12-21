@@ -109,6 +109,7 @@ namespace as
 		
 		// main functionalities
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
+		void create_shader(as::vk::engine& in_engine, const char* in_path, as::spv &out_shader_binaries);
 		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
 
 		// internal 
