@@ -548,6 +548,7 @@ u32 as::vk::find_memory_type(VkPhysicalDevice physical_device, u32 typeFilter, V
 		}
 	}
 	AS_LOG(LV_ERROR, "failed to find suitable memory type!");
+	return -1;
 }
 
 void as::vk::create_color_resources(VkImageView& out_image_view, VkPhysicalDevice& physical_device, VkDevice& logical_device, VkImage& image, VkDeviceMemory& image_memory, VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent, VkSampleCountFlagBits& msaa_samples)
@@ -928,7 +929,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 	VkResult pipeline_creation_result = vkCreateGraphicsPipelines(create_info.logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_pipeline.pipeline);
-
+	
 	for (VkShaderModule& shader_module_to_destroy : shader_modules)
 	{
 		vkDestroyShaderModule(create_info.logical_device, shader_module_to_destroy, nullptr);
@@ -1628,12 +1629,15 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 
 	std::unordered_map<vertex, u32> uniqueVertices{};
 
-	for (const tinyobj::shape_t& shape : shapes) {
-		for (const tinyobj::index_t& index : shape.mesh.indices) {
+	for (const tinyobj::shape_t& shape : shapes) 
+	{
+		for (const tinyobj::index_t& index : shape.mesh.indices) 
+		{
 
 			vertex vertex{};
 
-			vertex.pos = {
+			vertex.pos = 
+			{
 				attrib.vertices[3 * index.vertex_index + 0],
 				attrib.vertices[3 * index.vertex_index + 1],
 				attrib.vertices[3 * index.vertex_index + 2]
@@ -1644,7 +1648,8 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 
 			if (current_coord >= 0 && next_coord < attrib.texcoords.size())
 			{
-				vertex.tex_coord = {
+				vertex.tex_coord = 
+				{
 					attrib.texcoords[2 * index.texcoord_index + 0],
 					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 				};

@@ -72,7 +72,6 @@ namespace as
 			as::vk::swapchain swapchain;
 
 			VkRenderPass render_pass;
-			VkDescriptorSetLayout descriptor_set_layout;
 			as::vk::pipeline_data graphics_pipeline;
 
 			VkCommandPool commandPool;
@@ -80,15 +79,10 @@ namespace as
 			as::vk::image_data color_image;
 			as::vk::image_data depth_image;
 
-			as::vk::texture_data texture;
-
 			VkDeviceMemory index_buffer_memory;
 
 			std::vector<VkBuffer> buffers;
 			std::vector<VkDeviceMemory> memory;
-
-			VkDescriptorPool descriptorPool;
-			std::vector<VkDescriptorSet> descriptorSets;
 
 			std::vector<VkCommandBuffer> commandBuffers;
 
@@ -100,6 +94,8 @@ namespace as
 			u32 currentFrame = 0;
 
 			std::vector<vk::object_data> objects;
+			std::vector<vk::texture_data> textures;
+			std::vector<vk::material_data> materials;
 		};
 
 		// init
@@ -110,7 +106,10 @@ namespace as
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
 		void create_shader(as::vk::engine& in_engine, const char* in_path, as::spv &out_shader_binaries);
 		void add_object(as::vk::engine& in_engine, const char* in_path, as::vk::object_data& out_object_data);
+		void add_texture(as::vk::engine& in_engine, const char* in_path, as::vk::texture_data& out_texture_data);
+		void add_material(as::vk::engine& in_engine, const char* in_vert_shader_path, const char* in_frag_shader_path, as::vk::material_data& out_material_data);
 		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
+		void create_graphics_pipeline(as::vk::engine& in_engine);
 
 		// internal 
 		void draw_frame(as::vk::engine& in_engine, as::window& in_window);

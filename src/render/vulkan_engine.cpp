@@ -97,40 +97,12 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	sync_objects_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	as::vk::create_sync_objects(sync_objects_create_info, in_engine.image_available_semaphores, in_engine.render_finished_semaphores, in_engine.in_flight_fences);
 
-	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, in_engine.descriptor_set_layout));
-
 	as::vk::uniform_buffers_create_info uniform_buffers_create_info;
 	uniform_buffers_create_info.physical_device = in_engine.physicalDevice;
 	uniform_buffers_create_info.logical_device = in_engine.device;
 	uniform_buffers_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	as::vk::create_uniform_buffers(uniform_buffers_create_info, in_engine.buffers, in_engine.memory);
-
-	as::vk::create_descriptor_pool(in_engine.device, in_engine.max_frames_in_flight, in_engine.descriptorPool);
-
-	as::vk::descriptor_sets_create_info descriptor_sets_create_info;
-	descriptor_sets_create_info.logical_device = in_engine.device;
-	descriptor_sets_create_info.descriptor_pool = in_engine.descriptorPool;
-	descriptor_sets_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
-	descriptor_sets_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
-	as::vk::create_descriptor_sets(descriptor_sets_create_info, in_engine.descriptorSets);
-
-	spv vert_shader_code;
-	char vert_shader_path[] = "shaders/shader.vert";
-	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
-
-	spv frag_shader_code;
-	char frag_shader_path[] = "shaders/shader.frag";
-	as::sc::compile_fragment_shader(frag_shader_path, frag_shader_code);
-
-	as::vk::pipeline_create_info pipeline_create_info;
-	pipeline_create_info.logical_device = in_engine.device;
-	pipeline_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
-	pipeline_create_info.render_pass = in_engine.render_pass;
-	pipeline_create_info.msaa_samples = in_engine.msaaSamples;
-	pipeline_create_info.vert_shaders.push_back(vert_shader_code);
-	pipeline_create_info.frag_shaders.push_back(frag_shader_code);
-	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
-
+	
 	// color and depth image data
 	as::vk::create_image_resources(in_engine);
 
@@ -143,36 +115,6 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	framebuffers_create_info.swap_chain_image_views = in_engine.swapchain.image_views;
 	as::vk::create_framebuffers(framebuffers_create_info, in_engine.swapchain.framebuffers);
 
-	as::vk::texture_image_create_info texture_image_create_info;
-	strcpy(texture_image_create_info.texture_path, "textures/viking_room.png");
-	texture_image_create_info.physical_device = in_engine.physicalDevice;
-	texture_image_create_info.logical_device = in_engine.device;
-	texture_image_create_info.graphics_queue = in_engine.graphicsQueue;
-	texture_image_create_info.command_pool = in_engine.commandPool;
-	texture_image_create_info.texture_image_memory = in_engine.texture.image_data.memory;
-	as::vk::create_texture_image(texture_image_create_info, in_engine.texture);
-
-	as::vk::image_view_create_info texture_image_view_create_info;
-	texture_image_view_create_info.logical_device = in_engine.device;
-	texture_image_view_create_info.image = in_engine.texture.image_data.image;
-	texture_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
-	texture_image_view_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
-	texture_image_view_create_info.mip_levels = in_engine.texture.mip_levels;
-	as::vk::create_image_view(texture_image_view_create_info, in_engine.texture.image_data.view);
-
-	as::vk::sampler_create_info sampler_create_info;
-	sampler_create_info.logical_device = in_engine.device;
-	sampler_create_info.physical_device = in_engine.physicalDevice;
-	sampler_create_info.mip_levels = in_engine.texture.mip_levels;
-	as::vk::create_sampler(sampler_create_info, in_engine.texture.sampler);
-
-	as::vk::descriptor_sets_update_info descriptor_sets_update_info;
-	descriptor_sets_update_info.logical_device = in_engine.device;
-	descriptor_sets_update_info.image_view = in_engine.texture.image_data.view;
-	descriptor_sets_update_info.image_sampler = in_engine.texture.sampler;
-	descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
-	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
-	as::vk::update_descriptor_sets(descriptor_sets_update_info, in_engine.descriptorSets);
 }
 
 void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
@@ -220,6 +162,68 @@ void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out
 	// TODO: check if descriptors need an update
 }
 
+void as::vk::add_texture(engine& in_engine, const char* in_path, texture_data& out_texture_data)
+{
+	as::vk::texture_image_create_info texture_image_create_info;
+	strcpy(texture_image_create_info.texture_path, in_path);
+	texture_image_create_info.physical_device = in_engine.physicalDevice;
+	texture_image_create_info.logical_device = in_engine.device;
+	texture_image_create_info.graphics_queue = in_engine.graphicsQueue;
+	texture_image_create_info.command_pool = in_engine.commandPool;
+	texture_image_create_info.texture_image_memory = out_texture_data.image_data.memory;
+	as::vk::create_texture_image(texture_image_create_info, out_texture_data);
+
+	as::vk::image_view_create_info texture_image_view_create_info;
+	texture_image_view_create_info.logical_device = in_engine.device;
+	texture_image_view_create_info.image = out_texture_data.image_data.image;
+	texture_image_view_create_info.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+	texture_image_view_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+	texture_image_view_create_info.mip_levels = out_texture_data.mip_levels;
+	as::vk::create_image_view(texture_image_view_create_info, out_texture_data.image_data.view);
+
+	as::vk::sampler_create_info sampler_create_info;
+	sampler_create_info.logical_device = in_engine.device;
+	sampler_create_info.physical_device = in_engine.physicalDevice;
+	sampler_create_info.mip_levels = out_texture_data.mip_levels;
+	as::vk::create_sampler(sampler_create_info, out_texture_data.sampler);
+
+	in_engine.textures.push_back(out_texture_data);
+}
+
+void as::vk::add_material(engine& in_engine, const char* in_vert_shader_path, const char* in_frag_shader_path, material_data& out_material_data)
+{
+	CHECK_VK_RESULT(as::vk::create_descriptor_pool(in_engine.device, in_engine.max_frames_in_flight, out_material_data.descriptor.descriptorPool));
+	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, out_material_data.descriptor.descriptor_set_layout));
+
+	as::vk::descriptor_sets_create_info descriptor_sets_create_info;
+	descriptor_sets_create_info.logical_device = in_engine.device;
+	descriptor_sets_create_info.descriptor_pool = out_material_data.descriptor.descriptorPool;
+	descriptor_sets_create_info.max_frames_in_flight = in_engine.max_frames_in_flight;
+	descriptor_sets_create_info.descriptor_set_layout = out_material_data.descriptor.descriptor_set_layout;
+	as::vk::create_descriptor_sets(descriptor_sets_create_info, out_material_data.descriptor.descriptorSets);
+
+	for (as::vk::texture_data* current_texture : out_material_data.textures)
+	{
+		as::vk::descriptor_sets_update_info descriptor_sets_update_info;
+		descriptor_sets_update_info.logical_device = in_engine.device;
+		descriptor_sets_update_info.image_view = current_texture->image_data.view;
+		descriptor_sets_update_info.image_sampler = current_texture->sampler;
+		descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
+		descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
+		as::vk::update_descriptor_sets(descriptor_sets_update_info, out_material_data.descriptor.descriptorSets);
+	}
+
+	spv vert_shader_code;
+	as::sc::compile_vertex_shader(in_vert_shader_path, vert_shader_code);
+	out_material_data.vertex_shader = vert_shader_code;
+
+	spv frag_shader_code;
+	as::sc::compile_fragment_shader(in_frag_shader_path, frag_shader_code);
+	out_material_data.fragment_shader = frag_shader_code;
+
+	in_engine.materials.push_back(out_material_data);
+}
+
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -240,6 +244,21 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 	vkUnmapMemory(in_engine.device, in_engine.memory[currentImage]);
 }
 
+
+void as::vk::create_graphics_pipeline(engine& in_engine)
+{
+	as::vk::pipeline_create_info pipeline_create_info;
+	pipeline_create_info.logical_device = in_engine.device;
+	pipeline_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
+	pipeline_create_info.render_pass = in_engine.render_pass;
+	pipeline_create_info.msaa_samples = in_engine.msaaSamples;
+	for (vk::material_data& current_material : in_engine.materials)
+	{
+		pipeline_create_info.vert_shaders.push_back(current_material.vertex_shader);
+		pipeline_create_info.frag_shaders.push_back(current_material.fragment_shader);
+	}
+	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
+}
 
 void as::vk::draw_frame(engine& in_engine, as::window& in_window)
 {
@@ -448,12 +467,15 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDescriptorPool(in_engine.device, in_engine.descriptorPool, nullptr);
 
-	vkDestroySampler(in_engine.device, in_engine.texture.sampler, nullptr);
-	vkDestroyImageView(in_engine.device, in_engine.texture.image_data.view, nullptr);
+	for (as::vk::texture_data& current_texture : in_engine.textures)
+	{
+		vkDestroySampler(in_engine.device, current_texture.sampler, nullptr);
+		vkDestroyImageView(in_engine.device, current_texture.image_data.view, nullptr);
 
-	vkDestroyImage(in_engine.device, in_engine.texture.image_data.image, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.texture.image_data.memory, nullptr);
-
+		vkDestroyImage(in_engine.device, current_texture.image_data.image, nullptr);
+		vkFreeMemory(in_engine.device, current_texture.image_data.memory, nullptr);
+	}
+	
 	vkDestroyDescriptorSetLayout(in_engine.device, in_engine.descriptor_set_layout, nullptr);
 
 	for (vk::object_data& current_object : in_engine.objects)

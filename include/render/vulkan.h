@@ -138,48 +138,6 @@ namespace as
 			VkCommandPool commandPool;
 		};
 
-		struct image_data
-		{
-			VkImage image;
-			VkImageView view;
-			VkDeviceMemory memory;
-		};
-
-		struct texture_data
-		{
-			image_data image_data;
-			VkSampler sampler;
-			u32 mip_levels;
-		};
-
-		struct material_data
-		{
-			// external usage:
-			glm::vec3 color_multiplier = glm::vec3(1.f);
-			
-			// internal usage:
-			as::spv vertex_shader;
-			as::spv fragment_shader;
-			VkDescriptorSet descriptor_set;
-		};
-
-		struct object_data
-		{
-			// data
-			std::vector<as::vertex> vertices;
-			std::vector<uint32_t> indices;
-			char file_path[200] = "";
-
-			// memory
-			VkBuffer vertex_buffer;
-			VkDeviceMemory vertex_buffer_memory;
-			VkBuffer index_buffer;
-			VkDeviceMemory index_buffer_memory;
-
-			// material
-			material_data* material = nullptr;
-		};
-
 		struct uniform_buffers
 		{
 			std::vector<VkBuffer> buffers;
@@ -189,6 +147,7 @@ namespace as
 		struct descriptor
 		{
 			VkDescriptorPool descriptorPool;
+			VkDescriptorSetLayout descriptor_set_layout;
 			std::vector<VkDescriptorSet> descriptorSets;
 		};
 
@@ -213,6 +172,49 @@ namespace as
 			{
 				return graphicsFamily.has_value() && presentFamily.has_value();
 			}
+		};
+
+		struct image_data
+		{
+			VkImage image;
+			VkImageView view;
+			VkDeviceMemory memory;
+		};
+
+		struct texture_data
+		{
+			image_data image_data;
+			VkSampler sampler;
+			u32 mip_levels;
+		};
+
+		struct material_data
+		{
+			// external usage:
+			glm::vec3 color_multiplier = glm::vec3(1.f);
+			std::vector<vk::texture_data*> textures;
+
+			// internal usage:
+			as::spv vertex_shader;
+			as::spv fragment_shader;
+			as::vk::descriptor descriptor;
+		};
+
+		struct object_data
+		{
+			// data
+			std::vector<as::vertex> vertices;
+			std::vector<uint32_t> indices;
+			char file_path[200] = "";
+
+			// memory
+			VkBuffer vertex_buffer;
+			VkDeviceMemory vertex_buffer_memory;
+			VkBuffer index_buffer;
+			VkDeviceMemory index_buffer_memory;
+
+			// rendering
+			material_data* material = nullptr;
 		};
 	};
 };
