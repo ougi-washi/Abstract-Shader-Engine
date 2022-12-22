@@ -1628,8 +1628,9 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 
 	std::unordered_map<vertex, u32> uniqueVertices{};
 
-	for (const auto& shape : shapes) {
-		for (const auto& index : shape.mesh.indices) {
+	for (const tinyobj::shape_t& shape : shapes) {
+		for (const tinyobj::index_t& index : shape.mesh.indices) {
+
 			vertex vertex{};
 
 			vertex.pos = {
@@ -1638,10 +1639,10 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-
 			float current_coord = 2 * index.texcoord_index;
 			float next_coord = 2 * index.texcoord_index + 1;
-			if (current_coord >= 0 && next_coord < attrib.texcoords.size() )
+
+			if (current_coord >= 0 && next_coord < attrib.texcoords.size())
 			{
 				vertex.tex_coord = {
 					attrib.texcoords[2 * index.texcoord_index + 0],
