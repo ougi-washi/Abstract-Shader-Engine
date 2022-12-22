@@ -818,6 +818,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 		vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vert_shader_stage_info.module = vert_shader_module;
 		vert_shader_stage_info.pName = "main";
+		// vert_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
 		shader_stages.push_back(vert_shader_stage_info);
 	}
 
@@ -830,6 +831,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 		frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		frag_shader_stage_info.module = frag_shader_module;
 		frag_shader_stage_info.pName = "main";
+		// frag_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
 		shader_stages.push_back(frag_shader_stage_info);
 	}
 
@@ -925,7 +927,6 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 	pipelineInfo.renderPass = create_info.render_pass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
 	VkResult pipeline_creation_result = vkCreateGraphicsPipelines(create_info.logical_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &out_pipeline.pipeline);
 
 	for (VkShaderModule& shader_module_to_destroy : shader_modules)
@@ -1259,7 +1260,7 @@ VkResult as::vk::create_buffer(buffer_create_info& create_info, VkBuffer& out_bu
 
 void as::vk::transition_image_layout(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout, u32 mipLevels)
 {
-	VkCommandBuffer commandBuffer = begin_single_time_commands(logical_device, command_pool);
+	VkCommandBuffer command_buffer = begin_single_time_commands(logical_device, command_pool);
 
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1296,7 +1297,7 @@ void as::vk::transition_image_layout(VkDevice& logical_device, VkCommandPool& co
 	}
 
 	vkCmdPipelineBarrier(
-		commandBuffer,
+		command_buffer,
 		sourceStage, destinationStage,
 		0,
 		0, nullptr,
@@ -1304,12 +1305,12 @@ void as::vk::transition_image_layout(VkDevice& logical_device, VkCommandPool& co
 		1, &barrier
 	);
 
-	end_single_time_commands(logical_device, command_pool, commandBuffer, graphics_queue);
+	end_single_time_commands(logical_device, command_pool, command_buffer, graphics_queue);
 }
 
 void as::vk::transition_image_layout(transition_image_layout_info& info)
 {
-	VkCommandBuffer commandBuffer = begin_single_time_commands(info.logical_device, info.command_pool);
+	VkCommandBuffer command_buffer = begin_single_time_commands(info.logical_device, info.command_pool);
 
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1346,7 +1347,7 @@ void as::vk::transition_image_layout(transition_image_layout_info& info)
 	}
 
 	vkCmdPipelineBarrier(
-		commandBuffer,
+		command_buffer,
 		sourceStage, destinationStage,
 		0,
 		0, nullptr,
@@ -1354,7 +1355,7 @@ void as::vk::transition_image_layout(transition_image_layout_info& info)
 		1, &barrier
 	);
 
-	end_single_time_commands(info.logical_device, info.command_pool, commandBuffer, info.graphics_queue);
+	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.graphics_queue);
 }
 
 VkCommandBuffer as::vk::begin_single_time_commands(VkDevice logical_device, VkCommandPool command_pool)
@@ -1365,16 +1366,16 @@ VkCommandBuffer as::vk::begin_single_time_commands(VkDevice logical_device, VkCo
 	allocInfo.commandPool = command_pool;
 	allocInfo.commandBufferCount = 1;
 
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(logical_device, &allocInfo, &commandBuffer);
+	VkCommandBuffer command_buffer;
+	vkAllocateCommandBuffers(logical_device, &allocInfo, &command_buffer);
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	vkBeginCommandBuffer(command_buffer, &beginInfo);
 
-	return commandBuffer;
+	return command_buffer;
 }
 
 void as::vk::end_single_time_commands(VkDevice& logical_device, VkCommandPool& command_pool, VkCommandBuffer command_buffer, VkQueue& graphics_queue)
@@ -1394,7 +1395,7 @@ void as::vk::end_single_time_commands(VkDevice& logical_device, VkCommandPool& c
 
 void as::vk::copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& graphics_queue, VkBuffer buffer, VkImage image, u32 width, u32 height)
 {
-	VkCommandBuffer commandBuffer = begin_single_time_commands(logical_device, command_pool);
+	VkCommandBuffer command_buffer = begin_single_time_commands(logical_device, command_pool);
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -1411,13 +1412,13 @@ void as::vk::copy_buffer_to_image(VkDevice& logical_device, VkCommandPool& comma
 		1
 	};
 
-	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-	end_single_time_commands(logical_device, command_pool, commandBuffer, graphics_queue);
+	vkCmdCopyBufferToImage(command_buffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	end_single_time_commands(logical_device, command_pool, command_buffer, graphics_queue);
 }
 
 void as::vk::copy_buffer_to_image(copy_buffer_to_image_info& info)
 {
-	VkCommandBuffer commandBuffer = begin_single_time_commands(info.logical_device, info.command_pool);
+	VkCommandBuffer command_buffer = begin_single_time_commands(info.logical_device, info.command_pool);
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -1434,8 +1435,8 @@ void as::vk::copy_buffer_to_image(copy_buffer_to_image_info& info)
 		1
 	};
 
-	vkCmdCopyBufferToImage(commandBuffer, info.buffer, info.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-	end_single_time_commands(info.logical_device, info.command_pool, commandBuffer, info.graphics_queue);
+	vkCmdCopyBufferToImage(command_buffer, info.buffer, info.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.graphics_queue);
 }
 
 void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, u32 mip_levels)
@@ -1448,7 +1449,7 @@ void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logic
 		throw std::runtime_error("texture image format does not support linear blitting!");
 	}
 
-	VkCommandBuffer commandBuffer = begin_single_time_commands(logical_device, command_pool);
+	VkCommandBuffer command_buffer = begin_single_time_commands(logical_device, command_pool);
 
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1470,7 +1471,7 @@ void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logic
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-		vkCmdPipelineBarrier(commandBuffer,
+		vkCmdPipelineBarrier(command_buffer,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 			0, nullptr,
 			0, nullptr,
@@ -1490,7 +1491,7 @@ void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logic
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;
 
-		vkCmdBlitImage(commandBuffer,
+		vkCmdBlitImage(command_buffer,
 			image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1, &blit,
@@ -1501,7 +1502,7 @@ void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logic
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-		vkCmdPipelineBarrier(commandBuffer,
+		vkCmdPipelineBarrier(command_buffer,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 			0, nullptr,
 			0, nullptr,
@@ -1517,13 +1518,13 @@ void as::vk::generate_mipmaps(VkPhysicalDevice& physical_device, VkDevice& logic
 	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-	vkCmdPipelineBarrier(commandBuffer,
+	vkCmdPipelineBarrier(command_buffer,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 		0, nullptr,
 		0, nullptr,
 		1, &barrier);
 
-	end_single_time_commands(logical_device, command_pool, commandBuffer, queue);
+	end_single_time_commands(logical_device, command_pool, command_buffer, queue);
 }
 
 void as::vk::generate_mipmaps(generate_mipmaps_info& info)
@@ -1625,10 +1626,11 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 		throw std::runtime_error(warn + err);
 	}
 
-	std::unordered_map<vertex, uint32_t> uniqueVertices{};
+	std::unordered_map<vertex, u32> uniqueVertices{};
 
-	for (const auto& shape : shapes) {
-		for (const auto& index : shape.mesh.indices) {
+	for (const tinyobj::shape_t& shape : shapes) {
+		for (const tinyobj::index_t& index : shape.mesh.indices) {
+
 			vertex vertex{};
 
 			vertex.pos = {
@@ -1637,11 +1639,17 @@ void as::vk::load_model(const char* modle_path, std::vector<vertex>& out_vertice
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			vertex.tex_coord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
+			float current_coord = 2 * index.texcoord_index;
+			float next_coord = 2 * index.texcoord_index + 1;
 
+			if (current_coord >= 0 && next_coord < attrib.texcoords.size())
+			{
+				vertex.tex_coord = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+			}
+		
 			vertex.color = { 1.0f, 1.0f, 1.0f };
 
 			if (uniqueVertices.count(vertex) == 0) {
@@ -1676,9 +1684,14 @@ void as::vk::copy_buffer(copy_buffer_info& info)
 	end_single_time_commands(info.logical_device, info.command_pool, command_buffer, info.queue);
 }
 
-void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
+bool as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue)
 {
 	VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+	if (buffer_size == 0)
+	{
+		AS_LOG(LV_WARNING, "Buffer size 0, cannot create vertex buffer.");
+		return false;
+	}
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -1695,11 +1708,18 @@ void as::vk::create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& v
 
 	vkDestroyBuffer(logical_device, staging_buffer, nullptr);
 	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
+
+	return true;
 }
 
-void as::vk::create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory)
+bool as::vk::create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory)
 {
 	VkDeviceSize buffer_size = sizeof(create_info.vertices[0]) * create_info.vertices.size();
+	if (buffer_size == 0)
+	{
+		AS_LOG(LV_WARNING,"Buffer size 0, cannot create vertex buffer.");
+		return false;
+	}
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -1731,11 +1751,18 @@ void as::vk::create_vertex_buffer(const vertex_buffer_create_info& create_info, 
 
 	vkDestroyBuffer(create_info.logical_device, staging_buffer, nullptr);
 	vkFreeMemory(create_info.logical_device, staging_buffer_memory, nullptr);
+
+	return true;
 }
 
-void as::vk::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue)
+bool as::vk::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue)
 {
 	VkDeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+	if (buffer_size == 0)
+	{
+		AS_LOG(LV_WARNING, "Buffer size 0, cannot create index buffer.");
+		return false;
+	}
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -1752,11 +1779,18 @@ void as::vk::create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& ind
 
 	vkDestroyBuffer(logical_device, staging_buffer, nullptr);
 	vkFreeMemory(logical_device, staging_buffer_memory, nullptr);
+
+	return true;
 }
 
-void as::vk::create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory)
+bool as::vk::create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory)
 {
 	VkDeviceSize buffer_size = sizeof(create_info.indices[0]) * create_info.indices.size();
+	if (buffer_size == 0)
+	{
+		AS_LOG(LV_WARNING, "Buffer size 0, cannot create index buffer.");
+		return false;
+	}
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -1788,6 +1822,8 @@ void as::vk::create_index_buffer(const index_buffer_create_info& create_info, Vk
 
 	vkDestroyBuffer(create_info.logical_device, staging_buffer, nullptr);
 	vkFreeMemory(create_info.logical_device, staging_buffer_memory, nullptr);
+
+	return true;
 }
 
 void as::vk::create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight)

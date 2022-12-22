@@ -56,7 +56,7 @@ typedef double f64;
 
 // Error handling
 #define ASSERT_ON_ERROR true
-#define CRASH_ON_ERROR true
+#define CRASH_ON_ERROR false
 
 enum log_level : u8 { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 };
 #define CHECK_VK_RESULT(result) \
