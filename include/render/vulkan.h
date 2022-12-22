@@ -152,14 +152,32 @@ namespace as
 			u32 mip_levels;
 		};
 
-		struct model_data
+		struct material_data
 		{
+			// external usage:
+			glm::vec3 color_multiplier = glm::vec3(1.f);
+			
+			// internal usage:
+			as::spv vertex_shader;
+			as::spv fragment_shader;
+			VkDescriptorSet descriptor_set;
+		};
+
+		struct object_data
+		{
+			// data
 			std::vector<as::vertex> vertices;
 			std::vector<uint32_t> indices;
+			char file_path[200] = "";
+
+			// memory
 			VkBuffer vertex_buffer;
 			VkDeviceMemory vertex_buffer_memory;
 			VkBuffer index_buffer;
 			VkDeviceMemory index_buffer_memory;
+
+			// material
+			material_data* material = nullptr;
 		};
 
 		struct uniform_buffers

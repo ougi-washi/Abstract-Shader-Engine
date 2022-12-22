@@ -99,8 +99,7 @@ namespace as
 			u8 max_frames_in_flight;
 			u32 currentFrame = 0;
 
-			// temp 
-			vk::model_data viking_room_model;
+			std::vector<vk::object_data> objects;
 		};
 
 		// init
@@ -110,12 +109,13 @@ namespace as
 		// main functionalities
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
 		void create_shader(as::vk::engine& in_engine, const char* in_path, as::spv &out_shader_binaries);
+		void add_object(as::vk::engine& in_engine, const char* in_path, as::vk::object_data& out_object_data);
 		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
 
 		// internal 
 		void draw_frame(as::vk::engine& in_engine, as::window& in_window);
 		void recreate_swapchain(as::vk::engine& in_engine, as::window& in_window);
-		void record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, as::vk::engine& in_engine);
+		void record_command_buffer(VkCommandBuffer& command_buffer, uint32_t& imageIndex, as::vk::engine& in_engine);
 		void create_image_resources(as::vk::engine& in_engine);
 
 		// cleanup

@@ -166,24 +166,6 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	sampler_create_info.mip_levels = in_engine.texture.mip_levels;
 	as::vk::create_sampler(sampler_create_info, in_engine.texture.sampler);
 
-	as::vk::load_model("models/viking_room.obj", in_engine.viking_room_model.vertices, in_engine.viking_room_model.indices);
-
-	as::vk::vertex_buffer_create_info vertex_buffer_create_info;
-	vertex_buffer_create_info.physical_device = in_engine.physicalDevice;
-	vertex_buffer_create_info.logical_device = in_engine.device;
-	vertex_buffer_create_info.queue = in_engine.graphicsQueue;
-	vertex_buffer_create_info.command_pool = in_engine.commandPool;
-	vertex_buffer_create_info.vertices = in_engine.viking_room_model.vertices;
-	as::vk::create_vertex_buffer(vertex_buffer_create_info, in_engine.viking_room_model.vertex_buffer, in_engine.viking_room_model.vertex_buffer_memory);
-
-	as::vk::index_buffer_create_info index_buffer_create_info;
-	index_buffer_create_info.physical_device = in_engine.physicalDevice;
-	index_buffer_create_info.logical_device = in_engine.device;
-	index_buffer_create_info.queue = in_engine.graphicsQueue;
-	index_buffer_create_info.command_pool = in_engine.commandPool;
-	index_buffer_create_info.indices = in_engine.viking_room_model.indices;
-	as::vk::create_index_buffer(index_buffer_create_info, in_engine.viking_room_model.index_buffer, in_engine.viking_room_model.index_buffer_memory);
-
 	as::vk::descriptor_sets_update_info descriptor_sets_update_info;
 	descriptor_sets_update_info.logical_device = in_engine.device;
 	descriptor_sets_update_info.image_view = in_engine.texture.image_data.view;
@@ -211,6 +193,33 @@ void as::vk::create_shader(engine& in_engine, const char* in_path, as::spv& out_
 	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 }
 
+void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out_object_data)
+{
+	as::vk::load_model(in_path, out_object_data.vertices, out_object_data.indices);
+
+	as::vk::vertex_buffer_create_info vertex_buffer_create_info;
+	vertex_buffer_create_info.physical_device = in_engine.physicalDevice;
+	vertex_buffer_create_info.logical_device = in_engine.device;
+	vertex_buffer_create_info.queue = in_engine.graphicsQueue;
+	vertex_buffer_create_info.command_pool = in_engine.commandPool;
+	vertex_buffer_create_info.vertices = out_object_data.vertices;
+	bool result_vertex_buffer_creation = as::vk::create_vertex_buffer(vertex_buffer_create_info, out_object_data.vertex_buffer, out_object_data.vertex_buffer_memory);
+
+	as::vk::index_buffer_create_info index_buffer_create_info;
+	index_buffer_create_info.physical_device = in_engine.physicalDevice;
+	index_buffer_create_info.logical_device = in_engine.device;
+	index_buffer_create_info.queue = in_engine.graphicsQueue;
+	index_buffer_create_info.command_pool = in_engine.commandPool;
+	index_buffer_create_info.indices = out_object_data.indices;
+	bool result_index_buffer_creation = as::vk::create_index_buffer(index_buffer_create_info, out_object_data.index_buffer, out_object_data.index_buffer_memory);
+
+	if (result_index_buffer_creation && result_vertex_buffer_creation)
+	{
+		in_engine.objects.push_back(out_object_data);
+	}
+	// TODO: check if descriptors need an update
+}
+
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -220,8 +229,9 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 
 	uniform_buffer_object ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.1f, 10.0f);
+	//ubo.model *= glm::scale(glm::mat4(1.0f), glm::vec3(.1f, .1f, .1f));
+	ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(70.f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.01f, 100.f);
 	ubo.proj[1][1] *= -1;
 
 	void* data;
@@ -321,12 +331,12 @@ void as::vk::recreate_swapchain(engine& in_engine, as::window& in_window)
 	as::vk::create_frame_buffers(in_engine.swapchain.framebuffers, in_engine.device, in_engine.swapchain.image_views, in_engine.color_image.view, in_engine.depth_image.view, in_engine.render_pass, in_engine.swapchain.extent);
 }
 
-void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& imageIndex, engine& in_engine)
+void as::vk::record_command_buffer(VkCommandBuffer& command_buffer, uint32_t& imageIndex, engine& in_engine)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	CHECK_VK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+	CHECK_VK_RESULT(vkBeginCommandBuffer(command_buffer, &beginInfo));
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -342,9 +352,9 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.pipeline);
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.pipeline);
 
 	VkViewport viewport{};
 	viewport.x = 0.0f;
@@ -353,26 +363,38 @@ void as::vk::record_command_buffer(VkCommandBuffer& commandBuffer, uint32_t& ima
 	viewport.height = (float)in_engine.swapchain.extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = in_engine.swapchain.extent;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-	VkBuffer vertexBuffers[] = { in_engine.viking_room_model.vertex_buffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	vkCmdBindIndexBuffer(commandBuffer, in_engine.viking_room_model.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+	
+	u32 index_offset = 0;
+	for (as::vk::object_data& current_object : in_engine.objects)
+	{
+		std::vector<VkBuffer> vertex_buffers = { current_object.vertex_buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, vertex_buffers.size(), vertex_buffers.data(), offsets);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &in_engine.descriptorSets[in_engine.currentFrame], 0, nullptr);
+		if (current_object.indices.size() > 0)
+		{
+			VkDeviceSize buffer_size = sizeof(current_object.indices[0]) * current_object.indices.size();
+			vkCmdBindIndexBuffer(command_buffer, current_object.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		}
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(in_engine.viking_room_model.indices.size()), 1, 0, 0, 0);
+		// TODO: change to descriptor set per material or object
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &in_engine.descriptorSets[in_engine.currentFrame], 0, nullptr); 
 
-	vkCmdEndRenderPass(commandBuffer);
+		vkCmdDrawIndexed(command_buffer, static_cast<u32>(current_object.indices.size()), 1, 0, 0, 0);
+		index_offset += current_object.indices.size();
+	}
 
-	CHECK_VK_RESULT(vkEndCommandBuffer(commandBuffer));
+	vkCmdEndRenderPass(command_buffer);
+
+	CHECK_VK_RESULT(vkEndCommandBuffer(command_buffer));
 }
 
 void as::vk::create_image_resources(engine& in_engine)
@@ -434,11 +456,14 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDescriptorSetLayout(in_engine.device, in_engine.descriptor_set_layout, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.viking_room_model.index_buffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.viking_room_model.index_buffer_memory, nullptr);
+	for (vk::object_data& current_object : in_engine.objects)
+	{
+		vkDestroyBuffer(in_engine.device, current_object.index_buffer, nullptr);
+		vkFreeMemory(in_engine.device, current_object.index_buffer_memory, nullptr);
 
-	vkDestroyBuffer(in_engine.device, in_engine.viking_room_model.vertex_buffer, nullptr);
-	vkFreeMemory(in_engine.device, in_engine.viking_room_model.vertex_buffer_memory, nullptr);
+		vkDestroyBuffer(in_engine.device, current_object.vertex_buffer, nullptr);
+		vkFreeMemory(in_engine.device, current_object.vertex_buffer_memory, nullptr);
+	}
 
 	for (size_t i = 0; i < in_engine.max_frames_in_flight; i++) {
 		vkDestroySemaphore(in_engine.device, in_engine.render_finished_semaphores[i], nullptr);

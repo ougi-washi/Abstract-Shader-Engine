@@ -85,10 +85,10 @@ namespace as
 		void load_model(const char* modle_path, std::vector<vertex>& out_vertices, std::vector<u32>& out_indices);
 		void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDevice& logical_device, VkCommandPool& command_pool, VkQueue& queue);
 		void copy_buffer(copy_buffer_info& info);
-		void create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue);
-		void create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory);
-		void create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue);
-		void create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory);
+		bool create_vertex_buffer(VkBuffer& out_vertex_buffer, VkDeviceMemory& vertex_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<vertex>& vertices, VkCommandPool& command_pool, VkQueue& queue);
+		bool create_vertex_buffer(const vertex_buffer_create_info& create_info, VkBuffer& out_vertex_buffer, VkDeviceMemory& out_vertex_buffer_memory);
+		bool create_index_buffer(VkBuffer& out_index_buffer, VkDeviceMemory& index_buffer_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const std::vector<u32>& indices, VkCommandPool& command_pool, VkQueue& queue);
+		bool create_index_buffer(const index_buffer_create_info& create_info, VkBuffer& out_index_buffer, VkDeviceMemory& out_index_buffer_memory);
 		void create_uniform_buffers(std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory, VkPhysicalDevice& physical_device, VkDevice& logical_device, const i8& max_frames_in_flight);
 		void create_uniform_buffers(const uniform_buffers_create_info& create_info, std::vector<VkBuffer>& out_uniform_buffers, std::vector<VkDeviceMemory>& out_uniform_buffers_memory);
 		VkResult create_descriptor_pool(VkDevice& logical_device, const i8& max_frames_in_flight, VkDescriptorPool& descriptor_pool);
