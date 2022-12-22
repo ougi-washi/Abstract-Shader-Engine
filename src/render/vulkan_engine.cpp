@@ -223,7 +223,7 @@ void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
-
+	
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
