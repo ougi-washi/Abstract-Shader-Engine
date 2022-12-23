@@ -87,7 +87,7 @@ namespace as
 		{
 			VkDevice logical_device;
 			VkRenderPass render_pass;
-			VkDescriptorSetLayout descriptor_set_layout;
+			std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 			VkSampleCountFlagBits msaa_samples;
 			std::vector<spv> vert_shaders;
 			std::vector<spv> frag_shaders;

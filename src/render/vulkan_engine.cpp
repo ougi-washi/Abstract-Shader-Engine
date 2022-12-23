@@ -157,7 +157,7 @@ void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out
 
 	if (result_index_buffer_creation && result_vertex_buffer_creation)
 	{
-		in_engine.objects.push_back(out_object_data);
+		in_engine.objects.push_back(&out_object_data);
 	}
 	// TODO: check if descriptors need an update
 }
@@ -187,7 +187,7 @@ void as::vk::add_texture(engine& in_engine, const char* in_path, texture_data& o
 	sampler_create_info.mip_levels = out_texture_data.mip_levels;
 	as::vk::create_sampler(sampler_create_info, out_texture_data.sampler);
 
-	in_engine.textures.push_back(out_texture_data);
+	in_engine.textures.push_back(&out_texture_data);
 }
 
 void as::vk::add_material(engine& in_engine, const char* in_vert_shader_path, const char* in_frag_shader_path, material_data& out_material_data)
@@ -221,7 +221,7 @@ void as::vk::add_material(engine& in_engine, const char* in_vert_shader_path, co
 	as::sc::compile_fragment_shader(in_frag_shader_path, frag_shader_code);
 	out_material_data.fragment_shader = frag_shader_code;
 
-	in_engine.materials.push_back(out_material_data);
+	in_engine.materials.push_back(&out_material_data);
 }
 
 void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
@@ -233,7 +233,7 @@ void as::vk::update_uniform_buffer(u32& currentImage, engine& in_engine)
 
 	uniform_buffer_object ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//ubo.model *= glm::scale(glm::mat4(1.0f), glm::vec3(.1f, .1f, .1f));
+	ubo.model *= glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
 	ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(70.f), in_engine.swapchain.extent.width / (float)in_engine.swapchain.extent.height, 0.01f, 100.f);
 	ubo.proj[1][1] *= -1;
@@ -249,13 +249,13 @@ void as::vk::create_graphics_pipeline(engine& in_engine)
 {
 	as::vk::pipeline_create_info pipeline_create_info;
 	pipeline_create_info.logical_device = in_engine.device;
-	pipeline_create_info.descriptor_set_layout = in_engine.descriptor_set_layout;
 	pipeline_create_info.render_pass = in_engine.render_pass;
 	pipeline_create_info.msaa_samples = in_engine.msaaSamples;
-	for (vk::material_data& current_material : in_engine.materials)
+	for (vk::material_data* current_material : in_engine.materials)
 	{
-		pipeline_create_info.vert_shaders.push_back(current_material.vertex_shader);
-		pipeline_create_info.frag_shaders.push_back(current_material.fragment_shader);
+		pipeline_create_info.descriptor_set_layouts.push_back(current_material->descriptor.descriptor_set_layout);
+		pipeline_create_info.vert_shaders.push_back(current_material->vertex_shader);
+		pipeline_create_info.frag_shaders.push_back(current_material->fragment_shader);
 	}
 	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
 }
@@ -389,26 +389,27 @@ void as::vk::record_command_buffer(VkCommandBuffer& command_buffer, uint32_t& im
 	scissor.extent = in_engine.swapchain.extent;
 	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-
-	
 	u32 index_offset = 0;
-	for (as::vk::object_data& current_object : in_engine.objects)
+	for (as::vk::object_data* current_object : in_engine.objects)
 	{
-		std::vector<VkBuffer> vertex_buffers = { current_object.vertex_buffer };
+		std::vector<VkBuffer> vertex_buffers = { current_object->vertex_buffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, vertex_buffers.size(), vertex_buffers.data(), offsets);
 
-		if (current_object.indices.size() > 0)
+		if (current_object->indices.size() > 0)
 		{
-			VkDeviceSize buffer_size = sizeof(current_object.indices[0]) * current_object.indices.size();
-			vkCmdBindIndexBuffer(command_buffer, current_object.index_buffer, 0, VK_INDEX_TYPE_UINT32);
+			VkDeviceSize buffer_size = sizeof(current_object->indices[0]) * current_object->indices.size();
+			vkCmdBindIndexBuffer(command_buffer, current_object->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 		}
 
-		// TODO: change to descriptor set per material or object
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &in_engine.descriptorSets[in_engine.currentFrame], 0, nullptr); 
+		if (current_object->material)
+		{
+			// TODO: change to descriptor set per material or object
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, in_engine.graphics_pipeline.layout, 0, 1, &current_object->material->descriptor.descriptorSets[in_engine.currentFrame], 0, nullptr);
+		}
 
-		vkCmdDrawIndexed(command_buffer, static_cast<u32>(current_object.indices.size()), 1, 0, 0, 0);
-		index_offset += current_object.indices.size();
+		vkCmdDrawIndexed(command_buffer, static_cast<u32>(current_object->indices.size()), 1, 0, 0, 0);
+		index_offset += current_object->indices.size();
 	}
 
 	vkCmdEndRenderPass(command_buffer);
@@ -465,26 +466,28 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 		vkFreeMemory(in_engine.device, in_engine.memory[i], nullptr);
 	}
 
-	vkDestroyDescriptorPool(in_engine.device, in_engine.descriptorPool, nullptr);
-
-	for (as::vk::texture_data& current_texture : in_engine.textures)
+	for (as::vk::material_data* current_material : in_engine.materials)
 	{
-		vkDestroySampler(in_engine.device, current_texture.sampler, nullptr);
-		vkDestroyImageView(in_engine.device, current_texture.image_data.view, nullptr);
-
-		vkDestroyImage(in_engine.device, current_texture.image_data.image, nullptr);
-		vkFreeMemory(in_engine.device, current_texture.image_data.memory, nullptr);
+		vkDestroyDescriptorPool(in_engine.device, current_material->descriptor.descriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(in_engine.device, current_material->descriptor.descriptor_set_layout, nullptr);
 	}
-	
-	vkDestroyDescriptorSetLayout(in_engine.device, in_engine.descriptor_set_layout, nullptr);
 
-	for (vk::object_data& current_object : in_engine.objects)
+	for (as::vk::texture_data* current_texture : in_engine.textures)
 	{
-		vkDestroyBuffer(in_engine.device, current_object.index_buffer, nullptr);
-		vkFreeMemory(in_engine.device, current_object.index_buffer_memory, nullptr);
+		vkDestroySampler(in_engine.device, current_texture->sampler, nullptr);
+		vkDestroyImageView(in_engine.device, current_texture->image_data.view, nullptr);
 
-		vkDestroyBuffer(in_engine.device, current_object.vertex_buffer, nullptr);
-		vkFreeMemory(in_engine.device, current_object.vertex_buffer_memory, nullptr);
+		vkDestroyImage(in_engine.device, current_texture->image_data.image, nullptr);
+		vkFreeMemory(in_engine.device, current_texture->image_data.memory, nullptr);
+	}
+
+	for (vk::object_data* current_object : in_engine.objects)
+	{
+		vkDestroyBuffer(in_engine.device, current_object->index_buffer, nullptr);
+		vkFreeMemory(in_engine.device, current_object->index_buffer_memory, nullptr);
+
+		vkDestroyBuffer(in_engine.device, current_object->vertex_buffer, nullptr);
+		vkFreeMemory(in_engine.device, current_object->vertex_buffer_memory, nullptr);
 	}
 
 	for (size_t i = 0; i < in_engine.max_frames_in_flight; i++) {

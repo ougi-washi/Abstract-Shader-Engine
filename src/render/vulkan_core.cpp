@@ -907,8 +907,8 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &create_info.descriptor_set_layout;
+	pipelineLayoutInfo.setLayoutCount = create_info.descriptor_set_layouts.size();
+	pipelineLayoutInfo.pSetLayouts = create_info.descriptor_set_layouts.data();
 
 	CHECK_VK_RESULT(vkCreatePipelineLayout(create_info.logical_device, &pipelineLayoutInfo, nullptr, &out_pipeline.layout));
 

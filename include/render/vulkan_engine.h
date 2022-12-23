@@ -93,9 +93,9 @@ namespace as
 			u8 max_frames_in_flight;
 			u32 currentFrame = 0;
 
-			std::vector<vk::object_data> objects;
-			std::vector<vk::texture_data> textures;
-			std::vector<vk::material_data> materials;
+			std::vector<vk::object_data*> objects;
+			std::vector<vk::texture_data*> textures;
+			std::vector<vk::material_data*> materials;
 		};
 
 		// init

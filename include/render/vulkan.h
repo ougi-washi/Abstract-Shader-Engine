@@ -214,7 +214,7 @@ namespace as
 			VkDeviceMemory index_buffer_memory;
 
 			// rendering
-			material_data* material = nullptr;
+			as::vk::material_data* material = nullptr;
 		};
 	};
 };
