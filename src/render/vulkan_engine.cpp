@@ -49,8 +49,8 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	as::vk::logical_device_create_info logical_device_create_info = {};
 	logical_device_create_info.physical_device = in_engine.physicalDevice;
 	logical_device_create_info.surface = &in_engine.surface;
-	logical_device_create_info.extensions = deviceExtensions;
-	logical_device_create_info.validation_layers = validationLayers;
+	logical_device_create_info.extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, /*VK_KHR_maintenance4*/ };
+	logical_device_create_info.validation_layers = { "VK_LAYER_KHRONOS_validation" };
 	as::vk::create_logical_device(logical_device_create_info, &in_engine.device, &in_engine.graphicsQueue, &in_engine.presentQueue);
 
 	as::vk::swapchain_create_info swapchain_create_info = {};
@@ -115,6 +115,9 @@ void as::vk::init_vulkan(engine& in_engine, as::window& in_window, const u8& max
 	framebuffers_create_info.swap_chain_image_views = in_engine.swapchain.image_views;
 	as::vk::create_framebuffers(framebuffers_create_info, in_engine.swapchain.framebuffers);
 
+	as::sc::compile_vertex_shader(default_vert_shader_path, in_engine.vertex_shader);
+	as::vk::add_texture(in_engine, nullptr, in_engine.default_texture);
+	as::vk::add_material(in_engine, default_frag_shader_path, in_engine.default_material);
 }
 
 void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
@@ -126,13 +129,6 @@ void as::vk::start_main_loop(engine& in_engine, as::window& in_window)
 	}
 
 	vkDeviceWaitIdle(in_engine.device);
-}
-
-void as::vk::create_shader(engine& in_engine, const char* in_path, as::spv& out_shader_binaries)
-{
-	spv vert_shader_code;
-	const char* vert_shader_path = in_path;
-	as::sc::compile_vertex_shader(vert_shader_path, vert_shader_code);
 }
 
 void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out_object_data)
@@ -159,19 +155,31 @@ void as::vk::add_object(engine& in_engine, const char* in_path, object_data& out
 	{
 		in_engine.objects.push_back(&out_object_data);
 	}
+
+	if (!out_object_data.material)
+	{
+		in_engine.default_material;
+	}
 	// TODO: check if descriptors need an update
 }
 
 void as::vk::add_texture(engine& in_engine, const char* in_path, texture_data& out_texture_data)
 {
 	as::vk::texture_image_create_info texture_image_create_info;
-	strcpy(texture_image_create_info.texture_path, in_path);
 	texture_image_create_info.physical_device = in_engine.physicalDevice;
 	texture_image_create_info.logical_device = in_engine.device;
 	texture_image_create_info.graphics_queue = in_engine.graphicsQueue;
 	texture_image_create_info.command_pool = in_engine.commandPool;
 	texture_image_create_info.texture_image_memory = out_texture_data.image_data.memory;
-	as::vk::create_texture_image(texture_image_create_info, out_texture_data);
+	if (in_path)
+	{
+		strcpy(texture_image_create_info.texture_path, in_path);
+		as::vk::create_texture_image(texture_image_create_info, out_texture_data);
+	}
+	else
+	{
+		as::vk::create_empty_texture_image(texture_image_create_info, out_texture_data);
+	}
 
 	as::vk::image_view_create_info texture_image_view_create_info;
 	texture_image_view_create_info.logical_device = in_engine.device;
@@ -190,7 +198,7 @@ void as::vk::add_texture(engine& in_engine, const char* in_path, texture_data& o
 	in_engine.textures.push_back(&out_texture_data);
 }
 
-void as::vk::add_material(engine& in_engine, const char* in_vert_shader_path, const char* in_frag_shader_path, material_data& out_material_data)
+void as::vk::add_material(engine& in_engine, const char* in_frag_shader_path, material_data& out_material_data)
 {
 	CHECK_VK_RESULT(as::vk::create_descriptor_pool(in_engine.device, in_engine.max_frames_in_flight, out_material_data.descriptor.descriptorPool));
 	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, out_material_data.descriptor.descriptor_set_layout));
@@ -202,25 +210,28 @@ void as::vk::add_material(engine& in_engine, const char* in_vert_shader_path, co
 	descriptor_sets_create_info.descriptor_set_layout = out_material_data.descriptor.descriptor_set_layout;
 	as::vk::create_descriptor_sets(descriptor_sets_create_info, out_material_data.descriptor.descriptorSets);
 
+	as::vk::descriptor_sets_update_info descriptor_sets_update_info = {};
+	descriptor_sets_update_info.logical_device = in_engine.device;
+	descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
+	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
+	if (out_material_data.textures.empty())
+	{
+		out_material_data.textures.push_back(&in_engine.default_texture);
+	}
 	for (as::vk::texture_data* current_texture : out_material_data.textures)
 	{
-		as::vk::descriptor_sets_update_info descriptor_sets_update_info;
-		descriptor_sets_update_info.logical_device = in_engine.device;
 		descriptor_sets_update_info.image_view = current_texture->image_data.view;
 		descriptor_sets_update_info.image_sampler = current_texture->sampler;
-		descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
-		descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
-		as::vk::update_descriptor_sets(descriptor_sets_update_info, out_material_data.descriptor.descriptorSets);
 	}
+	as::vk::update_descriptor_sets(descriptor_sets_update_info, out_material_data.descriptor.descriptorSets); // update for every image?
 
-	spv vert_shader_code;
-	as::sc::compile_vertex_shader(in_vert_shader_path, vert_shader_code);
-	out_material_data.vertex_shader = vert_shader_code;
-
-	spv frag_shader_code;
-	as::sc::compile_fragment_shader(in_frag_shader_path, frag_shader_code);
-	out_material_data.fragment_shader = frag_shader_code;
-
+	if (in_frag_shader_path)
+	{
+		as::spv frag_shader_code;
+		as::sc::compile_fragment_shader(in_frag_shader_path, frag_shader_code);
+		out_material_data.fragment_shader = frag_shader_code;
+	}
+	
 	in_engine.materials.push_back(&out_material_data);
 }
 
@@ -254,8 +265,15 @@ void as::vk::create_graphics_pipeline(engine& in_engine)
 	for (vk::material_data* current_material : in_engine.materials)
 	{
 		pipeline_create_info.descriptor_set_layouts.push_back(current_material->descriptor.descriptor_set_layout);
-		pipeline_create_info.vert_shaders.push_back(current_material->vertex_shader);
-		pipeline_create_info.frag_shaders.push_back(current_material->fragment_shader);
+		pipeline_create_info.vert_shader = in_engine.vertex_shader;
+		if (!current_material->fragment_shader.empty())
+		{
+			pipeline_create_info.frag_shaders.push_back(current_material->fragment_shader);
+		}
+	}
+	if (pipeline_create_info.vert_shader.empty())
+	{
+		AS_LOG(LV_ERROR, "No vertex shaders added, pipeline cannot be created.");
 	}
 	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
 }
@@ -452,7 +470,6 @@ void as::vk::create_image_resources(engine& in_engine)
 	CHECK_VK_RESULT(as::vk::create_image_view(depth_image_view_create_info, in_engine.depth_image.view));
 }
 
-
 void as::vk::cleanup(engine& in_engine, as::window& in_window)
 {
 	as::vk::cleanup_swapchain(in_engine);
@@ -500,10 +517,9 @@ void as::vk::cleanup(engine& in_engine, as::window& in_window)
 
 	vkDestroyDevice(in_engine.device, nullptr);
 
-	if (enableValidationLayers) 
-	{
-		DestroyDebugUtilsMessengerEXT(in_engine.instance, in_engine.debugMessenger, nullptr);
-	}
+#ifdef DEBUG
+	DestroyDebugUtilsMessengerEXT(in_engine.instance, in_engine.debugMessenger, nullptr);
+#endif // DEBUG
 
 	vkDestroySurfaceKHR(in_engine.instance, in_engine.surface, nullptr);
 	vkDestroyInstance(in_engine.instance, nullptr);

@@ -18,23 +18,12 @@
 #include <set>
 #include <unordered_map>
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
+// files
+static const char* default_vert_shader_path = "shaders/default_vert_shader.glsl";
+static const char* default_frag_shader_path = "shaders/default_frag_shader.glsl";
 
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-struct uniform_buffer_object {
+struct uniform_buffer_object 
+{
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
@@ -79,8 +68,6 @@ namespace as
 			as::vk::image_data color_image;
 			as::vk::image_data depth_image;
 
-			VkDeviceMemory index_buffer_memory;
-
 			std::vector<VkBuffer> buffers;
 			std::vector<VkDeviceMemory> memory;
 
@@ -93,9 +80,14 @@ namespace as
 			u8 max_frames_in_flight;
 			u32 currentFrame = 0;
 
+			as::spv vertex_shader;
 			std::vector<vk::object_data*> objects;
-			std::vector<vk::texture_data*> textures;
 			std::vector<vk::material_data*> materials;
+			std::vector<vk::texture_data*> textures;
+
+			// defaults
+			vk::material_data default_material;
+			vk::texture_data default_texture;
 		};
 
 		// init
@@ -104,10 +96,9 @@ namespace as
 		
 		// main functionalities
 		void start_main_loop(as::vk::engine& in_engine, as::window& in_window);
-		void create_shader(as::vk::engine& in_engine, const char* in_path, as::spv &out_shader_binaries);
 		void add_object(as::vk::engine& in_engine, const char* in_path, as::vk::object_data& out_object_data);
 		void add_texture(as::vk::engine& in_engine, const char* in_path, as::vk::texture_data& out_texture_data);
-		void add_material(as::vk::engine& in_engine, const char* in_vert_shader_path, const char* in_frag_shader_path, as::vk::material_data& out_material_data);
+		void add_material(as::vk::engine& in_engine, const char* in_frag_shader_path, as::vk::material_data& out_material_data);
 		void update_uniform_buffer(u32& currentImage, as::vk::engine& in_engine);
 		void create_graphics_pipeline(as::vk::engine& in_engine);
 

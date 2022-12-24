@@ -810,9 +810,21 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
 	std::vector<VkShaderModule> shader_modules;
-	for (const spv& current_vert_shader : create_info.vert_shaders)
+
+	const VkSpecializationMapEntry specialization_map_entries[] = {
+	{0, offsetof(as::vk::fragment_shader_data, input_variable_1), sizeof(uint32_t)},
+	{1, offsetof(as::vk::fragment_shader_data, input_variable_2), sizeof(uint32_t)}, };
+
+	const VkSpecializationInfo specialization_info = {
+		2,                                    // mapEntryCount
+		specialization_map_entries,           // pMapEntries
+		sizeof(as::vk::fragment_shader_data),           // dataSize
+		&fragment_shader_data,                // pData
+	};
+
+	if (!create_info.vert_shader.empty())
 	{
-		VkShaderModule vert_shader_module = create_shader_module(current_vert_shader, create_info.logical_device);
+		VkShaderModule vert_shader_module = create_shader_module(create_info.vert_shader, create_info.logical_device);
 		shader_modules.push_back(vert_shader_module);
 		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -825,15 +837,18 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 
 	for (const spv& current_frag_shader : create_info.frag_shaders)
 	{
-		VkShaderModule frag_shader_module = create_shader_module(current_frag_shader, create_info.logical_device);
-		shader_modules.push_back(frag_shader_module);
-		VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
-		frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		frag_shader_stage_info.module = frag_shader_module;
-		frag_shader_stage_info.pName = "main";
-		// frag_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
-		shader_stages.push_back(frag_shader_stage_info);
+		if (!current_frag_shader.empty())
+		{
+			VkShaderModule frag_shader_module = create_shader_module(current_frag_shader, create_info.logical_device);
+			shader_modules.push_back(frag_shader_module);
+			VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
+			frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			frag_shader_stage_info.module = frag_shader_module;
+			frag_shader_stage_info.pName = "main";
+			// frag_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
+			shader_stages.push_back(frag_shader_stage_info);
+		}
 	}
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -1058,7 +1073,7 @@ void as::vk::create_texture_image(VkImage& out_texture_image, const char* textur
 
 void as::vk::create_texture_image(const texture_image_create_info& create_info, texture_data& out_texture_data)
 {
-	i32 tex_width, tex_height, tex_channels;
+	i32 tex_width, tex_height, tex_channels = 0;
 	stbi_uc* pixels = stbi_load(create_info.texture_path, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = tex_width * tex_height * 4;
 	out_texture_data.mip_levels = static_cast<u32>(std::floor(std::log2(std::max(tex_width, tex_height)))) + 1;
@@ -1136,6 +1151,72 @@ void as::vk::create_texture_image(const texture_image_create_info& create_info, 
 	{
 		AS_LOG(LV_WARNING, "Could not load the image");
 	}
+}
+
+void as::vk::create_empty_texture_image(const texture_image_create_info& create_info, texture_data& out_texture_data)
+{
+	VkDeviceSize image_size = 4;
+	out_texture_data.mip_levels = 1;
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	as::vk::buffer_create_info buffer_create_info;
+	buffer_create_info.logical_device = create_info.logical_device;
+	buffer_create_info.physical_device = create_info.physical_device;
+	buffer_create_info.size = image_size;
+	buffer_create_info.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	create_buffer(buffer_create_info, staging_buffer, staging_buffer_memory);
+
+	as::vk::image_create_info image_create_info;
+	image_create_info.physical_device = create_info.physical_device;
+	image_create_info.logical_device = create_info.logical_device;
+	image_create_info.height = 1;
+	image_create_info.width = 1;
+	image_create_info.mip_levels = out_texture_data.mip_levels;
+	image_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+	image_create_info.num_samples = VK_SAMPLE_COUNT_1_BIT;
+	image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	image_create_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	image_create_info.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	create_image(image_create_info, out_texture_data.image_data);
+
+	transition_image_layout_info transition_info;
+	transition_info.logical_device = create_info.logical_device;
+	transition_info.graphics_queue = create_info.graphics_queue;
+	transition_info.command_pool = create_info.command_pool;
+	transition_info.mip_levels = out_texture_data.mip_levels;
+	transition_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+	transition_info.old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	transition_info.new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	transition_info.image = out_texture_data.image_data.image;
+	transition_image_layout(transition_info);
+
+	as::vk::copy_buffer_to_image_info copy_buffer_to_image_info;
+	copy_buffer_to_image_info.logical_device = create_info.logical_device;
+	copy_buffer_to_image_info.command_pool = create_info.command_pool;
+	copy_buffer_to_image_info.graphics_queue = create_info.graphics_queue;
+	copy_buffer_to_image_info.buffer = staging_buffer;
+	copy_buffer_to_image_info.image = out_texture_data.image_data.image;
+	copy_buffer_to_image_info.height = 1;
+	copy_buffer_to_image_info.width = 1;
+	copy_buffer_to_image(copy_buffer_to_image_info);
+	//transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
+
+	vkDestroyBuffer(create_info.logical_device, staging_buffer, nullptr);
+	vkFreeMemory(create_info.logical_device, staging_buffer_memory, nullptr);
+
+	as::vk::generate_mipmaps_info generate_mipmaps_info;
+	generate_mipmaps_info.physical_device = create_info.physical_device;
+	generate_mipmaps_info.logical_device = create_info.logical_device;
+	generate_mipmaps_info.command_pool = create_info.command_pool;
+	generate_mipmaps_info.queue = create_info.graphics_queue;
+	generate_mipmaps_info.imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+	generate_mipmaps_info.image = out_texture_data.image_data.image;
+	generate_mipmaps_info.mip_levels = out_texture_data.mip_levels;
+	generate_mipmaps_info.tex_height = 1;
+	generate_mipmaps_info.tex_width = 1;
+	generate_mipmaps(generate_mipmaps_info);
 }
 
 void as::vk::create_texture_image_view(VkImageView& out_texture_image_view, VkDevice& logical_device, VkImage& image, const u32& mip_levels)

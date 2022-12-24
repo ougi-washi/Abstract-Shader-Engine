@@ -188,15 +188,39 @@ namespace as
 			u32 mip_levels;
 		};
 
+		struct fragment_shader_data 
+		{
+			u32 input_variable_1;
+			u32 input_variable_2;
+		};
+
+		struct uniform
+		{
+			size_t offset;
+			size_t size;
+		};
+
+		struct material_specialization_map_entry
+		{
+			u32 constant_id;
+			u32 offset;
+			size_t size;
+		};
+
 		struct material_data
 		{
-			// external usage:
+			// external usage
 			glm::vec3 color_multiplier = glm::vec3(1.f);
 			std::vector<vk::texture_data*> textures;
+			std::unordered_map<uint32_t, as::vk::uniform> uniforms;
+			std::vector<uint8_t> uniform_data;
 
-			// internal usage:
-			as::spv vertex_shader;
+			// internal usage
+			std::vector<material_specialization_map_entry> specialization_map_entries;
+			VkSpecializationInfo specialization_info;
 			as::spv fragment_shader;
+			VkShaderModule fragment_shader_module;
+			as::vk::fragment_shader_data fragment_shader_data = {42, 56};
 			as::vk::descriptor descriptor;
 		};
 
@@ -206,6 +230,7 @@ namespace as
 			std::vector<as::vertex> vertices;
 			std::vector<uint32_t> indices;
 			char file_path[200] = "";
+			glm::mat4 vertex_uniform;
 
 			// memory
 			VkBuffer vertex_buffer;

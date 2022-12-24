@@ -89,7 +89,7 @@ namespace as
 			VkRenderPass render_pass;
 			std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 			VkSampleCountFlagBits msaa_samples;
-			std::vector<spv> vert_shaders;
+			spv vert_shader;
 			std::vector<spv> frag_shaders;
 		};
 
