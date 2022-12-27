@@ -93,6 +93,12 @@ namespace as
 			as::spv vertex_shader_binaries;
 		};
 
+		struct descriptor_set_layout_create_info
+		{
+			VkDevice logical_device;
+			as::vk::material_data* material = nullptr;
+		};
+
 		struct command_pool_create_info
 		{
 			VkPhysicalDevice physical_device;
@@ -219,9 +225,10 @@ namespace as
 		{
 			VkDevice logical_device;
 			std::vector<VkBuffer> uniform_buffers; 
+			as::vk::material_data* material = nullptr;
 			i8 max_frames_in_flight;
-			VkImageView image_view; 
-			VkSampler image_sampler;
+			//VkImageView image_view; 
+			//VkSampler image_sampler;
 		};
 
 		struct command_buffers_create_info

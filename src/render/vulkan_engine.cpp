@@ -200,8 +200,18 @@ void as::vk::add_texture(engine& in_engine, const char* in_path, texture_data& o
 
 void as::vk::add_material(engine& in_engine, const char* in_frag_shader_path, material_data& out_material_data)
 {
+	if (out_material_data.textures.empty())
+	{
+		out_material_data.textures.push_back(&in_engine.default_texture);
+	}
+
 	CHECK_VK_RESULT(as::vk::create_descriptor_pool(in_engine.device, in_engine.max_frames_in_flight, out_material_data.descriptor.descriptorPool));
-	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(in_engine.device, out_material_data.descriptor.descriptor_set_layout));
+
+	as::vk::descriptor_set_layout_create_info  descriptor_set_layout_create_info;
+	descriptor_set_layout_create_info.logical_device = in_engine.device;
+	descriptor_set_layout_create_info.material = &out_material_data;
+
+	CHECK_VK_RESULT(as::vk::create_descriptor_set_layout(descriptor_set_layout_create_info, out_material_data.descriptor.descriptor_set_layout));
 
 	as::vk::descriptor_sets_create_info descriptor_sets_create_info;
 	descriptor_sets_create_info.logical_device = in_engine.device;
@@ -214,15 +224,12 @@ void as::vk::add_material(engine& in_engine, const char* in_frag_shader_path, ma
 	descriptor_sets_update_info.logical_device = in_engine.device;
 	descriptor_sets_update_info.max_frames_in_flight = in_engine.max_frames_in_flight;
 	descriptor_sets_update_info.uniform_buffers = in_engine.buffers;
-	if (out_material_data.textures.empty())
-	{
-		out_material_data.textures.push_back(&in_engine.default_texture);
-	}
+	
 	for (as::vk::texture_data* current_texture : out_material_data.textures)
 	{
-		descriptor_sets_update_info.image_view = current_texture->image_data.view;
-		descriptor_sets_update_info.image_sampler = current_texture->sampler;
+		descriptor_sets_update_info.material = &out_material_data;
 	}
+
 	as::vk::update_descriptor_sets(descriptor_sets_update_info, out_material_data.descriptor.descriptorSets); // update for every image?
 
 	if (in_frag_shader_path)
@@ -274,6 +281,7 @@ void as::vk::create_graphics_pipeline(engine& in_engine)
 		AS_LOG(LV_ERROR, "No materials, pipeline cannot be created.");
 	}
 	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
+
 }
 
 void as::vk::draw_frame(engine& in_engine, as::window& in_window)

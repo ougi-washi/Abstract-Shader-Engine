@@ -781,29 +781,42 @@ VkFormat as::vk::find_depth_format(VkPhysicalDevice physical_device)
 	);
 }
 
-VkResult as::vk::create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout)
+VkResult as::vk::create_descriptor_set_layout(const descriptor_set_layout_create_info& create_info, VkDescriptorSetLayout& out_descriptor_set_layout)
 {
-	VkDescriptorSetLayoutBinding ubo_layout_binding{};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.pImmutableSamplers = nullptr;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	if (create_info.material)
+	{
+		/*std::array<VkDescriptorSetLayoutBinding, create_info.material->textures.size()> bindings;*/
+		std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-	VkDescriptorSetLayoutBinding sampler_layout_binding{};
-	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
-	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	sampler_layout_binding.pImmutableSamplers = nullptr;
-	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkDescriptorSetLayoutBinding ubo_layout_binding{};
+		ubo_layout_binding.binding = 0;
+		ubo_layout_binding.descriptorCount = 1;
+		ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubo_layout_binding.pImmutableSamplers = nullptr;
+		ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		bindings.push_back(ubo_layout_binding);
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { ubo_layout_binding, sampler_layout_binding };
-	VkDescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<u32>(bindings.size());
-	layoutInfo.pBindings = bindings.data();
+		u32 binding_index = 1;
+		for (as::vk::texture_data* current_material : create_info.material->textures)
+		{
+			VkDescriptorSetLayoutBinding sampler_layout_binding{};
+			sampler_layout_binding.binding = binding_index;
+			sampler_layout_binding.descriptorCount = 1;
+			sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			sampler_layout_binding.pImmutableSamplers = nullptr;
+			sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			bindings.push_back(sampler_layout_binding);
+			binding_index++;
+		}
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<u32>(bindings.size());
+		layoutInfo.pBindings = bindings.data();
 
-	return vkCreateDescriptorSetLayout(logical_device, &layoutInfo, nullptr, &out_descriptor_set_layout);
+		return vkCreateDescriptorSetLayout(create_info.logical_device, &layoutInfo, nullptr, &out_descriptor_set_layout);
+	}
+	AS_LOG(LV_ERROR, "Invalid material, cannot create VkDescriptorSetLayout");
+	return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 }
 
 VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline)
@@ -833,12 +846,12 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 				{
 					{
 						0,
-						offsetof(as::vk::fragment_shader_data, input_variable_1),
-						sizeof(u32)
+						offsetof(as::vk::fragment_shader_data, color_multiplier),
+						sizeof(glm::vec3)
 					},
 					{
 						1,
-						offsetof(as::vk::fragment_shader_data, input_variable_2),
+						offsetof(as::vk::fragment_shader_data, intensity),
 						sizeof(u32)
 					}
 				}
@@ -859,7 +872,7 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 			frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 			frag_shader_stage_info.module = frag_shader_module;
 			frag_shader_stage_info.pName = "main";
-			frag_shader_stage_info.pSpecializationInfo = &specialization_info;
+			//frag_shader_stage_info.pSpecializationInfo = &specialization_info; //TODO: implement full uniform system
 			shader_stages.push_back(frag_shader_stage_info);
 		}
 	}
@@ -2040,35 +2053,52 @@ void as::vk::update_descriptor_sets(const descriptor_sets_update_info& update_in
 {
 	for (size_t i = 0; i < update_info.max_frames_in_flight; i++)
 	{
+		std::vector<VkWriteDescriptorSet> descriptor_writes{};
+
 		VkDescriptorBufferInfo buffer_info{};
 		buffer_info.buffer = update_info.uniform_buffers[i];
 		buffer_info.offset = 0;
 		buffer_info.range = sizeof(uniform_buffer_object);
 
-		VkDescriptorImageInfo image_info{};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = update_info.image_view;
-		image_info.sampler = update_info.image_sampler;
 
-		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+		VkWriteDescriptorSet ubo_descriptor_set;
+		ubo_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		ubo_descriptor_set.dstSet = out_descriptor_sets[i];
+		ubo_descriptor_set.dstBinding = 0;
+		ubo_descriptor_set.dstArrayElement = 0;
+		ubo_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubo_descriptor_set.descriptorCount = 1;
+		ubo_descriptor_set.pBufferInfo = &buffer_info;
+		ubo_descriptor_set.pNext = VK_NULL_HANDLE;
 
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = out_descriptor_sets[i];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &buffer_info;
+		descriptor_writes.push_back(ubo_descriptor_set);
 
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = out_descriptor_sets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &image_info;
+		u32 texture_index = 1;
+		if (update_info.material)
+		{
+			for (as::vk::texture_data* texture_data : update_info.material->textures)
+			{
+				VkDescriptorImageInfo image_info{};
+				image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				image_info.imageView = texture_data->image_data.view;
+				image_info.sampler = texture_data->sampler;
 
-		vkUpdateDescriptorSets(update_info.logical_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				VkWriteDescriptorSet texture_descriptor_set;
+				texture_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				texture_descriptor_set.dstSet = out_descriptor_sets[i];
+				texture_descriptor_set.dstBinding = texture_index;
+				texture_descriptor_set.dstArrayElement = 0;
+				texture_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				texture_descriptor_set.descriptorCount = 1;
+				texture_descriptor_set.pImageInfo = &image_info;
+				texture_descriptor_set.pNext = VK_NULL_HANDLE;
+
+				descriptor_writes.push_back(texture_descriptor_set);
+				texture_index++;
+			}
+		}
+
+		vkUpdateDescriptorSets(update_info.logical_device, static_cast<uint32_t>(descriptor_writes.size()), descriptor_writes.data(), 0, nullptr);
 	}
 }
 

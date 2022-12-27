@@ -54,7 +54,7 @@ namespace as
 		VkFormat find_depth_format(VkPhysicalDevice physical_device);
 
 		/** Descriptor && Shader */
-		VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);
+		VkResult create_descriptor_set_layout(const descriptor_set_layout_create_info& create_info, VkDescriptorSetLayout& out_descriptor_set_layout);
 		VkResult create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline);
 		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice logical_device);
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
