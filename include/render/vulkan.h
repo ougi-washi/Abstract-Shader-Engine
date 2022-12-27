@@ -190,8 +190,8 @@ namespace as
 
 		struct fragment_shader_data 
 		{
-			u32 input_variable_1;
-			u32 input_variable_2;
+			u32 input_variable_1 = UINT32_MAX;
+			u32 input_variable_2 = UINT32_MAX;
 		};
 
 		struct uniform
@@ -202,7 +202,7 @@ namespace as
 
 		struct material_specialization_map_entry
 		{
-			u32 constant_id;
+			u32 id;
 			u32 offset;
 			size_t size;
 		};
@@ -210,7 +210,7 @@ namespace as
 		struct material_data
 		{
 			// external usage
-			glm::vec3 color_multiplier = glm::vec3(1.f);
+			as::vk::fragment_shader_data frag_shader_data = { 42, 56 }; // TODO: change to uniforms?
 			std::vector<vk::texture_data*> textures;
 			std::unordered_map<uint32_t, as::vk::uniform> uniforms;
 			std::vector<uint8_t> uniform_data;
@@ -218,9 +218,7 @@ namespace as
 			// internal usage
 			std::vector<material_specialization_map_entry> specialization_map_entries;
 			VkSpecializationInfo specialization_info;
-			as::spv fragment_shader;
-			VkShaderModule fragment_shader_module;
-			as::vk::fragment_shader_data fragment_shader_data = {42, 56};
+			as::spv frag_shader_binaries;
 			as::vk::descriptor descriptor;
 		};
 

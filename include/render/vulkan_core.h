@@ -57,30 +57,6 @@ namespace as
 		VkResult create_descriptor_set_layout(VkDevice& logical_device, VkDescriptorSetLayout& out_descriptor_set_layout);
 		VkResult create_pipeline(const pipeline_create_info& create_info, pipeline_data& out_pipeline);
 		VkShaderModule create_shader_module(const std::vector<char>& code, VkDevice logical_device);
-		std::vector<VkSpecializationMapEntry> get_all_map_entries(const std::vector<as::vk::material_data>& materials)
-		{
-			std::vector<VkSpecializationMapEntry> map_entries;
-			std::vector<uint8_t> specialization_data;
-
-			// Iterate through all materials and create specialization map entries and data for each one
-			for (const as::vk::material_data& material : materials)
-			{
-				// Create a specialization map entry for each material property
-				//for (const material_specialization_map_entry& property : material.properties)
-				//{
-				//	VkSpecializationMapEntry map_entry{};
-				//	map_entry.constantID = property.id;
-				//	map_entry.offset = specialization_data.size();
-				//	map_entry.size = property.size;
-				//	map_entries.push_back(map_entry);
-
-				//	// Append the property value to the specialization data
-				//	specialization_data.insert(specialization_data.end(), property.data, property.data + property.size);
-				//}
-			}
-
-			return map_entries;
-		}
 		VkResult create_command_pool(VkCommandPool& out_command_pool, VkPhysicalDevice& physical_device, const VkDevice& logical_device, VkSurfaceKHR& surface);
 		VkResult create_command_pool(const command_pool_create_info& create_info, VkCommandPool& out_command_pool);
 

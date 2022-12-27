@@ -810,43 +810,56 @@ VkResult as::vk::create_pipeline(const pipeline_create_info& create_info, pipeli
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
 	std::vector<VkShaderModule> shader_modules;
-
-	const VkSpecializationMapEntry specialization_map_entries[] = {
-	{0, offsetof(as::vk::fragment_shader_data, input_variable_1), sizeof(uint32_t)},
-	{1, offsetof(as::vk::fragment_shader_data, input_variable_2), sizeof(uint32_t)}, };
-
-	const VkSpecializationInfo specialization_info = {
-		2,                                    // mapEntryCount
-		specialization_map_entries,           // pMapEntries
-		sizeof(as::vk::fragment_shader_data),           // dataSize
-		&fragment_shader_data,                // pData
-	};
-
-	if (!create_info.vert_shader.empty())
+	
+	if (!create_info.vertex_shader_binaries.empty())
 	{
-		VkShaderModule vert_shader_module = create_shader_module(create_info.vert_shader, create_info.logical_device);
+		VkShaderModule vert_shader_module = create_shader_module(create_info.vertex_shader_binaries, create_info.logical_device);
 		shader_modules.push_back(vert_shader_module);
 		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vert_shader_stage_info.module = vert_shader_module;
 		vert_shader_stage_info.pName = "main";
-		// vert_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
 		shader_stages.push_back(vert_shader_stage_info);
 	}
 
-	for (const spv& current_frag_shader : create_info.frag_shaders)
+	// fragment shaders
+	for (const as::vk::material_data* current_material : create_info.materials)
 	{
-		if (!current_frag_shader.empty())
+		if (!current_material->frag_shader_binaries.empty())
 		{
-			VkShaderModule frag_shader_module = create_shader_module(current_frag_shader, create_info.logical_device);
+			std::array<VkSpecializationMapEntry, 2> specialization_map_entries =
+			{
+				{
+					{
+						0,
+						offsetof(as::vk::fragment_shader_data, input_variable_1),
+						sizeof(u32)
+					},
+					{
+						1,
+						offsetof(as::vk::fragment_shader_data, input_variable_2),
+						sizeof(u32)
+					}
+				}
+			};
+
+			const VkSpecializationInfo specialization_info =
+			{
+				(u32)specialization_map_entries.size(),              // mapEntryCount
+				specialization_map_entries.data(),				// pMapEntries
+				sizeof(as::vk::fragment_shader_data),           // dataSize
+				&current_material->frag_shader_data,            // pData
+			};
+
+			VkShaderModule frag_shader_module = create_shader_module(current_material->frag_shader_binaries, create_info.logical_device);
 			shader_modules.push_back(frag_shader_module);
 			VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
 			frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 			frag_shader_stage_info.module = frag_shader_module;
 			frag_shader_stage_info.pName = "main";
-			// frag_shader_stage_info.pSpecializationInfo = // TODO: this is needed to handle multiple objects on the same pipeline
+			frag_shader_stage_info.pSpecializationInfo = &specialization_info;
 			shader_stages.push_back(frag_shader_stage_info);
 		}
 	}

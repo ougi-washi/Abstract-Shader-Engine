@@ -229,7 +229,7 @@ void as::vk::add_material(engine& in_engine, const char* in_frag_shader_path, ma
 	{
 		as::spv frag_shader_code;
 		as::sc::compile_fragment_shader(in_frag_shader_path, frag_shader_code);
-		out_material_data.fragment_shader = frag_shader_code;
+		out_material_data.frag_shader_binaries = frag_shader_code;
 	}
 	
 	in_engine.materials.push_back(&out_material_data);
@@ -262,18 +262,16 @@ void as::vk::create_graphics_pipeline(engine& in_engine)
 	pipeline_create_info.logical_device = in_engine.device;
 	pipeline_create_info.render_pass = in_engine.render_pass;
 	pipeline_create_info.msaa_samples = in_engine.msaaSamples;
+	as::sc::compile_vertex_shader(default_vert_shader_path, pipeline_create_info.vertex_shader_binaries);
+
 	for (vk::material_data* current_material : in_engine.materials)
 	{
 		pipeline_create_info.descriptor_set_layouts.push_back(current_material->descriptor.descriptor_set_layout);
-		pipeline_create_info.vert_shader = in_engine.vertex_shader;
-		if (!current_material->fragment_shader.empty())
-		{
-			pipeline_create_info.frag_shaders.push_back(current_material->fragment_shader);
-		}
+		pipeline_create_info.materials = in_engine.materials;
 	}
-	if (pipeline_create_info.vert_shader.empty())
+	if (pipeline_create_info.materials.empty())
 	{
-		AS_LOG(LV_ERROR, "No vertex shaders added, pipeline cannot be created.");
+		AS_LOG(LV_ERROR, "No materials, pipeline cannot be created.");
 	}
 	as::vk::create_pipeline(pipeline_create_info, in_engine.graphics_pipeline);
 }
