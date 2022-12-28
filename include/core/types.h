@@ -59,8 +59,7 @@ typedef double f64;
 #define CRASH_ON_ERROR false
 
 enum log_level : u8 { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 };
-#define CHECK_VK_RESULT(result) \
-  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }
+
 #define AS_LOG(level, text) \
 	if (level == log_level::LV_LOG) { std::cout << "LOG: " << text << std::endl; }\
 	else if(level == log_level::LV_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
