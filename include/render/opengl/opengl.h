@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-#include <GLFW/glfw3.h>
+#include "glad/glad.h"
 
 // GLFW
 #include <GLFW/glfw3.h>

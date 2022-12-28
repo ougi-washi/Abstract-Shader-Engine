@@ -14,16 +14,23 @@ add_subdirectory(lib/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
-find_package(OpenGL REQUIRED)
-include_directories( ${OPENGL_INCLUDE_DIRS})
+# GLAD
+
+message(STATUS "Adding GLAD")
+add_library(glad STATIC	lib/glad/src/glad.c)
+target_include_directories(glad PUBLIC	${PROJECT_SOURCE_DIR}/lib/glad/include
+										${PROJECT_SOURCE_DIR}/lib/glad/include)
 
 # core
 message(STATUS "Adding main abstract shader library")
 find_package(OpenMP REQUIRED)
 add_library(core STATIC	src/core/core.cpp
 						src/core/utility.cpp)
-target_include_directories(core PUBLIC ${PROJECT_SOURCE_DIR}/include/core)
+target_include_directories(core PUBLIC	${PROJECT_SOURCE_DIR}/include/core
+										${PROJECT_SOURCE_DIR}/lib)
+
 target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
+									glad
 									glfw
 									glm)
 
@@ -31,10 +38,8 @@ target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
 message(STATUS "Adding render library")
 add_library(render STATIC	src/render/opengl/opengl_core.cpp)
 target_include_directories(render PUBLIC	
-								${PROJECT_SOURCE_DIR}/include/render
-								${PROJECT_SOURCE_DIR}/lib/stb
-								${PROJECT_SOURCE_DIR}/lib/tiny_obj_loader)
-target_link_libraries(render PUBLIC	core ${OPENGL_INCLUDE_DIRS})
+								${PROJECT_SOURCE_DIR}/include/render)
+target_link_libraries(render PUBLIC	core)
 
 ## ray tracer
 message(STATUS "Adding ray tracer library")
