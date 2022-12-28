@@ -19,6 +19,7 @@ include_directories( ${OPENGL_INCLUDE_DIRS})
 
 # core
 message(STATUS "Adding main abstract shader library")
+find_package(OpenMP REQUIRED)
 add_library(core STATIC	src/core/core.cpp
 						src/core/utility.cpp)
 target_include_directories(core PUBLIC ${PROJECT_SOURCE_DIR}/include/core)
@@ -43,8 +44,6 @@ target_include_directories(ray_tracer PUBLIC ${PROJECT_SOURCE_DIR}/include/ray_t
 target_link_libraries(ray_tracer PUBLIC core)
 
 # Link Dependencies 
-
-find_package(OpenMP REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
