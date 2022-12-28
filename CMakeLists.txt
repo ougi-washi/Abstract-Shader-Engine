@@ -29,8 +29,7 @@ add_library(core STATIC	src/core/core.cpp
 target_include_directories(core PUBLIC	${PROJECT_SOURCE_DIR}/include/core
 										${PROJECT_SOURCE_DIR}/lib)
 
-target_link_libraries(core PUBLIC	OpenMP::OpenMP_CXX
-									glad
+target_link_libraries(core PUBLIC	glad
 									glfw
 									glm)
 
