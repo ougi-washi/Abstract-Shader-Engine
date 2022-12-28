@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <vector>
 
 namespace as
 {
