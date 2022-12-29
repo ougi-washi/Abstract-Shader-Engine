@@ -86,7 +86,7 @@
 			// screen size
 			i64 screensize = vinfo.yres_virtual * finfo.line_length;
 			// map pixels to memory buffer
-			u8* fbp = (u8)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0);
+			u8* fbp = (u8*)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0);
 
 			i64 x, y; //location we want to draw the pixel
 			u32 pixel; //The pixel we want to draw at that location
