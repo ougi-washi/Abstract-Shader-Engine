@@ -68,6 +68,8 @@
 
 		//Get fixed screen information
 		ioctl(fb_fd, FBIOGET_FSCREENINFO, &finfo);
+
+		return false;
 	}
 
 #endif
