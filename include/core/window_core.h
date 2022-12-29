@@ -1,6 +1,9 @@
 #pragma once
 
+#include "types.h"
+#include "window_types.h"
+
 namespace as
 {
-	void test_display();
+	bool start_window(as::window& window, const u16& height, const u16& width);
 }
