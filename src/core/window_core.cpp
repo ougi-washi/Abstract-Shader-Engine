@@ -59,9 +59,9 @@
 	struct fb_fix_screeninfo finfo;
 	struct fb_var_screeninfo vinfo;
 
-	void as::start_window(as::window& window, const u16& height, const u16& width)
+	bool as::start_window(as::window& window, const u16& height, const u16& width)
 	{
-		int fb_fd = open("/dev/fb0", O_RDWR);
+		i32 fb_fd = open("/dev/fb0", O_RDWR);
 
 		//Get variable screen information
 		ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo);
