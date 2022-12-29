@@ -86,17 +86,24 @@
 			// screen size
 			i64 screensize = vinfo.yres_virtual * finfo.line_length;
 			// map pixels to memory buffer
-			u8* fbp = (u8*)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0);
+			u8* fbp = dynamic_cast<u8*>(mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0));
+			if (fbp)
+			{
+				i64 x, y; //location we want to draw the pixel
+				u32 pixel; //The pixel we want to draw at that location
 
-			i64 x, y; //location we want to draw the pixel
-			u32 pixel; //The pixel we want to draw at that location
+				//Make sure you set x,y and pixel correctly
+				i64 location = (x + vinfo.xoffset) * (vinfo.bits_per_pixel / 8) + (y + vinfo.yoffset) * finfo.line_length;
+				*((u32*)(fbp + location)) = pixel;
 
-			//Make sure you set x,y and pixel correctly
-			i64 location = (x + vinfo.xoffset) * (vinfo.bits_per_pixel / 8) + (y + vinfo.yoffset) * finfo.line_length;
-			*((u32*)(fbp + location)) = pixel;
-
-			struct timespec rqtp, rmtp = {3, 500};
-			nanosleep(&rqtp, &rmtp);
+				struct timespec rqtp, rmtp = { 3, 500 };
+				nanosleep(&rqtp, &rmtp);
+			}
+			else
+			{
+				AS_LOG(LV_ERROR, "Failed to map the pixels to the frame buffer");
+			}
+			
 		}
 
 		return false;
