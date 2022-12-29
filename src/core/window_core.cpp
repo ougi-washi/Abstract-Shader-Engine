@@ -4,6 +4,9 @@
 #include <windows.h>
 #else
 #include <linux/fb.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #endif
 
 #if defined(_WIN32)
