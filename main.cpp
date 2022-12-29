@@ -24,7 +24,7 @@ int main()
 {
 	
 	as::window window;
-	if (as::start_window(window, SCR_HEIGHT, SCR_WIDTH))
+	if (as::create_window(window, SCR_HEIGHT, SCR_WIDTH))
 	{
 		// build and compile our shader program
 		// ------------------------------------

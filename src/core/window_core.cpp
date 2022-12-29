@@ -2,6 +2,7 @@
 #include <windows.h>
 #else
 #include <linux/fb.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -20,7 +21,7 @@
 		// height will be significantly larger than specified on retina displays.
 		glViewport(0, 0, width, height);
 	}
-	bool as::start_window(as::window& window, const u16& height, const u16& width)
+	bool as::create_window(as::window& window, const u16& height, const u16& width)
 	{
 		// glfw: initialize and configure
 		// ------------------------------
@@ -37,7 +38,7 @@
 		window.GLFW = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
 		if (window.GLFW == NULL)
 		{
-			std::cout << "Failed to create GLFW window" << std::endl;
+			AS_LOG(LV_ERROR, "Failed to create GLFW window");
 			glfwTerminate();
 			return false;
 		}
@@ -48,7 +49,7 @@
 		// ---------------------------------------
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
-			std::cout << "Failed to initialize GLAD" << std::endl;
+			AS_LOG(LV_ERROR, "Failed to initialize GLAD");
 			return false;
 		}
 		return true;
@@ -56,18 +57,46 @@
 
 #else
 
-	struct fb_fix_screeninfo finfo;
-	struct fb_var_screeninfo vinfo;
-
-	bool as::start_window(as::window& window, const u16& height, const u16& width)
+	inline u32 pixel_color(const u8& r, const u8& g, const u8& b, struct fb_var_screeninfo* vinfo)
 	{
+		return (r << vinfo->red.offset) | (g << vinfo->green.offset) | (b << vinfo->blue.offset);
+	}
+
+	bool as::create_window(as::window& window, const u16& height, const u16& width)
+	{
+		struct fb_fix_screeninfo finfo;
+		struct fb_var_screeninfo vinfo;
+
 		i32 fb_fd = open("/dev/fb0", O_RDWR);
 
-		//Get variable screen information
-		ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo);
+		// set grayscale 0 and bitperpixel to 32 (default 8)
+		{
+			//Get variable screen information
+			ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo);
+			vinfo.grayscale = 0;
+			vinfo.bits_per_pixel = 32;
+			ioctl(fb_fd, FBIOPUT_VSCREENINFO, &vinfo);
+			ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo);
+			ioctl(fb_fd, FBIOGET_FSCREENINFO, &finfo);
+		}
 
-		//Get fixed screen information
-		ioctl(fb_fd, FBIOGET_FSCREENINFO, &finfo);
+		// screen
+		{
+			// screen size
+			i64 screensize = vinfo.yres_virtual * finfo.line_length;
+			// map pixels to memory buffer
+			u8* fbp = mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0);
+
+			i64 x, y; //location we want to draw the pixel
+			u32 pixel; //The pixel we want to draw at that location
+
+			//Make sure you set x,y and pixel correctly
+			i64 location = (x + vinfo.xoffset) * (vinfo.bits_per_pixel / 8) + (y + vinfo.yoffset) * finfo.line_length;
+			*((u32*)(fbp + location)) = pixel;
+
+			struct timespec rqtp, rmtp = {3, 500};
+			nanosleep(&rqtp, rmtp);
+		}
 
 		return false;
 	}
