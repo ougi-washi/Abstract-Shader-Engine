@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #endif
 
 //#include "opengl/opengl.h"
@@ -95,7 +96,7 @@
 			*((u32*)(fbp + location)) = pixel;
 
 			struct timespec rqtp, rmtp = {3, 500};
-			nanosleep(&rqtp, rmtp);
+			nanosleep(&rqtp, &rmtp);
 		}
 
 		return false;
