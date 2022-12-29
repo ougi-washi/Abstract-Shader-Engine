@@ -29,7 +29,8 @@ target_include_directories(glad PUBLIC	${PROJECT_SOURCE_DIR}/lib/glad/include
 # core
 message(STATUS "Adding main abstract shader library")
 add_library(core STATIC	src/core/core.cpp
-						src/core/utility.cpp)
+						src/core/utility.cpp
+						src/core/window_core.cpp)
 target_include_directories(core PUBLIC	${PROJECT_SOURCE_DIR}/include/core
 										${PROJECT_SOURCE_DIR}/lib)
 

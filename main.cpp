@@ -1,5 +1,5 @@
 #include "opengl/opengl.h"
-
+#include "window_core.h"
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -24,6 +24,7 @@ const char* fragmentShaderSource = "#version 330 core\n"
 
 int main()
 {
+	as::test_display();
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -35,7 +36,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-	// glfw window creation
+	// glfw window creation https://github.com/matusnovak/rpi-opengl-without-x
 	// --------------------
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
