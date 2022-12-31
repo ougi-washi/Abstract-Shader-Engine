@@ -71,3 +71,4 @@ CMakeFiles/
 **/Makefile
 /lib/glfw/src/glfw3ConfigVersion.cmake
 /lib/glfw/src/glfw3Config.cmake
+JSON/*
