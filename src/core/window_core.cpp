@@ -65,6 +65,15 @@ bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height)
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+	// glad: load all OpenGL function pointers with glfw
+	// ---------------------------------------
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
+		AS_LOG(LV_ERROR, "Failed to initialize GLAD");
+		return false;
+	}
+
 	return true;
 }
 
@@ -121,6 +130,15 @@ bool as::create_raw_display(as::raw_display& raw_display)
 	
 	munmap(raw_display.framebuffer_ptr, raw_display.screen_size);
 	close(raw_display.framebuffer_device);
+
+	// glad: load all OpenGL function pointers with glfw
+	// ---------------------------------------
+	if (!gladLoadGLLoader((GLADloadproc)gladLoadGL))
+	{
+		AS_LOG(LV_ERROR, "Failed to initialize GLAD");
+		return false;
+	}
+
 	return true;
 }
 

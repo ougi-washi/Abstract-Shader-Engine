@@ -45,13 +45,6 @@ i32 main(i32 argc, char* argv[])
 
 	as::create_display_handle(is_using_raw_display, SCR_WIDTH, SCR_HEIGHT, display_handle);
 	
-	// glad: load all OpenGL function pointers
-	// ---------------------------------------
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		AS_LOG(LV_ERROR, "Failed to initialize GLAD");
-		return false;
-	}
 
 	// build and compile our shader program
 	// ------------------------------------
