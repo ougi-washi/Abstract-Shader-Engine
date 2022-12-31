@@ -59,3 +59,10 @@ out/
 .vs/
 
 !resources/*
+
+# cmake
+CMakeFiles/
+**/*.cmake
+*.pc
+*.ninja
+**/CMakeCache.txt
