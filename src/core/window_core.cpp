@@ -76,36 +76,41 @@
 
 		// Open the file for reading and writing
 		fbfd = open("/dev/fb0", O_RDWR);
-		if (fbfd == -1) {
-			perror("Error: cannot open framebuffer device");
+		if (fbfd == -1) 
+		{
+			AS_LOG(LV_ERROR, "Cannot open framebuffer device");
 			return false;
 		}
-		printf("The framebuffer device was opened successfully.\n");
+		AS_LOG(LV_LOG, "The framebuffer device was opened successfully");
 
 		// Get fixed screen information
-		if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1) {
-			perror("Error reading fixed information");
+		if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1) 
+		{
+			AS_LOG(LV_ERROR, "Error reading fixed information");
 			return false;
 		}
 
 		// Get variable screen information
-		if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
-			perror("Error reading variable information");
+		if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1) 
+		{
+			AS_LOG(LV_ERROR, "Error reading variable information");
 			return false;
 		}
 
-		printf("%dx%d, %dbpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
+
+		AS_LOG(LV_LOG, "Screen data : " + std::to_string(vinfo.xres) + "x" + std::to_string(vinfo.yres) + ", " + std::to_string(vinfo.bits_per_pixel));
 
 		// Figure out the size of the screen in bytes
 		screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 
 		// Map the device to memory
 		fbp = (char*)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);
-		if ((i64)fbp == -1) {
-			perror("Error: failed to map framebuffer device to memory");
+		if ((i64)fbp == -1) 
+		{
+			AS_LOG(LV_ERROR, "Failed to map framebuffer device to memory");
 			return false;
 		}
-		printf("The framebuffer device was mapped to memory successfully.\n");
+		AS_LOG(LV_LOG, "The framebuffer device was mapped to memory successfully");
 
 		x = 100; y = 100;       // Where we are going to put the pixel
 
@@ -134,8 +139,6 @@
 			}
 		munmap(fbp, screensize);
 		close(fbfd);
-		struct timespec rqtp, rmtp = { 3, 500 };
-		nanosleep(&rqtp, &rmtp);
 		return true;
 	}
 
