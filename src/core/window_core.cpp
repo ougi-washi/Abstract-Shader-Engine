@@ -79,22 +79,38 @@
 			ioctl(fb_fd, FBIOPUT_VSCREENINFO, &vinfo);
 			ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo);
 			ioctl(fb_fd, FBIOGET_FSCREENINFO, &finfo);
+			AS_LOG(LV_LOG, "Changed bit-per-pixel to 32");
 		}
 
 		// screen
 		{
+
 			// screen size
 			i64 screensize = vinfo.yres_virtual * finfo.line_length;
+			if (screensize == 0)
+			{
+				AS_LOG(LV_WARNING, "Screen size is " + std::to_string(screensize) + " cannot create window");
+				return false;	
+			}
 			// map pixels to memory buffer
-			u8* fbp = dynamic_cast<u8*>(mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0));
+			u8* fbp = (u8*)(mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, (off_t)0));
 			if (fbp)
 			{
+				AS_LOG(LV_LOG, "Mapped pixels to memory buffer");
 				i64 x, y; //location we want to draw the pixel
-				u32 pixel; //The pixel we want to draw at that location
+				u32 pixel = 0x505050; //The pixel we want to draw at that location
 
 				//Make sure you set x,y and pixel correctly
 				i64 location = (x + vinfo.xoffset) * (vinfo.bits_per_pixel / 8) + (y + vinfo.yoffset) * finfo.line_length;
-				*((u32*)(fbp + location)) = pixel;
+				
+				if ((fbp + location) != nullptr)
+				{
+					AS_LOG(LV_LOG, "Setting pixel data");
+					*(fbp + location) = 0;
+					//*((u32*)(fbp + location)) = pixel;
+					
+				}
+				
 
 				struct timespec rqtp, rmtp = { 3, 500 };
 				nanosleep(&rqtp, &rmtp);
