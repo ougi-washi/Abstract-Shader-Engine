@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+AbstractShaderEngine
 
 .vscode/
 
@@ -63,6 +64,10 @@ out/
 # cmake
 CMakeFiles/
 **/*.cmake
+*.cmake
 *.pc
 *.ninja
 **/CMakeCache.txt
+**/Makefile
+/lib/glfw/src/glfw3ConfigVersion.cmake
+/lib/glfw/src/glfw3Config.cmake
