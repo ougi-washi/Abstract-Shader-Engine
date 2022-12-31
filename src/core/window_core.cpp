@@ -87,8 +87,14 @@
 
 			// screen size
 			i64 screensize = vinfo.yres_virtual * finfo.line_length;
-			if (screensize == 0)
+
+			if (screensize > 0)
 			{
+				AS_LOG(LV_LOG, "Screen size is " + std::to_string(screensize));
+			}
+			else
+			{
+
 				AS_LOG(LV_WARNING, "Screen size is " + std::to_string(screensize) + " cannot create window");
 				return false;	
 			}
