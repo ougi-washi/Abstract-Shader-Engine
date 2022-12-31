@@ -1,5 +1,6 @@
 #include "window_core.h"
 #include <iostream>
+#include <string>
 
 void processInput(GLFWwindow* window);
 
@@ -22,14 +23,27 @@ const char* fragmentShaderSource = "#version 330 core\n"
 
 i32 main(i32 argc, char* argv[])
 {
-	as::display_handle display_handle;
-
-	bool is_using_raw_display = false;
-	if (argc == 2)
+	AS_LOG(LV_LOG, "Running Abstract shader engine with the following args :");
+	std::string args_logs;
+	for (u16 i = 0 ; i < argc ; i++)
 	{
-		is_using_raw_display = argv[1] == "raw";
+		args_logs = args_logs + "[" + std::to_string(i) + "] : " + argv[i] + "\n";
+	}
+	AS_LOG(LV_LOG, args_logs);
+
+	as::display_handle display_handle;
+	bool is_using_raw_display = false;
+	if (argc > 1)
+	{
+		std::string first_arg(argv[1]);
+		is_using_raw_display = (first_arg.find("raw") != std::string::npos);
 	}
 	
+	if (is_using_raw_display)
+	{
+		AS_LOG(LV_LOG, "Attempting to use raw display");
+	}
+
 	as::create_display_handle(is_using_raw_display, SCR_WIDTH, SCR_HEIGHT, display_handle);
 	
 	// build and compile our shader program
