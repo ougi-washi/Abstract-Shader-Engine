@@ -65,14 +65,6 @@ bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height)
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-	// glad: load all OpenGL function pointers
-	// ---------------------------------------
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		AS_LOG(LV_ERROR, "Failed to initialize GLAD");
-		return false;
-	}
 	return true;
 }
 
@@ -222,7 +214,6 @@ bool as::draw_on_raw_display(as::raw_display& raw_display, const u8* pixels)
 
 	//	}
 	//}
-
 
 	u16 x = 100; 
 	u16 y = 100;       // Where we are going to put the pixel

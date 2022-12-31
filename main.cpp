@@ -23,8 +23,7 @@ const char* fragmentShaderSource = "#version 330 core\n"
 
 i32 main(i32 argc, char* argv[])
 {
-	AS_LOG(LV_LOG, "Running Abstract shader engine with the following args :");
-	std::string args_logs;
+	std::string args_logs = "Running Abstract shader engine with the following args : ";
 	for (u16 i = 0 ; i < argc ; i++)
 	{
 		args_logs = args_logs + "[" + std::to_string(i) + "] : " + argv[i] + "\n";
@@ -46,6 +45,14 @@ i32 main(i32 argc, char* argv[])
 
 	as::create_display_handle(is_using_raw_display, SCR_WIDTH, SCR_HEIGHT, display_handle);
 	
+	// glad: load all OpenGL function pointers
+	// ---------------------------------------
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
+		AS_LOG(LV_ERROR, "Failed to initialize GLAD");
+		return false;
+	}
+
 	// build and compile our shader program
 	// ------------------------------------
 	// vertex shader
@@ -116,6 +123,8 @@ i32 main(i32 argc, char* argv[])
 
 	// uncomment this call to draw in wireframe polygons.
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	AS_LOG(LV_LOG, "Finished initialization, start rendering loop");
 
 	// render loop
 	// -----------
