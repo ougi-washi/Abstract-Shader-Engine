@@ -40,7 +40,7 @@ int main()
 
 	u32 vertex_array_object;
 	as::object triangle;
-	as::initialize_object(vertices, indices, vertex_array_object, triangle); // vertex and indices aren't being copied properly here
+	as::initialize_object(vertices, indices, vertex_array_object, triangle); // TODO: Fix, vertex and indices aren't being copied properly here
 	as::assign_shader(triangle, shader);
 
 	while (as::should_display_loop(display_handle))
