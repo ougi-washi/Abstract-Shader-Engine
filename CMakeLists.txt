@@ -4,12 +4,26 @@ cmake_minimum_required(VERSION 3.24.1)
 project(AbstractShaderEngine LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
-
 IF (WIN32)
 	set (CMAKE_CXX_FLAGS "-D_WIN32_WINNT=0x0601 /EHsc /bigobj")
 ELSE()
-
 ENDIF()
+
+# Directory setup
+set(LIB_DIR "lib")
+set(INC_DIR "include")
+set(SRC_DIR "src")
+
+# setup library macro
+macro(setup_library arg_lib_name arg_source_path arg_include_path)
+	message(STATUS "Adding ${arg_lib_name}")
+	file(GLOB GLAD_SRC_FILES	"${arg_source_path}/*.c" 
+								"${arg_source_path}/*.cpp"
+								"${arg_source_path}/**/*.c" 
+								"${arg_source_path}/**/*.cpp")
+	add_library(${arg_lib_name} STATIC	${GLAD_SRC_FILES})
+	target_include_directories(${arg_lib_name} PUBLIC ${arg_include_path})
+endmacro()
 
 # GLFW
 message(STATUS "Adding GLFW library")
@@ -20,44 +34,24 @@ message(STATUS "Adding GLM library")
 add_subdirectory(lib/glm)
 
 # GLAD
+setup_library(glad ${LIB_DIR}/glad/src ${PROJECT_SOURCE_DIR}/lib/glad/include)
 
-message(STATUS "Adding GLAD")
-add_library(glad STATIC	lib/glad/src/glad.c)
-target_include_directories(glad PUBLIC	${PROJECT_SOURCE_DIR}/lib/glad/include
-										${PROJECT_SOURCE_DIR}/lib/glad/include)
+# CORE
+setup_library(core ${SRC_DIR}/core ${PROJECT_SOURCE_DIR}/${INC_DIR}/core ${PROJECT_SOURCE_DIR}/lib)
+target_link_libraries(core PUBLIC glad glfw glm)
 
-# core
-message(STATUS "Adding main abstract shader library")
-add_library(core STATIC	src/core/core.cpp
-						src/core/utility.cpp
-						src/core/window_core.cpp)
-target_include_directories(core PUBLIC	${PROJECT_SOURCE_DIR}/include/core
-										${PROJECT_SOURCE_DIR}/lib)
-
-target_link_libraries(core PUBLIC	glad
-									glfw
-									glm)
-
-## render
-message(STATUS "Adding render library")
-add_library(render STATIC	src/render/opengl/opengl_core.cpp)
-target_include_directories(render PUBLIC	
-								${PROJECT_SOURCE_DIR}/include/render)
+# RENDER
+setup_library(render ${SRC_DIR}/render ${PROJECT_SOURCE_DIR}/${INC_DIR}/render)
 target_link_libraries(render PUBLIC	core)
 
-## ray tracer
-message(STATUS "Adding ray tracer library")
-add_library(ray_tracer STATIC	src/ray_tracer/ray_tracer.cpp
-								src/ray_tracer/ray_tracer_core.cpp)
-target_include_directories(ray_tracer PUBLIC ${PROJECT_SOURCE_DIR}/include/ray_tracer)
+
+# RAY_TRACER
+setup_library(ray_tracer ${SRC_DIR}/ray_tracer ${PROJECT_SOURCE_DIR}/${INC_DIR}/ray_tracer)
 target_link_libraries(ray_tracer PUBLIC core)
 
-# Link Dependencies 
-
+# Executable
 add_executable(${PROJECT_NAME} main.cpp)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC	core
-												render 
+target_link_libraries(${PROJECT_NAME} PUBLIC	render 
 												ray_tracer)
 
 ## Definitions

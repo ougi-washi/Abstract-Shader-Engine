@@ -1,158 +1,58 @@
-#include "window_core.h"
+#include "engine_core.h"
+#include "display_core.h"
+
 #include <iostream>
 #include <string>
 
-void processInput(GLFWwindow* window);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-const char* vertexShaderSource = "#version 330 core\n"
+const char* vertex_shader_source = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
 "void main()\n"
 "{\n"
 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
 "}\0";
-const char* fragmentShaderSource = "#version 330 core\n"
+const char* fragment_shader_source = "#version 330 core\n"
 "out vec4 FragColor;\n"
 "void main()\n"
 "{\n"
 "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 "}\n\0";
 
-i32 main(i32 argc, char* argv[])
+int main()
 {
-	std::string args_logs = "Running Abstract shader engine with the following args : ";
-	for (u16 i = 0 ; i < argc ; i++)
-	{
-		args_logs = args_logs + "[" + std::to_string(i) + "] : " + argv[i] + "\n";
-	}
-	AS_LOG(LV_LOG, args_logs);
-
 	as::display_handle display_handle;
-	bool is_using_raw_display = false;
-	if (argc > 1)
-	{
-		std::string first_arg(argv[1]);
-		is_using_raw_display = (first_arg.find("raw") != std::string::npos);
-	}
+	as::create_display_handle(false, 600, 300, display_handle);
 	
-	if (is_using_raw_display)
-	{
-		AS_LOG(LV_LOG, "Attempting to use raw display");
-	}
+	as::shader shader;
+	as::create_shader(vertex_shader_source, fragment_shader_source, shader);
 
-	as::create_display_handle(is_using_raw_display, SCR_WIDTH, SCR_HEIGHT, display_handle);
-	
+	u32 shader_program;
+	as::create_shader_program(shader_program);
+	as::bind_shaders_to_program(shader_program, shader);
+	as::delete_shader(shader); // (optional)
 
-	// build and compile our shader program
-	// ------------------------------------
-	// vertex shader
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-	// check for shader compile errors
-	int success;
-	char infoLog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success)
+	std::vector<glm::vec3> vertices = 
 	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-	// fragment shader
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	// check for shader compile errors
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-	}
-	// link shaders
-	unsigned int shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram);
-	// check for linking errors
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-	}
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-	// set up vertex data (and buffer(s)) and configure vertex attributes
-	// ------------------------------------------------------------------
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, // left  
-		 0.5f, -0.5f, 0.0f, // right 
-		 0.0f,  0.5f, 0.0f  // top   
+		{- .7f, -.7f, 0.0f}, // left  
+		{.7f, -.7f, 0.0f}, // right 
+		{0.0f,  .9f, 0.0f}  // top   
 	};
+	std::vector<glm::vec3> indices = {};
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-	glBindVertexArray(VAO);
+	u32 vertex_array_object;
+	as::object triangle;
+	as::initialize_object(vertices, indices, vertex_array_object, triangle);
+	as::assign_shader(triangle, shader);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-	glBindVertexArray(0);
-
-
-	// uncomment this call to draw in wireframe polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	AS_LOG(LV_LOG, "Finished initialization, start rendering loop");
-
-	// render loop
-	// -----------
 	while (as::should_display_loop(display_handle))
 	{
 		as::process_input(display_handle);
-
-		// render
-		// ------
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// draw our first triangle
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		// glBindVertexArray(0); // no need to unbind it every time 
-
-		draw(display_handle);
-
-		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
-		glfwSwapBuffers(display_handle.GLFW);
-		glfwPollEvents();
+		as::clear_background();
+		as::draw(shader_program, vertex_array_object);
+		as::update(display_handle);
 	}
 
-	// optional: de-allocate all resources once they've outlived their purpose:
-	// ------------------------------------------------------------------------
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(shaderProgram);
-
-	// glfw: terminate, clearing all previously allocated GLFW resources.
-	// ------------------------------------------------------------------
-	glfwTerminate();
-	
-	return 0;
+	as::delete_vertex_array(vertex_array_object);
+	as::delete_object_buffers(triangle);
+	as::delete_shader_program(shader_program);
+	as::terminate_display();
 }

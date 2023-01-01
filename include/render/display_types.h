@@ -1,5 +1,4 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#pragma once 
 
 #ifdef __linux__ 
 #include <linux/fb.h>
@@ -8,6 +7,7 @@
 
 #endif
 
+class GLFWwindow;
 namespace as
 {
 	struct raw_display
@@ -15,7 +15,7 @@ namespace as
 		i32 framebuffer_device = 0;
 		i64 screen_size = 0;
 		char* framebuffer_ptr = nullptr;
-
+		
 		// internal
 #ifdef __linux__ 
 		struct fb_var_screeninfo vinfo;

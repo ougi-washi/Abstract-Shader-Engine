@@ -3,10 +3,10 @@
 
 #include "types.h"
 
-#include "glad/glad.h"
+//#include <glad/gl.h>
 
 // GLFW
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -48,7 +48,7 @@ namespace as
 
 	struct glfw
 	{
-		GLFWwindow* window;
+		//GLFWwindow* window;
 	};
 
 	namespace gl
