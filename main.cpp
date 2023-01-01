@@ -30,17 +30,17 @@ int main()
 	as::bind_shaders_to_program(shader_program, shader);
 	as::delete_shader(shader); // (optional)
 
-	std::vector<glm::vec3> vertices = 
-	{
-		{- .7f, -.7f, 0.0f}, // left  
-		{.7f, -.7f, 0.0f}, // right 
-		{0.0f,  .9f, 0.0f}  // top   
+	float vertices[] = {
+		-0.5f, -0.5f, 0.0f, // left  
+		 0.5f, -0.5f, 0.0f, // right 
+		 0.0f,  0.5f, 0.0f  // top   
 	};
-	std::vector<glm::vec3> indices = {};
+
+	float indices[] = {0.f};
 
 	u32 vertex_array_object;
 	as::object triangle;
-	as::initialize_object(vertices, indices, vertex_array_object, triangle);
+	as::initialize_object(vertices, indices, vertex_array_object, triangle); // vertex and indices aren't being copied properly here
 	as::assign_shader(triangle, shader);
 
 	while (as::should_display_loop(display_handle))

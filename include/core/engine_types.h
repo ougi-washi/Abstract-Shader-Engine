@@ -14,8 +14,8 @@ namespace as
 
 	struct object
 	{
-		std::vector<glm::vec3> vertices;
-		std::vector<glm::vec3> indices;
+		float vertices[50000];
+		float indices[50000];
 		as::shader* shader_ptr = nullptr;
 		u32 VBO;
 	};

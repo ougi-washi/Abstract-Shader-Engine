@@ -72,10 +72,10 @@ void as::delete_shader_program(const u32& shader_program)
 	glDeleteProgram(shader_program);
 }
 
-bool as::initialize_object(const std::vector<glm::vec3>& vertices, const std::vector<glm::vec3>& indices, u32& VAO, as::object& out_object)
+bool as::initialize_object(float vertices[], float indices[], u32& VAO, as::object& out_object)
 {
-	out_object.vertices = vertices;
-	out_object.indices = indices;
+	*out_object.vertices = *vertices;
+	*out_object.indices = *indices;
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &out_object.VBO);
@@ -83,10 +83,10 @@ bool as::initialize_object(const std::vector<glm::vec3>& vertices, const std::ve
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, out_object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), out_object.vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
 	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
