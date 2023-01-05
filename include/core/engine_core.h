@@ -13,9 +13,9 @@ namespace as
 	void delete_shader_program(const u32& shader_program);
 
 	// objects
-	bool initialize_object(const float* vertices, const i32& vertices_count, const float* indices, const i32& indices_count, u32& VAO, as::object& out_object);
+	bool initialize_object(const float* vertices, const u32& vertices_count, const float* indices, const u32& indices_count, u32& VAO, as::object& out_object);
 	void assign_shader(as::object& object, as::shader& shader);
-	void delete_object_buffers(const as::object& object);
+	void delete_object_data(as::object* object);
 
 	// render
 	void clear_background();

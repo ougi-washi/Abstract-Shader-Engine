@@ -27,31 +27,37 @@ i32 main()
 	as::bind_shaders_to_program(shader_program, shader);
 	as::delete_shader(shader); // (optional)
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, // left  
-		 0.5f, -0.5f, 0.0f, // right 
-		 0.0f,  0.5f, 0.0f  // top   
+	float vertices[] = 
+	{
+		 0.5f,  0.5f, 0.0f,  // top right
+		 0.5f, -0.5f, 0.0f,  // bottom right
+		-0.5f, -0.5f, 0.0f,  // bottom left
+		-0.5f,  0.5f, 0.0f   // top left 
 	};
-	const i32 vertices_count = 9;
-	float indices[] = {0.f};
-	const i32 indices_count = 1;
+	const u32 vertices_count = 9;
+	float indices[] = 
+	{
+		0, 1, 3,   // first triangle
+		1, 2, 3    // second triangle
+	};
+	const u32 indices_count = 6;
 
-	u32 vertex_array_object;
+	u32 VAO; // Vertex Array Object
 	as::object triangle;
 
-	as::initialize_object(vertices, vertices_count, indices, indices_count, vertex_array_object, triangle);
+	as::initialize_object(vertices, vertices_count, indices, indices_count, VAO, triangle);
 	as::assign_shader(triangle, shader);
 
 	while (as::should_display_loop(display_handle))
 	{
 		as::process_input(display_handle);
 		as::clear_background();
-		as::draw(shader_program, vertex_array_object);
+		as::draw(shader_program, VAO);
 		as::update(display_handle);
 	}
 
-	as::delete_vertex_array(vertex_array_object);
-	as::delete_object_buffers(triangle);
+	as::delete_vertex_array(VAO);
+	as::delete_object_data(&triangle);
 	as::delete_shader_program(shader_program);
 	as::terminate_display();
 }

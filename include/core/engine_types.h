@@ -14,9 +14,10 @@ namespace as
 
 	struct object
 	{
-		float vertices[50000];
-		float indices[50000];
+		float* vertices = nullptr;
+		float* indices = nullptr;
 		as::shader* shader_ptr = nullptr;
-		u32 VBO;
+		u32 VBO; // Vertex Buffer Object
+		u32 EBO; // Element Buffer Object
 	};
 };

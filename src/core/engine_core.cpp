@@ -72,18 +72,31 @@ void as::delete_shader_program(const u32& shader_program)
 	glDeleteProgram(shader_program);
 }
 
-bool as::initialize_object(const float* vertices, const i32& vertices_count, const float* indices, const i32& indices_count, u32& VAO, as::object& out_object)
+bool as::initialize_object(const float* vertices, const u32& vertices_count, const float* indices, const u32& indices_count, u32& VAO, as::object& out_object)
 {
-	*out_object.vertices = *vertices;
-	*out_object.indices = *indices;
+	out_object.vertices = (float*)malloc(sizeof(float) * vertices_count);
+	if (out_object.vertices)
+	{
+		*out_object.vertices = *vertices;
+	}
+
+	out_object.indices = (float*)malloc(sizeof(float) * indices_count);
+	if (out_object.indices)
+	{
+		*out_object.indices = *indices;
+	}
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &out_object.VBO);
+	glGenBuffers(1, &out_object.EBO);
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindVertexArray(VAO);
-
+	
 	glBindBuffer(GL_ARRAY_BUFFER, out_object.VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices_count, vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_object.EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * indices_count, indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -96,7 +109,7 @@ bool as::initialize_object(const float* vertices, const i32& vertices_count, con
 	glBindVertexArray(0);
 
 	// uncomment this call to draw in wire-frame polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	return true;
 }
@@ -106,9 +119,16 @@ void as::assign_shader(as::object& object, as::shader& shader)
 	object.shader_ptr = &shader;
 }
 
-void as::delete_object_buffers(const as::object& object)
+void as::delete_object_data(as::object* object)
 {
-	glDeleteBuffers(1, &object.VBO);
+	if (object)
+	{
+		free(object->vertices);
+		object->vertices = nullptr;
+		free(object->indices);
+		object->indices = nullptr;
+		glDeleteBuffers(1, &object->VBO);
+	}
 }
 
 void as::clear_background()
