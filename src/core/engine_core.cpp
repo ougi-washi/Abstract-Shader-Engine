@@ -72,7 +72,7 @@ void as::delete_shader_program(const u32& shader_program)
 	glDeleteProgram(shader_program);
 }
 
-bool as::initialize_object(float vertices[], float indices[], u32& VAO, as::object& out_object)
+bool as::initialize_object(const float* vertices, const i32& vertices_count, const float* indices, const i32& indices_count, u32& VAO, as::object& out_object)
 {
 	*out_object.vertices = *vertices;
 	*out_object.indices = *indices;
@@ -83,7 +83,7 @@ bool as::initialize_object(float vertices[], float indices[], u32& VAO, as::obje
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, out_object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices_count, vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);

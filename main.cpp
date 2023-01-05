@@ -1,9 +1,6 @@
 #include "engine_core.h"
 #include "display_core.h"
 
-#include <iostream>
-#include <string>
-
 const char* vertex_shader_source = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
 "void main()\n"
@@ -17,7 +14,7 @@ const char* fragment_shader_source = "#version 330 core\n"
 "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 "}\n\0";
 
-int main()
+i32 main()
 {
 	as::display_handle display_handle;
 	as::create_display_handle(false, 600, 300, display_handle);
@@ -35,12 +32,14 @@ int main()
 		 0.5f, -0.5f, 0.0f, // right 
 		 0.0f,  0.5f, 0.0f  // top   
 	};
-
+	const i32 vertices_count = 9;
 	float indices[] = {0.f};
+	const i32 indices_count = 1;
 
 	u32 vertex_array_object;
 	as::object triangle;
-	as::initialize_object(vertices, indices, vertex_array_object, triangle); // TODO: Fix, vertex and indices aren't being copied properly here
+
+	as::initialize_object(vertices, vertices_count, indices, indices_count, vertex_array_object, triangle);
 	as::assign_shader(triangle, shader);
 
 	while (as::should_display_loop(display_handle))
