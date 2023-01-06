@@ -1,4 +1,4 @@
-#include "utility.h"
+#include "engine_utility.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -84,6 +84,23 @@ std::string as::util::get_relative_path(const char* to_path)
 	std::string path = std::filesystem::relative(to_path).string();
 	replace_char(path, '\\', '/');
 	return path;
+}
+
+
+std::string as::util::get_project_path()
+{
+	std::string current_path = get_current_path();
+	u8 folders_to_remove = 2;
+	u16 current_index = current_path.size();
+
+	while (folders_to_remove > 0)
+	{
+		std::size_t bar_index = current_path.find_last_of("/");
+		current_path = current_path.substr(0, bar_index);
+		folders_to_remove--;
+	}
+
+	return current_path;
 }
 
 i32 as::util::does_dir_exist(const char* path)

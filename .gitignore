@@ -53,6 +53,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Bb]uild/
+[Bb]inaries/
 # Add this line
 out/
 
@@ -72,3 +73,4 @@ CMakeFiles/
 /lib/glfw/src/glfw3ConfigVersion.cmake
 /lib/glfw/src/glfw3Config.cmake
 JSON/*
+CMakeSettings.json
