@@ -10,6 +10,7 @@
 #include <tiny_obj_loader/tiny_obj_loader.h>
 #endif // TINYOBJLOADER_IMPLEMENTATION
 
+
 // internal dependencies (engine)
 #include "engine_utility.h"
 #include "engine_core.h"
@@ -136,6 +137,42 @@ void as::set_uniform_f32(const u32& shader_program, const char* name, const f32&
 {
 	glUseProgram(shader_program);
 	glUniform1f(glGetUniformLocation(shader_program, name), value);
+}
+
+void as::set_uniform_vec2(const u32& shader_program, const char* name, const glm::vec2& value)
+{
+	glUseProgram(shader_program);
+	glUniform2fv(glGetUniformLocation(shader_program, name), 1, &value[0]);
+}
+
+void as::set_uniform_vec3(const u32& shader_program, const char* name, const glm::vec3& value)
+{
+	glUseProgram(shader_program);
+	glUniform3fv(glGetUniformLocation(shader_program, name), 1, &value[0]);
+}
+
+void as::set_uniform_vec4(const u32& shader_program, const char* name, const glm::vec4& value)
+{
+	glUseProgram(shader_program);
+	glUniform4fv(glGetUniformLocation(shader_program, name), 1, &value[0]);
+}
+
+void as::set_uniform_mat2(const u32& shader_program, const char* name, const glm::mat2& value)
+{
+	glUseProgram(shader_program);
+	glUniformMatrix2fv(glGetUniformLocation(shader_program, name), 1, GL_FALSE, &value[0][0]);
+}
+
+void as::set_uniform_mat3(const u32& shader_program, const char* name, const glm::mat3& value)
+{
+	glUseProgram(shader_program);
+	glUniformMatrix3fv(glGetUniformLocation(shader_program, name), 1, GL_FALSE, &value[0][0]);
+}
+
+void as::set_uniform_mat4(const u32& shader_program, const char* name, const glm::mat4& value)
+{
+	glUseProgram(shader_program);
+	glUniformMatrix4fv(glGetUniformLocation(shader_program, name), 1, GL_FALSE, &value[0][0]);
 }
 
 void as::bind_uniforms(const as::shader& shader)

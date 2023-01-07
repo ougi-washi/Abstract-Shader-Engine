@@ -1,5 +1,6 @@
 #pragma once
 #include "types.h"
+#include "engine_types.h"
 
 #include <iostream>
 #include <fstream>
@@ -22,5 +23,11 @@ namespace as
 		std::vector<char> read_file(const std::string& filename);
 		char* read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
+	};
+
+	namespace timer
+	{
+		void start_timer(timer::handle& handle);
+		f64 get_current_time(timer::handle& handle);
 	};
 };

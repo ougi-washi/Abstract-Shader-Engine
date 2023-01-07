@@ -1,8 +1,11 @@
 #pragma once
 
 #include "types.h"
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <vector>
+#include <chrono>
 
 namespace as
 {
@@ -51,5 +54,13 @@ namespace as
 		as::shader* shader_ptr = nullptr;
 		u32 VBO; // Vertex Buffer Object
 		u32 EBO; // Element Buffer Object
+	};
+	
+	namespace timer
+	{
+		struct handle
+		{
+			std::chrono::system_clock::time_point start;
+		};
 	};
 };

@@ -18,6 +18,12 @@ namespace as
 	void set_uniform_bool(const u32& shader_program, const char* name, const bool& value);
 	void set_uniform_integer(const u32& shader_program, const char* name, const i32& value);
 	void set_uniform_f32(const u32& shader_program, const char* name, const f32& value);
+	void set_uniform_vec2(const u32& shader_program, const char* name, const glm::vec2& value);
+	void set_uniform_vec3(const u32& shader_program, const char* name, const glm::vec3& value);
+	void set_uniform_vec4(const u32& shader_program, const char* name, const glm::vec4& value);
+	void set_uniform_mat2(const u32& shader_program, const char* name, const glm::mat2& value);
+	void set_uniform_mat3(const u32& shader_program, const char* name, const glm::mat3& value);
+	void set_uniform_mat4(const u32& shader_program, const char* name, const glm::mat4& value);
 	void bind_uniforms(const as::shader& shader);
 	void bind_uniforms(const as::object& object);
 	void bind_uniforms(const std::vector<as::object>& objects);

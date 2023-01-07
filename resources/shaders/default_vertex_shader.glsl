@@ -6,9 +6,11 @@ layout (location = 2) in vec2 in_tex_coord;
 out vec3 vertex_color;
 out vec2 tex_coord;
 
+uniform mat4 transform;
+
 void main()
 {
-    gl_Position = vec4(in_pos, 1.0);
+    gl_Position = transform * vec4(in_pos, 1.0);
     vertex_color = in_color;
     tex_coord = in_tex_coord;
 }

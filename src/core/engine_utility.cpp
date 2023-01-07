@@ -200,3 +200,15 @@ void as::util::write_file_str(const char* filename, const char* data)
 		fclose(fptr);
 	}
 }
+
+void as::timer::start_timer(timer::handle& handle)
+{
+	handle.start = std::chrono::system_clock::now();
+}
+
+f64 as::timer::get_current_time(timer::handle& handle)
+{
+	std::chrono::system_clock::time_point current_time = std::chrono::system_clock::now();
+	std::chrono::duration<f64> diff = current_time - handle.start;
+	return diff.count();
+}

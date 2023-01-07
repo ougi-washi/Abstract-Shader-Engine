@@ -51,7 +51,6 @@ i32 main()
 	as::add_uniform(colors_uniform, shader);
 	as::add_uniform(tex_coord_uniform, shader);
 
-	// ------------------------------------------------------------------
 	f32 vertices[] = 
 	{
 		// positions          // colors           // texture coords
@@ -74,10 +73,17 @@ i32 main()
 	as::set_uniform_integer(shader_program, "uniform_texture", 0);
 	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
+	as::timer::handle timer_handle;
+	as::timer::start_timer(timer_handle);
+
 	while (as::should_display_loop(display_handle))
 	{
 		as::process_input(display_handle);
 		as::clear_background();
+		glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+		transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+		transform = glm::rotate(transform, (f32)as::timer::get_current_time(timer_handle), glm::vec3(0.0f, 0.0f, 1.0f));
+		as::set_uniform_mat4(shader_program, "transform", transform);
 		as::draw(shader_program, VAO, { triangle });
 		as::update(display_handle);
 	}
