@@ -140,12 +140,12 @@ void as::set_uniform_f32(const u32& shader_program, const char* name, const f32&
 
 void as::bind_uniforms(const as::shader& shader)
 {
-	for (const as::uniform& current_uniform : shader.uniforms)
+	for (u16 i = 0 ; i < shader.textures.size() ; i++)
 	{
-		if (current_uniform.type == as::variable_type::TEXTURE && current_uniform.texture_ptr)
+		if (shader.textures[i])
 		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, current_uniform.texture_ptr->id);
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, shader.textures[i]->id);
 			check_gl_error();
 		}
 	}
@@ -167,26 +167,39 @@ void as::bind_uniforms(const std::vector<as::object>& objects)
 	}
 }
 
-bool as::initialize_object(const f32* vertices, const u32& vertices_count, const i32* indices, const u32& indices_count, u32& VAO, as::object& out_object)
+bool as::initialize_object(const f32* vertices, const u32& vertices_size, const u32* indices, const u32& indices_size, u32& VAO, as::object& out_object)
 {
-	AS_LOG(LV_LOG, "Initializing object with " + std::to_string(vertices_count) + " vertices and " + std::to_string(indices_count) + " indices");
-	out_object.vertices_size = sizeof(f32) * vertices_count;
-	out_object.indices_size = sizeof(i32) * indices_count;
+	AS_LOG(LV_LOG, "Initializing object with " + std::to_string(vertices_size) + " vertices size and " + std::to_string(indices_size) + " indices size");
+	out_object.vertices_size = vertices_size;
+	out_object.indices_size = indices_size;
 
 	out_object.vertices = (f32*)malloc(out_object.vertices_size);
 	if (out_object.vertices)
 	{
-		*out_object.vertices = *vertices;
+		memcpy(out_object.vertices, vertices, vertices_size);
 	}
-	out_object.indices = (f32*)malloc(out_object.indices_size);
+	out_object.indices = (u32*)malloc(out_object.indices_size);
 	if (out_object.indices)
 	{
-		*out_object.indices = *indices;
+		memcpy(out_object.indices, indices, indices_size);
 	}
 
 	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
 	glGenBuffers(1, &out_object.VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, out_object.VBO);
+	glBufferData(GL_ARRAY_BUFFER, out_object.vertices_size, vertices, GL_STATIC_DRAW);
+
 	glGenBuffers(1, &out_object.EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_object.EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, out_object.indices_size, indices, GL_STATIC_DRAW);
+
+	// UNBIND
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	return check_gl_error();
 }
@@ -194,7 +207,8 @@ bool as::initialize_object(const f32* vertices, const u32& vertices_count, const
 bool as::assign_shader(as::object& object, u32& VAO, as::shader& shader)
 {
 	AS_LOG(LV_LOG, "Assigning shader to object");
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	object.shader_ptr = &shader;
+
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, object.VBO);
@@ -203,25 +217,16 @@ bool as::assign_shader(as::object& object, u32& VAO, as::shader& shader)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object.EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, object.indices_size, object.indices, GL_STATIC_DRAW);
 
-	object.shader_ptr = &shader;
+
 	for (const as::uniform& current_uniform : shader.uniforms)
 	{
 		glVertexAttribPointer(current_uniform.id, current_uniform.size, current_uniform.type, current_uniform.normalized, current_uniform.stride, (void*)current_uniform.position);
 		glEnableVertexAttribArray(current_uniform.id);
 	}
 
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 	glBindVertexArray(0);
-
-	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
- 
-	// uncomment this call to draw in wire-frame polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	return check_gl_error();
 }
@@ -260,7 +265,7 @@ bool as::load_texture(const char* path, texture& out_texture)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		// load image, create texture and generate mipmaps
-		stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+		stbi_set_flip_vertically_on_load(true);
 		u8* data = stbi_load(path_string.c_str(), &out_texture.width, &out_texture.height, &out_texture.number_of_channels, 0);
 		if (data)
 		{
@@ -287,9 +292,9 @@ void as::clear_background()
 
 bool as::draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects)
 {
-	bind_uniforms(objects);
 	glUseProgram(shader_program);
 	glBindVertexArray(VAO);
+	bind_uniforms(objects);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	return check_gl_error();
 }

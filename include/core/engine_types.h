@@ -32,21 +32,21 @@ namespace as
 		u8 normalized : 1;
 		i32 stride;
 		u64 position = 0;
-		as::texture* texture_ptr = nullptr; // usable if TEXTURE variable type
 	};
 
 	struct shader
 	{
 		i32 vertex_shader;
 		i32 fragment_shader;
-		std::vector<uniform> uniforms; // to change from vector
+		std::vector<as::uniform> uniforms; // to change from vector
+		std::vector<as::texture*> textures; // to change from vector
 	};
 
 	struct object
 	{
-		float* vertices = nullptr;
+		f32* vertices = nullptr;
 		i64 vertices_size = 0;
-		float* indices = nullptr;
+		u32* indices = nullptr;
 		i64 indices_size = 0;
 		as::shader* shader_ptr = nullptr;
 		u32 VBO; // Vertex Buffer Object

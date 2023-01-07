@@ -23,7 +23,7 @@ namespace as
 	void bind_uniforms(const std::vector<as::object>& objects);
 
 	// objects
-	bool initialize_object(const f32* vertices, const u32& vertices_count, const i32* indices, const u32& indices_count, u32& VAO, as::object& out_object);
+	bool initialize_object(const f32* vertices, const u32& vertices_size, const u32* indices, const u32& indices_size, u32& VAO, as::object& out_object);
 	bool assign_shader(as::object& object, u32& VAO, as::shader& shader);
 	bool delete_object_data(as::object* object);
 

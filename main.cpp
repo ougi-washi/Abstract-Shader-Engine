@@ -1,4 +1,5 @@
 #include "engine_core.h"
+#include "engine_utility.h"
 #include "display_core.h"
 
 i32 main()
@@ -16,6 +17,12 @@ i32 main()
 	as::texture texture;
 	as::load_texture("resources/textures/container.jpg", texture);
 
+	as::texture texture1;
+	as::load_texture("resources/textures/viking_room.png", texture1);
+
+	shader.textures.push_back(&texture);
+	shader.textures.push_back(&texture1);
+
 	as::uniform position_uniform;
 	position_uniform.id = 0;
 	position_uniform.size = 3;
@@ -23,7 +30,7 @@ i32 main()
 	position_uniform.normalized = 0;
 	position_uniform.stride = 8 * sizeof(f32);
 	position_uniform.position = 0;
-	
+
 	as::uniform colors_uniform;
 	colors_uniform.id = 1;
 	colors_uniform.size = 3;
@@ -39,36 +46,33 @@ i32 main()
 	tex_coord_uniform.normalized = false;
 	tex_coord_uniform.stride = 8 * sizeof(f32);
 	tex_coord_uniform.position = 6 * sizeof(f32);
-	tex_coord_uniform.texture_ptr = &texture;
 
 	as::add_uniform(position_uniform, shader);
 	as::add_uniform(colors_uniform, shader);
 	as::add_uniform(tex_coord_uniform, shader);
 
-
-	const f32 vertices[] = 
+	// ------------------------------------------------------------------
+	f32 vertices[] = 
 	{
-		// positions          // colors           // texture coordinates
-		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+		// positions          // colors           // texture coords
+		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,		// top right
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,		// bottom right
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,		// bottom left
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f		// top left 
 	};
-	const u32 vertices_count = 32;
-	
-	const i32 indices[] = 
+	u32 indices[] = 
 	{
 		0, 1, 3, // first triangle
 		1, 2, 3  // second triangle
 	};
-	const u32 indices_count = 6;
 
 	u32 VAO; // Vertex Array Object
 	as::object triangle;
 
-	as::initialize_object(vertices, vertices_count, indices, indices_count, VAO, triangle);
+	as::initialize_object(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
 	as::assign_shader(triangle, VAO, shader);
-	as::set_uniform_integer(shader_program, "uniform_texture", texture.id);
+	as::set_uniform_integer(shader_program, "uniform_texture", 0);
+	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
 	while (as::should_display_loop(display_handle))
 	{
