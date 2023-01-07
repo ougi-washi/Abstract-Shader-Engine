@@ -56,6 +56,24 @@ namespace as
 		u32 EBO; // Element Buffer Object
 	};
 	
+	struct camera
+	{
+		// camera Attributes
+		glm::vec3 position = glm::vec3(0.f);
+		glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
+		glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
+		glm::vec3 right;
+		glm::vec3 world_up;
+
+		// euler Angles
+		glm::vec3 rotation; // X : roll // Y : pitch // Z : yaw
+
+		// camera options
+		f32 movement_speed;
+		f32 mouse_sensitivity;
+		f32 zoom;
+	};
+
 	namespace timer
 	{
 		struct handle

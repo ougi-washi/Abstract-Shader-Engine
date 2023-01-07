@@ -10,7 +10,6 @@
 #include <tiny_obj_loader/tiny_obj_loader.h>
 #endif // TINYOBJLOADER_IMPLEMENTATION
 
-
 // internal dependencies (engine)
 #include "engine_utility.h"
 #include "engine_core.h"
@@ -38,6 +37,11 @@ bool check_gl_error()
 	}
 	AS_LOG(LV_ERROR, "GL error : " + std::to_string(gl_error));
 	return false;
+}
+
+void as::configure()
+{
+	glEnable(GL_DEPTH_TEST);
 }
 
 void as::delete_vertex_array(const u32& VAO)
@@ -324,7 +328,7 @@ bool as::load_texture(const char* path, texture& out_texture)
 void as::clear_background()
 {
 	glClearColor(0.f, 0.f, 0.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 bool as::draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects)
@@ -332,6 +336,27 @@ bool as::draw(const u32& shader_program, const u32& VAO, const std::vector<as::o
 	glUseProgram(shader_program);
 	glBindVertexArray(VAO);
 	bind_uniforms(objects);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	/*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 	return check_gl_error();
+}
+
+glm::mat4 as::get_matrix_view(const as::camera& camera)
+{
+	return glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+}
+
+void as::update_camera_vectors(as::camera& camera)
+{
+	// calculate the new Front vector
+	glm::vec3 front;
+	f32 pitch = camera.rotation.y;
+	f32 yaw = camera.rotation.z;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	camera.front = glm::normalize(front);
+	// also re-calculate the Right and Up vector
+	camera.right = glm::normalize(glm::cross(camera.front, camera.world_up));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	camera.up = glm::normalize(glm::cross(camera.right, camera.front));
 }

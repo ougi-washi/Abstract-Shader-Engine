@@ -3,6 +3,7 @@
 namespace as
 {
 	// generic 
+	void configure();
 	void delete_vertex_array(const u32& VAO);
 
 	// shaders
@@ -39,4 +40,8 @@ namespace as
 	// render
 	void clear_background();
 	bool draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects);
+
+	// camera
+	glm::mat4 get_matrix_view(const as::camera& camera);
+	void update_camera_vectors(as::camera& camera);
 };

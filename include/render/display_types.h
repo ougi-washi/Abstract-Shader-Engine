@@ -31,6 +31,10 @@ namespace as
 		u16 width; 
 		u16 height;
 
+		// frames
+		f32 deltaTime = 0.0f;	// time between current frame and last frame
+		f32 lastFrame = 0.0f;
+
 		// internal
 		GLFWwindow* GLFW = nullptr;
 		as::raw_display raw_display;

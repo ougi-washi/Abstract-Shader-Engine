@@ -1,5 +1,7 @@
 #include "display_core.h"
+#include "engine_utility.h"
 #include "khronos/display_glfw.h"
+
 
 bool as::create_display_handle(const bool& is_raw_display, const u16& width, const u16& height, as::display_handle& display_handle)
 {
@@ -149,6 +151,19 @@ bool as::should_display_loop(const as::display_handle& display_handle)
 		return as::should_loop(display_handle.GLFW);
 	}
 	return false;
+}
+
+f32 as::get_display_ratio(const as::display_handle& display_handle)
+{
+	if (display_handle.is_raw_display)
+	{
+
+	}
+	else
+	{
+		return as::get_display_ratio(display_handle.GLFW);
+	}
+	return 1.33f;
 }
 
 bool as::process_input(const as::display_handle& display_handle)

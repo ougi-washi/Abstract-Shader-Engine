@@ -8,6 +8,7 @@ namespace as
 	bool create_display_handle(const bool& is_raw_display, const u16& width, const u16& height, as::display_handle& display_handle);
 
 	bool should_display_loop(const as::display_handle& display_handle);
+	f32 get_display_ratio(const as::display_handle& display_handle);
 	bool process_input(const as::display_handle& display_handle);
 
 	bool draw(as::display_handle& display_handle);

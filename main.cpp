@@ -7,6 +7,8 @@ i32 main()
 	as::display_handle display_handle;
 	as::create_display_handle(false, 800, 600, display_handle);
 	
+	as::configure();
+
 	as::shader shader;
 	as::create_shader_from_files("resources/shaders/default_vertex_shader.glsl", "resources/shaders/default_fragment_shader.glsl", shader);
 
@@ -28,37 +30,73 @@ i32 main()
 	position_uniform.size = 3;
 	position_uniform.type = as::variable_type::FLOAT;
 	position_uniform.normalized = 0;
-	position_uniform.stride = 8 * sizeof(f32);
+	position_uniform.stride = 5 * sizeof(f32);
 	position_uniform.position = 0;
 
-	as::uniform colors_uniform;
-	colors_uniform.id = 1;
-	colors_uniform.size = 3;
-	colors_uniform.type = as::variable_type::FLOAT;
-	colors_uniform.normalized = 0;
-	colors_uniform.stride = 8 * sizeof(f32);
-	colors_uniform.position = 3 * sizeof(f32);
-
 	as::uniform tex_coord_uniform;
-	tex_coord_uniform.id = 2;
+	tex_coord_uniform.id = 1;
 	tex_coord_uniform.size = 2;
 	tex_coord_uniform.type = as::variable_type::FLOAT;
 	tex_coord_uniform.normalized = false;
-	tex_coord_uniform.stride = 8 * sizeof(f32);
-	tex_coord_uniform.position = 6 * sizeof(f32);
+	tex_coord_uniform.stride = 5 * sizeof(f32);
+	tex_coord_uniform.position = 3 * sizeof(f32);
+
+	//as::uniform colors_uniform;
+	//colors_uniform.id = 2;
+	//colors_uniform.size = 3;
+	//colors_uniform.type = as::variable_type::FLOAT;
+	//colors_uniform.normalized = 0;
+	//colors_uniform.stride = 5 * sizeof(f32);
+	//colors_uniform.position = 5 * sizeof(f32);
 
 	as::add_uniform(position_uniform, shader);
-	as::add_uniform(colors_uniform, shader);
 	as::add_uniform(tex_coord_uniform, shader);
+	//as::add_uniform(colors_uniform, shader);
 
-	f32 vertices[] = 
-	{
-		// positions          // colors           // texture coords
-		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,		// top right
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,		// bottom right
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,		// bottom left
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f		// top left 
+	float vertices[] = {
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
+
 	u32 indices[] = 
 	{
 		0, 1, 3, // first triangle
@@ -80,11 +118,21 @@ i32 main()
 	{
 		as::process_input(display_handle);
 		as::clear_background();
-		glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-		transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
-		transform = glm::rotate(transform, (f32)as::timer::get_current_time(timer_handle), glm::vec3(0.0f, 0.0f, 1.0f));
-		as::set_uniform_mat4(shader_program, "transform", transform);
+		
+		// create transformations
+		glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+		glm::mat4 view = glm::mat4(1.0f);
+		glm::mat4 projection = glm::mat4(1.0f);
+		model = glm::rotate(model, (f32)as::timer::get_current_time(timer_handle) * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		projection = glm::perspective(glm::radians(45.0f), as::get_display_ratio(display_handle), 0.1f, 100.0f);
+		// pass transformation matrices to the shader
+		as::set_uniform_mat4(shader_program, "projection", projection); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+		as::set_uniform_mat4(shader_program, "view", view);
+		as::set_uniform_mat4(shader_program, "model", model);
+
 		as::draw(shader_program, VAO, { triangle });
+
 		as::update(display_handle);
 	}
 

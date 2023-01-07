@@ -83,6 +83,29 @@ bool as::update(GLFWwindow* window)
 	return false;
 }
 
+bool as::get_window_size(GLFWwindow* window, i32& width, i32& height)
+{
+	if (window)
+	{
+		glfwGetWindowSize(window, &width, &height);
+		return true;
+	}
+	return false;
+}
+
+f32 as::get_display_ratio(GLFWwindow* window)
+{
+	if (window)
+	{
+		i32 width, height;
+		if (get_window_size(window, width, height))
+		{
+			return (f32)width/ (f32)height;
+		}
+	}
+	return 1.33f;
+}
+
 void as::terminate_glfw()
 {
 	glfwTerminate();
