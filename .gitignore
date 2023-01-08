@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+AbstractShaderEngine
 
 .vscode/
 
@@ -52,6 +53,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Bb]uild/
+[Bb]inaries/
 # Add this line
 out/
 
@@ -59,3 +61,16 @@ out/
 .vs/
 
 !resources/*
+
+# cmake
+CMakeFiles/
+**/*.cmake
+*.cmake
+*.pc
+*.ninja
+**/CMakeCache.txt
+**/Makefile
+/lib/glfw/src/glfw3ConfigVersion.cmake
+/lib/glfw/src/glfw3Config.cmake
+JSON/*
+CMakeSettings.json
