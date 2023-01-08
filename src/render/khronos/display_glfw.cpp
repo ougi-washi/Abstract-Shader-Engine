@@ -46,7 +46,6 @@ bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height)
 	{
 		AS_LOG(LV_ERROR, "Failed to initialize OpenGL context with GLFW");
 	}
-
 	return false;
 }
 

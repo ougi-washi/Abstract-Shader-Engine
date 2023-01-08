@@ -6,7 +6,7 @@ i32 main()
 {
 	as::display_handle display_handle;
 	as::create_display_handle(false, 800, 600, display_handle);
-	
+
 	as::configure();
 
 	as::shader shader;
@@ -111,6 +111,10 @@ i32 main()
 	as::set_uniform_integer(shader_program, "uniform_texture", 0);
 	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
+	as::camera camera;
+	as::update_camera_vectors(camera);
+	camera.position -= camera.front * 5.f;
+
 	as::timer::handle timer_handle;
 	as::timer::start_timer(timer_handle);
 
@@ -118,21 +122,19 @@ i32 main()
 	{
 		as::process_input(display_handle);
 		as::clear_background();
-		
 		// create transformations
-		glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-		glm::mat4 view = glm::mat4(1.0f);
-		glm::mat4 projection = glm::mat4(1.0f);
+		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 view = as::get_matrix_view(camera);
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), as::get_display_ratio(display_handle), 0.1f, 100.0f);
 		model = glm::rotate(model, (f32)as::timer::get_current_time(timer_handle) * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-		projection = glm::perspective(glm::radians(45.0f), as::get_display_ratio(display_handle), 0.1f, 100.0f);
 		// pass transformation matrices to the shader
 		as::set_uniform_mat4(shader_program, "projection", projection); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
 		as::set_uniform_mat4(shader_program, "view", view);
 		as::set_uniform_mat4(shader_program, "model", model);
 
+		//camera.position.x -= display_handle.delta_time;
+		as::update_camera_vectors(camera);
 		as::draw(shader_program, VAO, { triangle });
-
 		as::update(display_handle);
 	}
 

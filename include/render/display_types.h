@@ -1,4 +1,5 @@
 #pragma once 
+#include "engine_utility.h"
 
 #ifdef __linux__ 
 #include <linux/fb.h>
@@ -32,8 +33,9 @@ namespace as
 		u16 height;
 
 		// frames
-		f32 deltaTime = 0.0f;	// time between current frame and last frame
-		f32 lastFrame = 0.0f;
+		f32 delta_time = 0.0f;
+		f32 last_frame_time = 0.0f;
+		timer::handle timer_handle;
 
 		// internal
 		GLFWwindow* GLFW = nullptr;

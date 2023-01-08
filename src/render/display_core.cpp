@@ -8,6 +8,7 @@ bool as::create_display_handle(const bool& is_raw_display, const u16& width, con
 	display_handle.is_raw_display = is_raw_display;
 	display_handle.width = width;
 	display_handle.height = height;
+	as::timer::start_timer(display_handle.timer_handle);
 
 	if (display_handle.is_raw_display)
 	{	
@@ -153,6 +154,11 @@ bool as::should_display_loop(const as::display_handle& display_handle)
 	return false;
 }
 
+f32 as::get_delta_time(as::display_handle& display_handle)
+{
+	return display_handle.delta_time;
+}
+
 f32 as::get_display_ratio(const as::display_handle& display_handle)
 {
 	if (display_handle.is_raw_display)
@@ -272,6 +278,9 @@ bool as::draw_on_raw_display(as::raw_display& raw_display, const u8* pixels)
 
 bool as::update(as::display_handle& display_handle)
 {
+	f32 current_time = as::timer::get_current_time(display_handle.timer_handle);
+	display_handle.delta_time = current_time - display_handle.last_frame_time;
+	display_handle.last_frame_time = current_time;
 	if (display_handle.is_raw_display)
 	{	
 	}

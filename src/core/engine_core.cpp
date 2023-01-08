@@ -1,6 +1,7 @@
 // external dependencies (libraries)
 
 #include "glad/gl.h"
+#include "glad/wgl.h"
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
@@ -42,6 +43,7 @@ bool check_gl_error()
 void as::configure()
 {
 	glEnable(GL_DEPTH_TEST);
+	//wglSwapIntervalEXT(1); figure out a way to include this
 }
 
 void as::delete_vertex_array(const u32& VAO)
