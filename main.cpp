@@ -106,7 +106,7 @@ i32 main()
 	u32 VAO; // Vertex Array Object
 	as::object triangle;
 
-	as::initialize_object(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
+	as::create_mesh(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
 	as::assign_shader(triangle, VAO, shader);
 	as::set_uniform_integer(shader_program, "uniform_texture", 0);
 	as::set_uniform_integer(shader_program, "uniform_texture1", 1);

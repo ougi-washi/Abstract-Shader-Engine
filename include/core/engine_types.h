@@ -7,6 +7,8 @@
 #include <vector>
 #include <chrono>
 
+#define MAX_BONE_INFLUENCE 4
+
 namespace as
 {
 	enum variable_type
@@ -21,18 +23,39 @@ namespace as
 	struct texture
 	{
 		u32 id;
+		char* uniform_name;
 		char* path;
 		i32 width;
 		i32 height;
 		i32 number_of_channels;
 	};
 
-	struct model
+	struct vertex 
 	{
-		f32* vertices = nullptr;
-		i64 vertices_size = 0;
-		f32* indices = nullptr;
-		i64 indices_size = 0;
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec2 tex_coords;
+		glm::vec3 tangent;
+		glm::vec3 bitangent;
+		i32 bone_ids[MAX_BONE_INFLUENCE];
+		float weights[MAX_BONE_INFLUENCE];
+	};
+
+	struct mesh
+	{
+		// model
+		vertex* vertices = nullptr;
+		u32 vertices_count = 0;
+		u32* indices = nullptr;
+		u32 indices_count = 0;
+
+		// shader
+		as::shader* shader_ptr = nullptr;
+
+		// rendering
+		u32 VBO; // Vertex Buffer Object
+		u32 EBO; // Element Buffer Object
+		u32 VAO; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
 	};
 
 	struct uniform
@@ -47,21 +70,20 @@ namespace as
 
 	struct shader
 	{
+		// external
 		i32 vertex_shader;
 		i32 fragment_shader;
 		std::vector<as::uniform> uniforms; // to change from vector
 		std::vector<as::texture*> textures; // to change from vector
+
+		// internal
+		u32 shader_program = -1;
 	};
 
 	struct object
 	{
-		f32* vertices = nullptr;
-		i64 vertices_size = 0;
-		u32* indices = nullptr;
-		i64 indices_size = 0;
-		as::shader* shader_ptr = nullptr;
-		u32 VBO; // Vertex Buffer Object
-		u32 EBO; // Element Buffer Object
+		as::mesh* mesh_ptr = nullptr;
+		
 	};
 	
 	struct camera

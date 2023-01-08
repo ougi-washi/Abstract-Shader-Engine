@@ -10,7 +10,7 @@ namespace as
 	bool create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader);
 	bool create_shader_from_files(const char* vert_shader_path, const char* frag_shader_path, as::shader& out_shader);
 	void create_shader_program(u32& out_shader_program);
-	bool bind_shaders_to_program(const u32& shader_program, const as::shader& shader_to_attach);
+	bool bind_shaders_to_program(const u32& shader_program, as::shader& shader_to_attach);
 	void delete_shader(const as::shader& shader);
 	void delete_shader_program(const u32& shader_program);
 	
@@ -26,19 +26,17 @@ namespace as
 	void set_uniform_mat3(const u32& shader_program, const char* name, const glm::mat3& value);
 	void set_uniform_mat4(const u32& shader_program, const char* name, const glm::mat4& value);
 	void bind_uniforms(const as::shader& shader);
-	void bind_uniforms(const as::object& object);
-	void bind_uniforms(const std::vector<as::object>& objects);
 
 	// objects
-	bool initialize_object(const f32* vertices, const u32& vertices_size, const u32* indices, const u32& indices_size, u32& VAO, as::object& out_object);
 	bool assign_shader(as::object& object, u32& VAO, as::shader& shader);
 	bool delete_object_data(as::object* object);
 
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
 
-	// model
-	bool load_model(const char* path, as::model& out_model);
+	// meshes
+	bool create_mesh(const as::vertex* vertices, const u32& vertices_count, const u32* indices, const u32& indices_count, as::mesh& out_mesh);
+	bool draw(const u32& shader_program, as::mesh& mesh);
 
 	// render
 	void clear_background();

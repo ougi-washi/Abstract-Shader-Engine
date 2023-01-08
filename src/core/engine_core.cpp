@@ -91,7 +91,7 @@ void as::create_shader_program(u32& out_shader_program)
 	out_shader_program = glCreateProgram();
 }
 
-bool as::bind_shaders_to_program(const u32& shader_program, const shader& shader_to_attach)
+bool as::bind_shaders_to_program(const u32& shader_program, as::shader& shader_to_attach)
 {
 	glAttachShader(shader_program, shader_to_attach.vertex_shader);
 	glAttachShader(shader_program, shader_to_attach.fragment_shader);
@@ -106,7 +106,8 @@ bool as::bind_shaders_to_program(const u32& shader_program, const shader& shader
 		AS_LOG(LV_ERROR, std::string("Binding shaders failed: ") + infoLog);
 		return false;
 	}
-	return true;
+	shader_to_attach.shader_program = shader_program;
+	return check_gl_error();
 }
 
 void as::delete_shader(const as::shader& shader)
@@ -188,63 +189,11 @@ void as::bind_uniforms(const as::shader& shader)
 		if (shader.textures[i])
 		{
 			glActiveTexture(GL_TEXTURE0 + i);
+			set_uniform_integer(shader.shader_program, shader.textures[i]->uniform_name, i);
 			glBindTexture(GL_TEXTURE_2D, shader.textures[i]->id);
 			check_gl_error();
 		}
 	}
-}
-
-void as::bind_uniforms(const as::object& object)
-{
-	if (object.shader_ptr)
-	{
-		bind_uniforms(*object.shader_ptr);
-	}
-}
-
-void as::bind_uniforms(const std::vector<as::object>& objects)
-{
-	for (const as::object& current_object : objects)
-	{
-		bind_uniforms(current_object);
-	}
-}
-
-bool as::initialize_object(const f32* vertices, const u32& vertices_size, const u32* indices, const u32& indices_size, u32& VAO, as::object& out_object)
-{
-	AS_LOG(LV_LOG, "Initializing object with " + std::to_string(vertices_size) + " vertices size and " + std::to_string(indices_size) + " indices size");
-	out_object.vertices_size = vertices_size;
-	out_object.indices_size = indices_size;
-
-	out_object.vertices = (f32*)malloc(out_object.vertices_size);
-	if (out_object.vertices)
-	{
-		memcpy(out_object.vertices, vertices, vertices_size);
-	}
-	out_object.indices = (u32*)malloc(out_object.indices_size);
-	if (out_object.indices)
-	{
-		memcpy(out_object.indices, indices, indices_size);
-	}
-
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	glGenBuffers(1, &out_object.VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, out_object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, out_object.vertices_size, vertices, GL_STATIC_DRAW);
-
-	glGenBuffers(1, &out_object.EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_object.EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, out_object.indices_size, indices, GL_STATIC_DRAW);
-
-	// UNBIND
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	return check_gl_error();
 }
 
 bool as::assign_shader(as::object& object, u32& VAO, as::shader& shader)
@@ -327,9 +276,82 @@ bool as::load_texture(const char* path, texture& out_texture)
 	return false;
 }
 
-bool as::load_model(const char* path, as::model& out_model)
+bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u32* indices, const u32& indices_count, mesh& out_mesh)
 {
-	return false;
+	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices_count)+ "] vertices, and [" + std::to_string(indices_count)+ "] indices");
+
+	if (!vertices || !indices)
+	{
+		AS_LOG(LV_WARNING, "Cannot create mesh, vertices or/and indices are nullptr");
+		return false;
+	}
+
+	out_mesh.vertices_count = vertices_count;
+	i64 vertices_size = sizeof(as::vertex) * vertices_count;
+	out_mesh.vertices = (as::vertex*)malloc(vertices_size);
+	memcpy(out_mesh.vertices, vertices, vertices_size);
+
+	out_mesh.indices_count = indices_count;
+	i64 indices_size = sizeof(u32) * indices_count;
+	out_mesh.indices = (u32*)malloc(indices_size);
+	memcpy(out_mesh.indices, indices, indices_size);
+
+	// create buffers/arrays
+	glGenVertexArrays(1, &out_mesh.VAO);
+	glGenBuffers(1, &out_mesh.VBO);
+	glGenBuffers(1, &out_mesh.EBO);
+
+	// bind and set buffer
+	glBindVertexArray(out_mesh.VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, out_mesh.VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices_size, &vertices[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_mesh.EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, &indices[0], GL_STATIC_DRAW);
+
+	// set the vertex attribute pointers
+	// vertex Positions
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)0);
+	// vertex normals
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, normal));
+	// vertex texture coordinates
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, tex_coords));
+	// vertex tangent
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, tangent));
+	// vertex bitangent
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, bitangent));
+	// ids
+	glEnableVertexAttribArray(5);
+	glVertexAttribIPointer(5, 4, GL_INT, sizeof(as::vertex), (void*)offsetof(as::vertex, bone_ids));
+	// weights
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, weights));
+
+	glBindVertexArray(0);
+
+	return check_gl_error();
+}
+
+bool as::draw(const u32& shader_program, as::mesh& mesh)
+{
+	if (mesh.shader_ptr)
+	{
+		as::bind_uniforms(*mesh.shader_ptr);
+		glBindVertexArray(mesh.VAO);
+		glDrawElements(GL_TRIANGLES, static_cast<u32>(mesh.indices_count), GL_UNSIGNED_INT, 0);
+
+		// reset
+		glBindVertexArray(0);
+		glActiveTexture(GL_TEXTURE0);
+	}
+	else
+	{
+		AS_LOG(LV_WARNING, "Cannot render a mesh without a shader pointer");
+	}
 }
 
 void as::clear_background()
@@ -342,7 +364,6 @@ bool as::draw(const u32& shader_program, const u32& VAO, const std::vector<as::o
 {
 	glUseProgram(shader_program);
 	glBindVertexArray(VAO);
-	bind_uniforms(objects);
 	/*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	return check_gl_error();
