@@ -34,13 +34,17 @@ add_subdirectory(${LIB_DIR}/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(${LIB_DIR}/glm)
 
+# GLM
+message(STATUS "Adding ASSIMP library")
+add_subdirectory(${LIB_DIR}/assimp)
+
 # GLAD
 setup_library(glad ${LIB_DIR}/glad/src ${PROJECT_SOURCE_DIR}/${LIB_DIR}/glad/include)
 
 # CORE
 set(CORE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR}/core ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(core ${SRC_DIR}/core "${CORE_INCLUDES}")
-target_link_libraries(core PUBLIC glad glfw glm)
+target_link_libraries(core PUBLIC glad glfw glm assimp)
 
 # RENDER
 setup_library(render ${SRC_DIR}/render ${PROJECT_SOURCE_DIR}/${INC_DIR}/render)
