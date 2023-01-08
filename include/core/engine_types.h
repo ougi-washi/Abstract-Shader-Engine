@@ -27,6 +27,14 @@ namespace as
 		i32 number_of_channels;
 	};
 
+	struct model
+	{
+		f32* vertices = nullptr;
+		i64 vertices_size = 0;
+		f32* indices = nullptr;
+		i64 indices_size = 0;
+	};
+
 	struct uniform
 	{
 		u32 id;

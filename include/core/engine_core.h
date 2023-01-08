@@ -37,6 +37,9 @@ namespace as
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
 
+	// model
+	bool load_model(const char* path, as::model& out_model);
+
 	// render
 	void clear_background();
 	bool draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects);

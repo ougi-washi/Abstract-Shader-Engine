@@ -327,6 +327,11 @@ bool as::load_texture(const char* path, texture& out_texture)
 	return false;
 }
 
+bool as::load_model(const char* path, as::model& out_model)
+{
+	return false;
+}
+
 void as::clear_background()
 {
 	glClearColor(0.f, 0.f, 0.f, 1.f);
