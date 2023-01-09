@@ -1,15 +1,13 @@
 // external dependencies (libraries)
-
 #include "glad/gl.h"
 #include "glad/wgl.h"
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 #endif //STB_IMAGE_IMPLEMENTATION
-#ifndef TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader/tiny_obj_loader.h>
-#endif // TINYOBJLOADER_IMPLEMENTATION
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 // internal dependencies (engine)
 #include "engine_utility.h"
@@ -44,11 +42,6 @@ void as::configure()
 {
 	glEnable(GL_DEPTH_TEST);
 	//wglSwapIntervalEXT(1); figure out a way to include this
-}
-
-void as::delete_vertex_array(const u32& VAO)
-{
-	glDeleteVertexArrays(1, &VAO);
 }
 
 bool as::create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader)
@@ -196,52 +189,6 @@ void as::bind_uniforms(const as::shader& shader)
 	}
 }
 
-bool as::assign_shader(as::object& object, u32& VAO, as::shader& shader)
-{
-	AS_LOG(LV_LOG, "Assigning shader to object");
-	object.shader_ptr = &shader;
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, object.VBO);
-	glBufferData(GL_ARRAY_BUFFER, object.vertices_size, object.vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object.EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, object.indices_size, object.indices, GL_STATIC_DRAW);
-
-
-	for (const as::uniform& current_uniform : shader.uniforms)
-	{
-		glVertexAttribPointer(current_uniform.id, current_uniform.size, current_uniform.type, current_uniform.normalized, current_uniform.stride, (void*)current_uniform.position);
-		glEnableVertexAttribArray(current_uniform.id);
-	}
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	return check_gl_error();
-}
-
-bool as::delete_object_data(as::object* object)
-{
-	if (object)
-	{
-		AS_LOG(LV_LOG, "Deleting object data");
-		free(object->vertices);
-		object->vertices = nullptr;
-		free(object->indices);
-		object->indices = nullptr;
-		glDeleteBuffers(1, &object->VBO);
-		glDeleteBuffers(1, &object->EBO);
-	}
-	else
-	{
-		AS_LOG(LV_WARNING, "Cannot delete object data, nullptr");
-	}
-	return check_gl_error();
-}
-
 bool as::load_texture(const char* path, texture& out_texture)
 {
 	if (path)
@@ -289,12 +236,18 @@ bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u3
 	out_mesh.vertices_count = vertices_count;
 	i64 vertices_size = sizeof(as::vertex) * vertices_count;
 	out_mesh.vertices = (as::vertex*)malloc(vertices_size);
-	memcpy(out_mesh.vertices, vertices, vertices_size);
+	if (out_mesh.vertices)
+	{
+		memcpy(out_mesh.vertices, vertices, vertices_size);
+	}
 
 	out_mesh.indices_count = indices_count;
 	i64 indices_size = sizeof(u32) * indices_count;
 	out_mesh.indices = (u32*)malloc(indices_size);
-	memcpy(out_mesh.indices, indices, indices_size);
+	if (out_mesh.indices)
+	{
+		memcpy(out_mesh.indices, indices, indices_size);
+	}
 
 	// create buffers/arrays
 	glGenVertexArrays(1, &out_mesh.VAO);
@@ -304,9 +257,9 @@ bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u3
 	// bind and set buffer
 	glBindVertexArray(out_mesh.VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, out_mesh.VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices_size, &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_mesh.EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, &indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
 
 	// set the vertex attribute pointers
 	// vertex Positions
@@ -331,12 +284,20 @@ bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u3
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(as::vertex), (void*)offsetof(as::vertex, weights));
 
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	return check_gl_error();
 }
 
-bool as::draw(const u32& shader_program, as::mesh& mesh)
+bool as::assign_shader(as::shader& shader, as::mesh& mesh)
+{
+	AS_LOG(LV_LOG, "Assigning shader to mesh");
+	mesh.shader_ptr = &shader;
+}
+
+bool as::draw(as::mesh& mesh)
 {
 	if (mesh.shader_ptr)
 	{
@@ -351,7 +312,93 @@ bool as::draw(const u32& shader_program, as::mesh& mesh)
 	else
 	{
 		AS_LOG(LV_WARNING, "Cannot render a mesh without a shader pointer");
+		return false;
 	}
+	return check_gl_error();
+}
+
+bool as::delete_mesh_data(as::mesh* mesh)
+{
+	if (mesh)
+	{
+		AS_LOG(LV_LOG, "Deleting object data");
+		free(mesh->vertices);
+		mesh->vertices = nullptr;
+		free(mesh->indices);
+		mesh->indices = nullptr;
+		glDeleteBuffers(1, &mesh->VBO);
+		glDeleteBuffers(1, &mesh->EBO);
+		glDeleteVertexArrays(1, &mesh->VAO);
+	}
+	else
+	{
+		AS_LOG(LV_WARNING, "Cannot delete object data, nullptr");
+	}
+	return check_gl_error();
+}
+
+bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> mesh)
+{
+	if (node)
+	{
+		// process each mesh located at the current node
+		for (unsigned int i = 0; i < node->mNumMeshes; i++)
+		{
+			// the node object only contains indices to index the actual objects in the scene. 
+			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
+			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+			as::mesh out_mesh;
+			if (process_mesh(mesh, scene, out_mesh))
+			{
+				meshes.push_back(out_mesh);
+			}
+		}
+		// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
+		for (unsigned int i = 0; i < node->mNumChildren; i++)
+		{
+			process_node(scene, node->mChildren[i]);
+		}
+	}
+};
+
+bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh& out_mesh)
+{
+	
+}
+
+bool load_material_textures(aiMaterial* material, aiTextureType type, std::string type_name, std::vector<as::texture>)
+{
+	
+}
+
+void as::load_model(const char* path, as::model& out_model)
+{
+	Assimp::Importer import;
+	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		AS_LOG(LV_WARNING, import.GetErrorString());
+		return;
+	}
+	memcpy(out_model.path, path, sizeof(path));
+
+	process_node(scene, scene->mRootNode);
+}
+
+bool as::draw(as::model& model)
+{
+	u32 current_shader_program = 1;
+	for (as::mesh& mesh : model.meshes)
+	{
+		if (mesh.shader_ptr && mesh.shader_ptr->shader_program != current_shader_program)
+		{
+			current_shader_program = mesh.shader_ptr->shader_program; 
+			glUseProgram(current_shader_program);
+		}
+		draw(mesh);
+	}
+	return check_gl_error();
 }
 
 void as::clear_background()
@@ -360,12 +407,21 @@ void as::clear_background()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-bool as::draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects)
+bool as::draw(const std::vector<as::object>& objects)
 {
-	glUseProgram(shader_program);
-	glBindVertexArray(VAO);
-	/*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	for (const as::object& current_object : objects)
+	{
+		for (as::model* current_model : current_object.models)
+		{
+			if (current_model)
+			{
+				for (as::mesh& mesh : current_model->meshes)
+				{
+					draw(mesh);
+				}
+			}
+		}
+	}
 	return check_gl_error();
 }
 

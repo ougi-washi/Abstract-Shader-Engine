@@ -103,6 +103,11 @@ std::string as::util::get_project_path()
 	return current_path;
 }
 
+std::string as::util::get_directory(const std::string path)
+{
+	return path.substr(0, path.find_last_of('/'));
+}
+
 i32 as::util::does_dir_exist(const char* path)
 {
 	/******************************************************************************

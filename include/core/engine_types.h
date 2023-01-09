@@ -30,6 +30,28 @@ namespace as
 		i32 number_of_channels;
 	};
 
+	struct uniform
+	{
+		u32 id;
+		i32 size;
+		variable_type type;
+		u8 normalized : 1;
+		i32 stride;
+		u64 position = 0;
+	};
+
+	struct shader
+	{
+		// external
+		i32 vertex_shader;
+		i32 fragment_shader;
+		std::vector<as::uniform> uniforms; // to change from vector
+		std::vector<as::texture*> textures; // to change from vector
+
+		// internal
+		u32 shader_program = 0;
+	};
+
 	struct vertex 
 	{
 		glm::vec3 position;
@@ -58,32 +80,15 @@ namespace as
 		u32 VAO; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
 	};
 
-	struct uniform
+	struct model
 	{
-		u32 id;
-		i32 size;
-		variable_type type;
-		u8 normalized : 1;
-		i32 stride;
-		u64 position = 0;
-	};
-
-	struct shader
-	{
-		// external
-		i32 vertex_shader;
-		i32 fragment_shader;
-		std::vector<as::uniform> uniforms; // to change from vector
-		std::vector<as::texture*> textures; // to change from vector
-
-		// internal
-		u32 shader_program = -1;
+		char path[500] = "";
+		std::vector<as::mesh> meshes;
 	};
 
 	struct object
 	{
-		as::mesh* mesh_ptr = nullptr;
-		
+		std::vector<as::model*> models;
 	};
 	
 	struct camera

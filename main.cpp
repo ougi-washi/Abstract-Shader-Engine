@@ -25,7 +25,7 @@ i32 main()
 	shader.textures.push_back(&texture);
 	shader.textures.push_back(&texture1);
 
-	as::uniform position_uniform;
+	/*as::uniform position_uniform;
 	position_uniform.id = 0;
 	position_uniform.size = 3;
 	position_uniform.type = as::variable_type::FLOAT;
@@ -39,7 +39,7 @@ i32 main()
 	tex_coord_uniform.type = as::variable_type::FLOAT;
 	tex_coord_uniform.normalized = false;
 	tex_coord_uniform.stride = 5 * sizeof(f32);
-	tex_coord_uniform.position = 3 * sizeof(f32);
+	tex_coord_uniform.position = 3 * sizeof(f32);*/
 
 	//as::uniform colors_uniform;
 	//colors_uniform.id = 2;
@@ -49,8 +49,8 @@ i32 main()
 	//colors_uniform.stride = 5 * sizeof(f32);
 	//colors_uniform.position = 5 * sizeof(f32);
 
-	as::add_uniform(position_uniform, shader);
-	as::add_uniform(tex_coord_uniform, shader);
+	//as::add_uniform(position_uniform, shader);
+	//as::add_uniform(tex_coord_uniform, shader);
 	//as::add_uniform(colors_uniform, shader);
 
 	float vertices[] = {
@@ -103,11 +103,11 @@ i32 main()
 		1, 2, 3  // second triangle
 	};
 
-	u32 VAO; // Vertex Array Object
-	as::object triangle;
+	as::object object;
+	as::mesh triangle;
 
-	as::create_mesh(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
-	as::assign_shader(triangle, VAO, shader);
+	//as::create_mesh(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
+	as::assign_shader(shader, triangle);
 	as::set_uniform_integer(shader_program, "uniform_texture", 0);
 	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
@@ -134,13 +134,12 @@ i32 main()
 
 		//camera.position.x -= display_handle.delta_time;
 		as::update_camera_vectors(camera);
-		as::draw(shader_program, VAO, { triangle });
+		as::draw({ object });
 		as::update(display_handle);
 	}
 
-	as::delete_vertex_array(VAO);
 	as::delete_shader(shader);
-	as::delete_object_data(&triangle);
+	as::delete_mesh_data(&triangle);
 	as::delete_shader_program(shader_program);
 	as::terminate_display();
 }

@@ -4,7 +4,6 @@ namespace as
 {
 	// generic 
 	void configure();
-	void delete_vertex_array(const u32& VAO);
 
 	// shaders
 	bool create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader);
@@ -28,19 +27,24 @@ namespace as
 	void bind_uniforms(const as::shader& shader);
 
 	// objects
-	bool assign_shader(as::object& object, u32& VAO, as::shader& shader);
-	bool delete_object_data(as::object* object);
+	
 
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
 
 	// meshes
 	bool create_mesh(const as::vertex* vertices, const u32& vertices_count, const u32* indices, const u32& indices_count, as::mesh& out_mesh);
-	bool draw(const u32& shader_program, as::mesh& mesh);
+	bool assign_shader(as::shader& shader, as::mesh& mesh);
+	bool draw(as::mesh& mesh);
+	bool delete_mesh_data(as::mesh* mesh);
+
+	// models
+	void load_model(const char* path, as::model& out_model);
+	bool draw(as::model& model);
 
 	// render
 	void clear_background();
-	bool draw(const u32& shader_program, const u32& VAO, const std::vector<as::object>& objects);
+	bool draw(const std::vector<as::object>& objects);
 
 	// camera
 	glm::mat4 get_matrix_view(const as::camera& camera);

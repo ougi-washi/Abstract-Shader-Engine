@@ -17,6 +17,7 @@ namespace as
 		std::string get_current_path();
 		std::string get_relative_path(const char* to_path);
 		std::string get_project_path();
+		std::string get_directory(const std::string path);
 		i32 does_dir_exist(const char* path);
 		bool does_file_exist(const std::string& path);
 		void replace_char(std::string & string_to_update, const char& source, const char& target);
