@@ -18,102 +18,33 @@ i32 main()
 	
 	as::texture texture;
 	as::load_texture("resources/textures/container.jpg", texture);
+	strcpy(texture.uniform_name, "uniform_texture");
 
 	as::texture texture1;
 	as::load_texture("resources/textures/viking_room.png", texture1);
+	strcpy(texture1.uniform_name, "uniform_texture1");
 
 	shader.textures.push_back(&texture);
 	shader.textures.push_back(&texture1);
 
-	/*as::uniform position_uniform;
-	position_uniform.id = 0;
-	position_uniform.size = 3;
-	position_uniform.type = as::variable_type::FLOAT;
-	position_uniform.normalized = 0;
-	position_uniform.stride = 5 * sizeof(f32);
-	position_uniform.position = 0;
-
-	as::uniform tex_coord_uniform;
-	tex_coord_uniform.id = 1;
-	tex_coord_uniform.size = 2;
-	tex_coord_uniform.type = as::variable_type::FLOAT;
-	tex_coord_uniform.normalized = false;
-	tex_coord_uniform.stride = 5 * sizeof(f32);
-	tex_coord_uniform.position = 3 * sizeof(f32);*/
-
-	//as::uniform colors_uniform;
-	//colors_uniform.id = 2;
-	//colors_uniform.size = 3;
-	//colors_uniform.type = as::variable_type::FLOAT;
-	//colors_uniform.normalized = 0;
-	//colors_uniform.stride = 5 * sizeof(f32);
-	//colors_uniform.position = 5 * sizeof(f32);
-
-	//as::add_uniform(position_uniform, shader);
-	//as::add_uniform(tex_coord_uniform, shader);
-	//as::add_uniform(colors_uniform, shader);
-
-	float vertices[] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-	};
-
-	u32 indices[] = 
-	{
-		0, 1, 3, // first triangle
-		1, 2, 3  // second triangle
-	};
-
 	as::object object;
-	as::mesh triangle;
+	as::model bunny;
+	std::vector<as::texture> bunny_textures;
+	load_model("resources/models/stanford-bunny.obj", bunny, bunny_textures);
 
 	//as::create_mesh(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
-	as::assign_shader(shader, triangle);
+	for (u32 i = 0 ; i < bunny.meshes.size() ; i++)
+	{
+		as::assign_shader(shader, bunny.meshes[i]);
+	}
 	as::set_uniform_integer(shader_program, "uniform_texture", 0);
 	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
+	object.models.push_back(&bunny);
+
 	as::camera camera;
 	as::update_camera_vectors(camera);
-	camera.position -= camera.front * 5.f;
+	camera.position -= camera.front * 1.f;
 
 	as::timer::handle timer_handle;
 	as::timer::start_timer(timer_handle);
@@ -139,7 +70,7 @@ i32 main()
 	}
 
 	as::delete_shader(shader);
-	as::delete_mesh_data(&triangle);
+	as::delete_model_data(bunny);
 	as::delete_shader_program(shader_program);
 	as::terminate_display();
 }

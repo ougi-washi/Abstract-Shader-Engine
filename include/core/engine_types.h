@@ -23,8 +23,8 @@ namespace as
 	struct texture
 	{
 		u32 id;
-		char* uniform_name;
-		char* path;
+		char uniform_name[256] = "";
+		char path[256] = "";
 		i32 width;
 		i32 height;
 		i32 number_of_channels;

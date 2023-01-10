@@ -36,11 +36,12 @@ namespace as
 	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh);
 	bool assign_shader(as::shader& shader, as::mesh& out_meshes);
 	bool draw(as::mesh& mesh);
-	bool delete_mesh_data(as::mesh* mesh);
+	bool delete_mesh_data(as::mesh& mesh);
 
 	// models
-	void load_model(const char* path, as::model& out_model);
+	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
 	bool draw(as::model& model);
+	bool delete_model_data(as::model& model);
 
 	// render
 	void clear_background();

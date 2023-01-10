@@ -189,34 +189,51 @@ void as::bind_uniforms(const as::shader& shader)
 	}
 }
 
-bool as::load_texture(const char* path, texture& out_texture)
+bool as::load_texture(const char* path, as::texture& out_texture)
 {
 	if (path)
 	{
 		std::string path_string = util::get_current_path() + "/../" + std::string(path);
 		AS_LOG(LV_LOG, "Loading texture [" + path_string + "]");
+		strcpy(out_texture.path, path_string.c_str());
 		glGenTextures(1, &out_texture.id);
-		glBindTexture(GL_TEXTURE_2D, out_texture.id);
-		// set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		// set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		
 		// load image, create texture and generate mipmaps
-		stbi_set_flip_vertically_on_load(true);
+		//stbi_set_flip_vertically_on_load(true);
 		u8* data = stbi_load(path_string.c_str(), &out_texture.width, &out_texture.height, &out_texture.number_of_channels, 0);
 		if (data)
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, out_texture.width, out_texture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			GLenum format = GL_RGB;
+			if (out_texture.number_of_channels == 1)
+			{
+				format = GL_RED;
+			}
+			else if (out_texture.number_of_channels == 3)
+			{
+				format = GL_RGB;
+			}
+			else if (out_texture.number_of_channels == 4)
+			{
+				format = GL_RGBA;
+			}
+
+			glBindTexture(GL_TEXTURE_2D, out_texture.id);
+			glTexImage2D(GL_TEXTURE_2D, 0, format, out_texture.width, out_texture.height, 0, format, GL_UNSIGNED_BYTE, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			stbi_image_free(data);
 		}
 		else
 		{
 			AS_LOG(LV_WARNING, "Cannot load texture [" + path_string + "]");
+			stbi_image_free(data);
 			return false;
 		}
-		stbi_image_free(data);
 		return true;
 	}
 	AS_LOG(LV_WARNING, "Cannot load texture, nullptr");
@@ -227,7 +244,7 @@ bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<
 {
 	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
 
-	if (!vertices.empty() || !indices.empty())
+	if (vertices.empty() || indices.empty())
 	{
 		AS_LOG(LV_WARNING, "Cannot create mesh, both vertices and indices have to be > 0");
 		return false;
@@ -285,6 +302,7 @@ bool as::assign_shader(as::shader& shader, as::mesh& mesh)
 {
 	AS_LOG(LV_LOG, "Assigning shader to mesh");
 	mesh.shader_ptr = &shader;
+	return true;
 }
 
 bool as::draw(as::mesh& mesh)
@@ -307,23 +325,108 @@ bool as::draw(as::mesh& mesh)
 	return check_gl_error();
 }
 
-bool as::delete_mesh_data(as::mesh* mesh)
+bool as::delete_mesh_data(as::mesh& mesh)
 {
-	if (mesh)
-	{
-		AS_LOG(LV_LOG, "Deleting object data");
-		glDeleteBuffers(1, &mesh->VBO);
-		glDeleteBuffers(1, &mesh->EBO);
-		glDeleteVertexArrays(1, &mesh->VAO);
-	}
-	else
-	{
-		AS_LOG(LV_WARNING, "Cannot delete object data, nullptr");
-	}
+	AS_LOG(LV_LOG, "Deleting object data");
+	glDeleteBuffers(1, &mesh.VBO);
+	glDeleteBuffers(1, &mesh.EBO);
+	glDeleteVertexArrays(1, &mesh.VAO);
 	return check_gl_error();
 }
 
-bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> out_meshes)
+bool load_material_textures(aiMaterial* material, aiTextureType type, const char* type_name, std::vector<as::texture>& out_textures)
+{
+	for (u32 i = 0; i < material->GetTextureCount(type); i++)
+	{
+		aiString str;
+		material->GetTexture(type, i, &str);
+		// check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
+		bool skip = false;
+		for (u32 j = 0; j < out_textures.size(); j++)
+		{
+			if (std::strcmp(out_textures[j].path, str.C_Str()) == 0)
+			{
+				skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+				break;
+			}
+		}
+		if (!skip)
+		{   // if texture hasn't been loaded already, load it
+			as::texture texture;
+			texture.id = i;
+			memcpy(texture.uniform_name, type_name, sizeof(type_name));
+			if (as::load_texture(str.C_Str(), texture))
+			{
+				out_textures.push_back(texture);
+			}
+		}
+	}
+	return true;
+}
+
+bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh& out_mesh, std::vector<as::texture>& out_textures)
+{
+	std::vector<as::vertex> vertices;
+	std::vector<u32> indices;
+
+	// walk through each of the mesh's vertices
+	for (u32 i = 0; i < mesh->mNumVertices; i++)
+	{
+		as::vertex vertex;
+
+		// positions
+		vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+
+		// normals
+		if (mesh->HasNormals())
+		{
+			vertex.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+		}
+		// texture coordinates
+		if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+		{
+			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
+			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
+			vertex.tex_coords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+			// tangent
+			vertex.tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+			// bitangent
+			vertex.bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+		}
+		else
+		{
+			vertex.tex_coords = glm::vec2(0.0f, 0.0f);
+		}
+
+		vertices.push_back(vertex);
+	}
+	// now walk through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
+	for (u32 i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		// retrieve all indices of the face and store them in the indices vector
+		for (u32 j = 0; j < face.mNumIndices; j++)
+		{
+			indices.push_back(face.mIndices[j]);
+		}
+	}
+
+	// process materials
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+	
+	// 1. diffuse maps
+	load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse", out_textures);
+	// 2. specular maps
+	load_material_textures(material, aiTextureType_SPECULAR, "texture_specular", out_textures);
+	// 3. normal maps
+	load_material_textures(material, aiTextureType_HEIGHT, "texture_normal", out_textures);
+	// 4. height maps
+	load_material_textures(material, aiTextureType_AMBIENT, "texture_height", out_textures);
+
+	return as::create_mesh(vertices, indices, out_mesh);
+}
+
+bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh>& out_meshes, std::vector<as::texture>& out_textures)
 {
 	if (node)
 	{
@@ -334,7 +437,7 @@ bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> out_
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			as::mesh processed_mesh;
-			if (process_mesh(mesh, scene, processed_mesh))
+			if (process_mesh(mesh, scene, processed_mesh, out_textures))
 			{
 				out_meshes.push_back(processed_mesh);
 			}
@@ -342,63 +445,27 @@ bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> out_
 		// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 		for (u32 i = 0; i < node->mNumChildren; i++)
 		{
-			process_node(scene, node->mChildren[i], out_meshes);
+			process_node(scene, node->mChildren[i], out_meshes, out_textures);
 		}
+		return true;
 	}
+	return false;
 };
 
-bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh& out_mesh)
+void as::load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures)
 {
-	std::vector<as::vertex> vertices;
-	std::vector<u32> indices;
-	std::vector<as::texture> textures;
-
-	for (u32 i = 0; i < mesh->mNumVertices; i++)
-	{
-		as::vertex vertex;
-		// process vertex positions, normals and texture coordinates
-		
-		out_mesh.vertices.push_back(vertex);
-	}
-	// process indices
-	
-	// process material
-	if (mesh->mMaterialIndex >= 0)
-	{
-		
-	}
-	return true;
-}
-
-bool load_material_textures(aiMaterial* material, aiTextureType type, std::string type_name, std::vector<as::texture>)
-{
-	std::vector<as::texture> textures;
-	for (unsigned int i = 0; i < material->GetTextureCount(type); i++)
-	{
-		aiString str;
-		mat->GetTexture(type, i, &str);
-		Texture texture;
-		texture.id = TextureFromFile(str.C_Str(), directory);
-		texture.type = typeName;
-		texture.path = str;
-		textures.push_back(texture);
-	}
-	return textures;
-}
-
-void as::load_model(const char* path, as::model& out_model)
-{
+	std::string full_path = as::util::get_current_path() + "/../" + std::string(path);
+	AS_LOG(LV_LOG, "Loading model [" + full_path + "]");
 	Assimp::Importer import;
-	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+	const aiScene* scene = import.ReadFile(full_path, aiProcess_Triangulate | aiProcess_FlipUVs);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
 		AS_LOG(LV_WARNING, import.GetErrorString());
 		return;
 	}
-	memcpy(out_model.path, path, sizeof(path));
-
-	process_node(scene, scene->mRootNode);
+	strcpy(out_model.path, full_path.c_str());
+	process_node(scene, scene->mRootNode, out_model.meshes, out_textures);
 }
 
 bool as::draw(as::model& model)
@@ -412,6 +479,15 @@ bool as::draw(as::model& model)
 			glUseProgram(current_shader_program);
 		}
 		draw(mesh);
+	}
+	return check_gl_error();
+}
+
+bool as::delete_model_data(as::model& model)
+{
+	for (as::mesh& current_mesh : model.meshes)
+	{
+		delete_mesh_data(current_mesh);
 	}
 	return check_gl_error();
 }
