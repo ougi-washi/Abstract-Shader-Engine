@@ -223,31 +223,21 @@ bool as::load_texture(const char* path, texture& out_texture)
 	return false;
 }
 
-bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u32* indices, const u32& indices_count, mesh& out_mesh)
+bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
 {
-	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices_count)+ "] vertices, and [" + std::to_string(indices_count)+ "] indices");
+	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
 
-	if (!vertices || !indices)
+	if (!vertices.empty() || !indices.empty())
 	{
-		AS_LOG(LV_WARNING, "Cannot create mesh, vertices or/and indices are nullptr");
+		AS_LOG(LV_WARNING, "Cannot create mesh, both vertices and indices have to be > 0");
 		return false;
 	}
 
-	out_mesh.vertices_count = vertices_count;
-	i64 vertices_size = sizeof(as::vertex) * vertices_count;
-	out_mesh.vertices = (as::vertex*)malloc(vertices_size);
-	if (out_mesh.vertices)
-	{
-		memcpy(out_mesh.vertices, vertices, vertices_size);
-	}
+	i64 vertices_size = sizeof(as::vertex) * vertices.size();
+	out_mesh.vertices = vertices;
 
-	out_mesh.indices_count = indices_count;
-	i64 indices_size = sizeof(u32) * indices_count;
-	out_mesh.indices = (u32*)malloc(indices_size);
-	if (out_mesh.indices)
-	{
-		memcpy(out_mesh.indices, indices, indices_size);
-	}
+	i64 indices_size = sizeof(u32) * indices.size();
+	out_mesh.indices = indices;
 
 	// create buffers/arrays
 	glGenVertexArrays(1, &out_mesh.VAO);
@@ -257,9 +247,9 @@ bool as::create_mesh(const vertex* vertices, const u32& vertices_count, const u3
 	// bind and set buffer
 	glBindVertexArray(out_mesh.VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, out_mesh.VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices_size, &vertices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_mesh.EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, &indices[0], GL_STATIC_DRAW);
 
 	// set the vertex attribute pointers
 	// vertex Positions
@@ -303,7 +293,7 @@ bool as::draw(as::mesh& mesh)
 	{
 		as::bind_uniforms(*mesh.shader_ptr);
 		glBindVertexArray(mesh.VAO);
-		glDrawElements(GL_TRIANGLES, static_cast<u32>(mesh.indices_count), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, static_cast<u32>(mesh.indices.size()), GL_UNSIGNED_INT, 0);
 
 		// reset
 		glBindVertexArray(0);
@@ -322,10 +312,6 @@ bool as::delete_mesh_data(as::mesh* mesh)
 	if (mesh)
 	{
 		AS_LOG(LV_LOG, "Deleting object data");
-		free(mesh->vertices);
-		mesh->vertices = nullptr;
-		free(mesh->indices);
-		mesh->indices = nullptr;
 		glDeleteBuffers(1, &mesh->VBO);
 		glDeleteBuffers(1, &mesh->EBO);
 		glDeleteVertexArrays(1, &mesh->VAO);
@@ -337,38 +323,67 @@ bool as::delete_mesh_data(as::mesh* mesh)
 	return check_gl_error();
 }
 
-bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> mesh)
+bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh> out_meshes)
 {
 	if (node)
 	{
 		// process each mesh located at the current node
-		for (unsigned int i = 0; i < node->mNumMeshes; i++)
+		for (u32 i = 0; i < node->mNumMeshes; i++)
 		{
 			// the node object only contains indices to index the actual objects in the scene. 
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			as::mesh out_mesh;
-			if (process_mesh(mesh, scene, out_mesh))
+			as::mesh processed_mesh;
+			if (process_mesh(mesh, scene, processed_mesh))
 			{
-				meshes.push_back(out_mesh);
+				out_meshes.push_back(processed_mesh);
 			}
 		}
 		// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
-		for (unsigned int i = 0; i < node->mNumChildren; i++)
+		for (u32 i = 0; i < node->mNumChildren; i++)
 		{
-			process_node(scene, node->mChildren[i]);
+			process_node(scene, node->mChildren[i], out_meshes);
 		}
 	}
 };
 
 bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh& out_mesh)
 {
+	std::vector<as::vertex> vertices;
+	std::vector<u32> indices;
+	std::vector<as::texture> textures;
+
+	for (u32 i = 0; i < mesh->mNumVertices; i++)
+	{
+		as::vertex vertex;
+		// process vertex positions, normals and texture coordinates
+		
+		out_mesh.vertices.push_back(vertex);
+	}
+	// process indices
 	
+	// process material
+	if (mesh->mMaterialIndex >= 0)
+	{
+		
+	}
+	return true;
 }
 
 bool load_material_textures(aiMaterial* material, aiTextureType type, std::string type_name, std::vector<as::texture>)
 {
-	
+	std::vector<as::texture> textures;
+	for (unsigned int i = 0; i < material->GetTextureCount(type); i++)
+	{
+		aiString str;
+		mat->GetTexture(type, i, &str);
+		Texture texture;
+		texture.id = TextureFromFile(str.C_Str(), directory);
+		texture.type = typeName;
+		texture.path = str;
+		textures.push_back(texture);
+	}
+	return textures;
 }
 
 void as::load_model(const char* path, as::model& out_model)

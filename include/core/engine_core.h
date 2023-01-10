@@ -33,8 +33,8 @@ namespace as
 	bool load_texture(const char* path, as::texture& out_texture);
 
 	// meshes
-	bool create_mesh(const as::vertex* vertices, const u32& vertices_count, const u32* indices, const u32& indices_count, as::mesh& out_mesh);
-	bool assign_shader(as::shader& shader, as::mesh& mesh);
+	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh);
+	bool assign_shader(as::shader& shader, as::mesh& out_meshes);
 	bool draw(as::mesh& mesh);
 	bool delete_mesh_data(as::mesh* mesh);
 

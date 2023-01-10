@@ -66,10 +66,8 @@ namespace as
 	struct mesh
 	{
 		// model
-		vertex* vertices = nullptr;
-		u32 vertices_count = 0;
-		u32* indices = nullptr;
-		u32 indices_count = 0;
+		std::vector<vertex> vertices;
+		std::vector<u32> indices;
 
 		// shader
 		as::shader* shader_ptr = nullptr;
