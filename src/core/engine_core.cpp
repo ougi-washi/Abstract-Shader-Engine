@@ -179,13 +179,10 @@ void as::bind_uniforms(const as::shader& shader)
 {
 	for (u16 i = 0 ; i < shader.textures.size() ; i++)
 	{
-		if (shader.textures[i])
-		{
-			glActiveTexture(GL_TEXTURE0 + i);
-			set_uniform_integer(shader.shader_program, shader.textures[i]->uniform_name, i);
-			glBindTexture(GL_TEXTURE_2D, shader.textures[i]->id);
-			check_gl_error();
-		}
+		glActiveTexture(GL_TEXTURE0 + i);
+		set_uniform_integer(shader.shader_program, shader.textures[i].uniform_name, i);
+		glBindTexture(GL_TEXTURE_2D, shader.textures[i].id);
+		check_gl_error();
 	}
 }
 
@@ -238,6 +235,14 @@ bool as::load_texture(const char* path, as::texture& out_texture)
 	}
 	AS_LOG(LV_WARNING, "Cannot load texture, nullptr");
 	return false;
+}
+
+void as::add_textures_to_shader(const std::vector<as::texture>& textures, as::shader& shader)
+{
+	for (as::texture current_texture : textures)
+	{
+		shader.textures.push_back(current_texture);
+	}
 }
 
 bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
@@ -388,18 +393,33 @@ bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh& out_mesh, std::v
 			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
 			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
 			vertex.tex_coords = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-			// tangent
-			vertex.tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-			// bitangent
-			vertex.bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
 		}
 		else
 		{
 			vertex.tex_coords = glm::vec2(0.0f, 0.0f);
 		}
+		// tangent
+		if (mesh->mTangents)
+		{
+			vertex.tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+		}
+		else
+		{
+			vertex.tangent = glm::vec3(.0f);
+		}
+		// bitangent
+		if (mesh->mBitangents)
+		{
+			vertex.bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+		}
+		else
+		{
+			vertex.bitangent = glm::vec3(.0f);
+		}
 
 		vertices.push_back(vertex);
 	}
+
 	// now walk through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
 	for (u32 i = 0; i < mesh->mNumFaces; i++)
 	{

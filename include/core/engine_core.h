@@ -31,6 +31,7 @@ namespace as
 
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
+	void add_textures_to_shader(const std::vector<as::texture>& textures, as::shader& shader);
 
 	// meshes
 	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh);

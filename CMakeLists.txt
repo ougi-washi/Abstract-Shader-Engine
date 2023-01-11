@@ -34,7 +34,7 @@ add_subdirectory(${LIB_DIR}/glfw)
 message(STATUS "Adding GLM library")
 add_subdirectory(${LIB_DIR}/glm)
 
-# GLM
+# ASSIMP
 message(STATUS "Adding ASSIMP library")
 add_subdirectory(${LIB_DIR}/assimp)
 

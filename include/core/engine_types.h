@@ -46,7 +46,7 @@ namespace as
 		i32 vertex_shader;
 		i32 fragment_shader;
 		std::vector<as::uniform> uniforms; // to change from vector
-		std::vector<as::texture*> textures; // to change from vector
+		std::vector<as::texture> textures; // to change from vector (this can be changed to an array of pointers later if needed.
 
 		// internal
 		u32 shader_program = 0;

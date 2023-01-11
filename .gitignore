@@ -74,3 +74,6 @@ CMakeFiles/
 /lib/glfw/src/glfw3Config.cmake
 JSON/*
 CMakeSettings.json
+
+#ignore resources
+!**/resources/models/*.obj
