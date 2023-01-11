@@ -4,3 +4,6 @@
 [submodule "lib/assimp"]
 	path = lib/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "lib/nuklear"]
+	path = lib/nuklear
+	url = https://github.com/vurtun/nuklear.git
