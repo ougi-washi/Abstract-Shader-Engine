@@ -14,3 +14,7 @@ This project is developed with a set of rules in mind:
 
 ## Requirements
 - [CMake](https://cmake.org/download/)
+
+## Building
+- This project has submodule dependencies, so make sure to use `git clone --recursive`
+- Build normally with `cmake`
