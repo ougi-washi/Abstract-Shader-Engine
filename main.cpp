@@ -21,26 +21,23 @@ i32 main()
 	//as::load_texture("resources/textures/container.jpg", texture);
 	//strcpy(texture.uniform_name, "uniform_texture");
 
-	//as::texture texture1;
-	//as::load_texture("resources/textures/viking_room.png", texture1);
-	//strcpy(texture1.uniform_name, "uniform_texture1");
+	as::texture texture;
+	as::load_texture("resources/textures/viking_room.png", texture);
+	strcpy(texture.uniform_name, "uniform_texture");
 
-	//shader.textures.push_back(&texture);
-	//shader.textures.push_back(&texture1);
-
+	as::add_textures_to_shader({texture}, shader);
+	
 	as::object object;
 	as::model testing_model;
 	std::vector<as::texture> testing_textures;
-	load_model("resources/models/dragon.obj", testing_model, testing_textures);
-	add_textures_to_shader(testing_textures, shader);
+	load_model("resources/models/viking_room.obj", testing_model, testing_textures);
 
-	//as::create_mesh(vertices, sizeof(vertices), indices, sizeof(indices), VAO, triangle);
 	for (u32 i = 0 ; i < testing_model.meshes.size() ; i++)
 	{
 		as::assign_shader(shader, testing_model.meshes[i]);
 	}
-	as::set_uniform_integer(shader_program, "uniform_texture", 0);
-	as::set_uniform_integer(shader_program, "uniform_texture1", 1);
+	//as::set_uniform_integer(shader_program, "uniform_texture", 0);
+	//as::set_uniform_integer(shader_program, "uniform_texture1", 1);
 
 	object.models.push_back(&testing_model);
 
@@ -60,7 +57,10 @@ i32 main()
 		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 view = as::get_matrix_view(camera);
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f), as::get_display_ratio(display_handle), 0.1f, 100.0f);
-		model = glm::rotate(model, (f32)as::timer::get_current_time(timer_handle) * 20.f * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+		//model = glm::rotate(model, glm::radians(120.f), glm::vec3(0.f, 1.f, 0.f));
+		model = glm::rotate(model, glm::radians(180.f), glm::vec3(1.f, 0.f, 0.f));
+		model = glm::rotate(model, glm::radians(-40.f), glm::vec3(0., 1.f, 0.f));
+		model = glm::rotate(model, (f32)as::timer::get_current_time(timer_handle) * glm::radians(30.f), glm::vec3(0.f, 0.f, 1.f));
 		// pass transformation matrices to the shader
 		as::set_uniform_mat4(shader_program, "projection", projection); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
 		as::set_uniform_mat4(shader_program, "view", view);

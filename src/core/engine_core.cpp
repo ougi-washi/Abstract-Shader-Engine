@@ -239,7 +239,7 @@ bool as::load_texture(const char* path, as::texture& out_texture)
 
 void as::add_textures_to_shader(const std::vector<as::texture>& textures, as::shader& shader)
 {
-	for (as::texture current_texture : textures)
+	for (const as::texture& current_texture : textures)
 	{
 		shader.textures.push_back(current_texture);
 	}
