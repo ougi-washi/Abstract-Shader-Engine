@@ -26,29 +26,29 @@ namespace as
 	void set_uniform_mat4(const u32& shader_program, const char* name, const glm::mat4& value);
 	void bind_uniforms(const as::shader& shader);
 
-	// objects
-	
-
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
 	void add_textures_to_shader(const std::vector<as::texture>& textures, as::shader& shader);
 
 	// meshes
 	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh);
-	bool assign_shader(as::shader& shader, as::mesh& out_meshes);
-	bool draw(as::mesh& mesh);
+	bool assign_shader(as::shader& shader, as::mesh& out_meshe);
+	bool assign_shader(as::shader& shader, std::vector<as::mesh>& out_meshes);
+	bool draw(const as::mesh& mesh);
 	bool delete_mesh_data(as::mesh& mesh);
 
 	// models
 	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
-	bool draw(as::model& model);
+	bool draw(const as::model& model, const as::camera& camera);
 	bool delete_model_data(as::model& model);
 
 	// render
 	void clear_background();
-	bool draw(const std::vector<as::object>& objects);
+	bool draw(const std::vector<as::model>& models, const as::camera& camera);
+	void update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform);
 
 	// camera
 	glm::mat4 get_matrix_view(const as::camera& camera);
+	glm::mat4 get_matrix_projection(const as::camera& camera);
 	void update_camera_vectors(as::camera& camera);
 };

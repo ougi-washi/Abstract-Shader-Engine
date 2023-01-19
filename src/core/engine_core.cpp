@@ -310,7 +310,16 @@ bool as::assign_shader(as::shader& shader, as::mesh& mesh)
 	return true;
 }
 
-bool as::draw(as::mesh& mesh)
+bool as::assign_shader(as::shader& shader, std::vector<as::mesh>& out_meshes)
+{
+	for (u32 i = 0; i < out_meshes.size(); i++)
+	{
+		as::assign_shader(shader, out_meshes[i]);
+	}
+	return true;
+}
+
+bool as::draw(const as::mesh& mesh)
 {
 	if (mesh.shader_ptr)
 	{
@@ -488,17 +497,24 @@ void as::load_model(const char* path, as::model& out_model, std::vector<as::text
 	process_node(scene, scene->mRootNode, out_model.meshes, out_textures);
 }
 
-bool as::draw(as::model& model)
+bool as::draw(const as::model& model, const as::camera& camera)
 {
-	u32 current_shader_program = 1;
-	for (as::mesh& mesh : model.meshes)
+	if (!model.meshes.empty() && model.meshes[0].shader_ptr)
 	{
-		if (mesh.shader_ptr && mesh.shader_ptr->shader_program != current_shader_program)
+		u32 current_shader_program = model.meshes[0].shader_ptr->shader_program;
+		update_draw_uniforms(current_shader_program, camera, model.transform);
+
+		for (const as::mesh& mesh : model.meshes)
 		{
-			current_shader_program = mesh.shader_ptr->shader_program; 
-			glUseProgram(current_shader_program);
+			if (mesh.shader_ptr && mesh.shader_ptr->shader_program != current_shader_program)
+			{
+				current_shader_program = mesh.shader_ptr->shader_program; 
+				glUseProgram(current_shader_program);
+				update_draw_uniforms(current_shader_program, camera, model.transform); // update again in case shader program changed
+			}
+
+			draw(mesh);
 		}
-		draw(mesh);
 	}
 	return check_gl_error();
 }
@@ -518,27 +534,34 @@ void as::clear_background()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-bool as::draw(const std::vector<as::object>& objects)
+bool as::draw(const std::vector<as::model>& models, const as::camera& camera)
 {
-	for (const as::object& current_object : objects)
+	for (const as::model& current_model : models)
 	{
-		for (as::model* current_model : current_object.models)
+		
+		for (const as::mesh& mesh : current_model.meshes)
 		{
-			if (current_model)
-			{
-				for (as::mesh& mesh : current_model->meshes)
-				{
-					draw(mesh);
-				}
-			}
+			draw(mesh);
 		}
 	}
 	return check_gl_error();
 }
 
+void as::update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform)
+{
+	as::set_uniform_mat4(shader_program, "projection", as::get_matrix_projection(camera)); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+	as::set_uniform_mat4(shader_program, "view", as::get_matrix_view(camera));
+	as::set_uniform_mat4(shader_program, "model", model_transform);
+}
+
 glm::mat4 as::get_matrix_view(const as::camera& camera)
 {
 	return glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+}
+
+glm::mat4 as::get_matrix_projection(const as::camera& camera)
+{
+	return glm::perspective(camera.fov, camera.aspect_ratio, camera.near_plane, camera.far_plane);
 }
 
 void as::update_camera_vectors(as::camera& camera)

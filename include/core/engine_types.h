@@ -73,20 +73,16 @@ namespace as
 		as::shader* shader_ptr = nullptr;
 
 		// rendering
-		u32 VBO; // Vertex Buffer Object
-		u32 EBO; // Element Buffer Object
-		u32 VAO; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
+		u32 VBO = 0; // Vertex Buffer Object
+		u32 EBO = 0; // Element Buffer Object
+		u32 VAO = 0; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
 	};
 
 	struct model
 	{
 		char path[500] = "";
 		std::vector<as::mesh> meshes;
-	};
-
-	struct object
-	{
-		std::vector<as::model*> models;
+		glm::mat4 transform = glm::mat4(1.f);
 	};
 	
 	struct camera
@@ -102,9 +98,14 @@ namespace as
 		glm::vec3 rotation; // X : roll // Y : pitch // Z : yaw
 
 		// camera options
-		f32 movement_speed;
-		f32 mouse_sensitivity;
+		f32 movement_speed = 1.f;
+		f32 mouse_sensitivity = 1.f;
 		f32 zoom;
+		f32 zoom_speed = 1.f;
+		f32 fov = glm::radians(45.f);
+		f32 near_plane = .1f;
+		f32 far_plane = 100.f;
+		f32 aspect_ratio = 1.3f;
 	};
 
 	namespace timer
