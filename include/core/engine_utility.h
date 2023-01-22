@@ -7,6 +7,9 @@
 #include <filesystem>
 #include <vector>
 
+#include "json/json.hpp"
+using json = nlohmann::json;
+
 namespace as
 {
 	namespace util
@@ -21,7 +24,8 @@ namespace as
 		i32 does_dir_exist(const char* path);
 		bool does_file_exist(const std::string& path);
 		void replace_char(std::string & string_to_update, const char& source, const char& target);
-		std::vector<char> read_file(const std::string& filename);
+		std::string read_file(const std::string& filename);
+		json read_json_file(const std::string& path);
 		char* read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
 	};

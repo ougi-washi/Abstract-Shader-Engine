@@ -154,24 +154,30 @@ void as::util::replace_char(std::string& string_to_update, const char& source, c
 	}
 }
 
-std::vector<char> as::util::read_file(const std::string& filename)
+std::string as::util::read_file(const std::string& filename)
 {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
-	std::vector<char> buffer;
+	std::string result_buffer;
 
 	if (file.is_open()) 
 	{
 		size_t file_size = (size_t)file.tellg();
-		buffer.resize(file_size);
+		result_buffer.resize(file_size);
 		file.seekg(0);
-		file.read(buffer.data(), file_size);
+		file.read(result_buffer.data(), file_size);
 		file.close();
 	}
 	else
 	{
 		AS_LOG(LV_WARNING, "File [" + filename + "] failed to open");
 	}
-	return buffer;
+	return result_buffer;
+}
+
+json as::util::read_json_file(const std::string& path)
+{
+	std::string json_string = read_file(path);
+	return json::parse(json_string);
 }
 
 char* as::util::read_file(const char* filename)

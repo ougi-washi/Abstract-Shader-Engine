@@ -11,5 +11,6 @@ uniform sampler2D uniform_texture1;
 void main()
 {
 //    out_frag_color = mix(texture(uniform_texture, tex_coord), texture(uniform_texture1, tex_coord), .5f);
-	out_frag_color = texture(uniform_texture, tex_coord);
+//	out_frag_color = texture(uniform_texture, tex_coord);
+	out_frag_color = vec4(1.f);
 }

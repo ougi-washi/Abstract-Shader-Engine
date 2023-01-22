@@ -1,0 +1,9 @@
+{
+  "type": "shader",
+  "vertex_path": "resources/shaders/default_vertex_shader.glsl",
+  "fragment_path": "resources/shaders/default_fragment_shader.glsl",
+  "textures": [
+    "resources/objects/viking_room_texture.json"
+  ],
+  "absolute_path": false
+}

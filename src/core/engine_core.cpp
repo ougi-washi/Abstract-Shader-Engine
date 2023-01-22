@@ -245,6 +245,11 @@ void as::add_textures_to_shader(const std::vector<as::texture>& textures, as::sh
 	}
 }
 
+void as::add_texture_to_shader(const as::texture& textures, shader& shader)
+{
+	shader.textures.push_back(textures);
+}
+
 bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
 {
 	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
@@ -306,7 +311,8 @@ bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<
 bool as::assign_shader(as::shader& shader, as::mesh& mesh)
 {
 	AS_LOG(LV_LOG, "Assigning shader to mesh");
-	mesh.shader_ptr = &shader;
+	mesh.shader_ptr = (as::shader*)malloc(sizeof(as::shader));
+	memcpy(mesh.shader_ptr, &shader, sizeof(as::shader));
 	return true;
 }
 
@@ -345,6 +351,7 @@ bool as::delete_mesh_data(as::mesh& mesh)
 	glDeleteBuffers(1, &mesh.VBO);
 	glDeleteBuffers(1, &mesh.EBO);
 	glDeleteVertexArrays(1, &mesh.VAO);
+	//free(mesh.shader_ptr) (UNSURE IF WE SHALL FREE IT AS IT CAN BE USED SOMEWHERE ELSE)
 	return check_gl_error();
 }
 
