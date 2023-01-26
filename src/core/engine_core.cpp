@@ -103,6 +103,25 @@ bool as::bind_shaders_to_program(const u32& shader_program, as::shader& shader_t
 	return check_gl_error();
 }
 
+bool as::deep_copy_shader(const as::shader* source, as::shader*& destination)
+{
+	if (source && destination)
+	{
+		memcpy(destination, source, sizeof(as::shader));
+		destination->textures = source->textures;
+		destination->uniforms = source->uniforms;
+		return true;
+	}
+	AS_LOG(LV_ERROR, "Cannot deep copy shader, nullptr");
+	return false;
+}
+
+bool as::deep_copy_shader(const as::shader* source, void*& destination)
+{
+	as::shader* destination_shader = static_cast<as::shader*>(destination);
+	return as::deep_copy_shader(source, destination_shader);
+}
+
 void as::delete_shader(const as::shader& shader)
 {
 	AS_LOG(LV_LOG, "Deleting shader");
@@ -250,6 +269,23 @@ void as::add_texture_to_shader(const as::texture& textures, shader& shader)
 	shader.textures.push_back(textures);
 }
 
+bool as::deep_copy_texture(const as::texture* source, as::texture*& destination)
+{
+	if (source && destination)
+	{
+		memcpy(destination, source, sizeof(as::texture));
+		return true;
+	}
+	AS_LOG(LV_ERROR, "Cannot deep copy texture, nullptr");
+	return false;
+}
+
+bool as::deep_copy_texture(const as::texture* source, void*& destination)
+{
+	as::texture* destination_texture = static_cast<as::texture*>(destination);
+	return deep_copy_texture(source, destination_texture);
+}
+
 bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
 {
 	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
@@ -343,6 +379,25 @@ bool as::draw(const as::mesh& mesh)
 		return false;
 	}
 	return check_gl_error();
+}
+
+bool as::deep_copy_mesh(const as::mesh* source, as::mesh*& destination)
+{
+	if (source && destination)
+	{
+		memcpy(destination, source, sizeof(as::mesh));
+		destination->indices = source->indices;
+		destination->vertices = source->vertices;
+		return true;
+	}
+	AS_LOG(LV_ERROR, "Cannot deep copy mesh, nullptr");
+	return false;
+}
+
+bool as::deep_copy_mesh(const as::mesh* source, void*& destination)
+{
+	as::mesh* destination_mesh = static_cast<as::mesh*>(destination);
+	return deep_copy_mesh(source, destination_mesh);
 }
 
 bool as::delete_mesh_data(as::mesh& mesh)
@@ -524,6 +579,34 @@ bool as::draw(const as::model& model, const as::camera& camera)
 		}
 	}
 	return check_gl_error();
+}
+
+bool as::deep_copy_model(const as::model& source, as::model& destination)
+{
+	if (&source && &destination)
+	{
+		memcpy(&destination, &source, sizeof(as::model));
+		destination.meshes.resize(source.meshes.size());
+		for (u16 i = 0; i < source.meshes.size(); i++)
+		{
+			memcpy(&destination.meshes[i], &source.meshes[i], sizeof(as::mesh));
+		}
+		return true;
+	}
+	AS_LOG(LV_ERROR, "Cannot deep copy shader, nullptr");
+	return false;
+}
+
+bool as::deep_copy_model(const as::model& source, void* destination)
+{
+	as::model* destination_model = (as::model*)destination;
+	if (destination_model)
+	{
+		strcpy(destination_model->path, "");
+		destination_model->meshes.clear();
+		destination_model->transform = glm::mat4(1.f);
+		return as::deep_copy_model(source, *destination_model);
+	}
 }
 
 bool as::delete_model_data(as::model& model)

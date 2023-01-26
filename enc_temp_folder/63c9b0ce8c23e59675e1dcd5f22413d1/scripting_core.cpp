@@ -98,8 +98,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			out_entity.data_ptr = malloc(sizeof(as::model));
 			as::deep_copy_model(out_model, out_entity.data_ptr);
 			as::model* test_model = (as::model*)out_entity.data_ptr;
-
-			// TODO: BUG FIX : in here the data_ptr get overridden for a local variable reason in this scope maybe. (99% vector related)
+			//memcpy(out_entity.data_ptr, &out_model, sizeof(as::model));
 		}
 		if (out_entity.type == variable_type::SHADER)
 		{

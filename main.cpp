@@ -17,10 +17,13 @@ i32 main()
 
 	//as::shader shader;
 	//as::create_shader_from_files("resources/shaders/default_vertex_shader.glsl", "resources/shaders/default_fragment_shader.glsl", shader);
-	as::model testing_model = *static_cast<as::model*>(entity.data_ptr); // issue with the mesh data being null (copying problem)
-
-
-
+	//as::model testing_model = *static_cast<as::model*>(entity.data_ptr); // issue with the mesh data being null (copying problem)
+	as::model testing_model;
+	as::model source_model;
+	source_model.meshes.resize(1);
+	source_model = *(as::model*)entity.data_ptr;
+	as::deep_copy_model(source_model, testing_model);
+	
 	//as::texture texture;
 	//as::load_texture("resources/textures/viking_room.png", texture);
 	//strcpy(texture.uniform_name, "uniform_texture");
