@@ -1,5 +1,4 @@
 #include "scripting/scripting_core.h"
-#include "engine_core.h"
 #include "engine_utility.h"
 
 std::string as::script::variable_enum_to_string(const variable_type& in_type) 
@@ -70,7 +69,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			else
 			{
 				AS_LOG(LV_WARNING, "Model json file does not have path");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
 			if (json_data.contains("shaders"))
@@ -92,18 +91,13 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			else
 			{
 				AS_LOG(LV_WARNING, "Model json file does not have shaders");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
-			out_entity.data_ptr = malloc(sizeof(as::model));
-			as::deep_copy_model(out_model, out_entity.data_ptr);
-			as::model* test_model = (as::model*)out_entity.data_ptr;
-
-			// TODO: BUG FIX : in here the data_ptr get overridden for a local variable reason in this scope maybe. (99% vector related)
+			out_entity.data_ptr = new as::model(out_model);
 		}
 		if (out_entity.type == variable_type::SHADER)
 		{
-			out_entity.data_ptr = malloc(sizeof(as::shader));
 			as::shader out_shader;
 			std::string vertex_path;
 			std::string fragment_path;
@@ -114,7 +108,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			else
 			{
 				AS_LOG(LV_WARNING, "Shader json file does not have vertex shader");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
 			if (json_data.contains("fragment_path"))
@@ -124,7 +118,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			else
 			{
 				AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
 			if (json_data.contains("textures"))
@@ -148,19 +142,17 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 				u32 shader_program;
 				as::create_shader_program(shader_program);
 				as::bind_shaders_to_program(shader_program, out_shader);
-				//memcpy(out_entity.data_ptr, &out_shader, sizeof(as::shader));
-				as::deep_copy_shader(&out_shader, out_entity.data_ptr);
+				out_entity.data_ptr = new as::shader(out_shader);
 			}
 			else
 			{
 				AS_LOG(LV_WARNING, "Could not create the shader");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
 		}
 		if (out_entity.type == variable_type::TEXTURE)
 		{
-			out_entity.data_ptr = malloc(sizeof(as::texture));
 			if (json_data.contains("path"))
 			{
 				std::string texture_path = json_data["path"].get<std::string>();
@@ -174,19 +166,20 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 				{
 					//out_entity.data_ptr = &out_texture;
 					//memcpy(out_entity.data_ptr, &out_texture, sizeof(as::texture));
-					deep_copy_texture(&out_texture, out_entity.data_ptr);
+					out_entity.data_ptr = new as::texture(out_texture);
+					//deep_copy_texture(&out_texture, out_entity.data_ptr);
 				}
 				else
 				{
 					AS_LOG(LV_WARNING, "Could not load the texture");
-					script::clean(out_entity);
+					script::delete_entity_data(out_entity);
 					return false;
 				}
 			}
 			else
 			{
 				AS_LOG(LV_WARNING, "Texture json file does not have path");
-				script::clean(out_entity);
+				script::delete_entity_data(out_entity);
 				return false;
 			}
 		}
@@ -194,13 +187,53 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 	return true;
 }
 
-void as::script::clean(as::script::entity& entity)
+void as::script::delete_entity_data(as::script::entity& entity)
 {
 	for (as::script::entity& sub_entity : entity.sub_entities)
 	{
-		clean(sub_entity);
+		delete_entity_data(sub_entity);
 	}
 
-	free(entity.data_ptr);
-	free(entity.fn_ptr);
+	as::model model;
+	if (as::script::get_model_from_entity(entity, model))
+	{
+		as::delete_model_data(model);
+	}
+
+	delete(entity.data_ptr);
+	delete(entity.fn_ptr);
+}
+
+bool as::script::get_model_from_entity(const as::script::entity& entity, as::model& out_model)
+{
+	if (entity.type == as::script::MODEL)
+	{
+		if (entity.data_ptr)
+		{
+			out_model = *static_cast<as::model*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
+		}
+	}
+	else
+	{
+		AS_LOG(LV_ERROR, "Cannot get model from entity, type is not model");
+	}
+	return false;
+}
+
+bool as::script::draw(const std::vector<as::script::entity>& entities, const as::camera& camera)
+{
+	for (const as::script::entity& current_entity : entities)
+	{
+		as::model current_model;
+		if (as::script::get_model_from_entity(current_entity, current_model))
+		{
+			as::draw(current_model, camera);
+		}
+	}
+	return true;
 }

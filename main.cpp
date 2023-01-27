@@ -14,28 +14,6 @@ i32 main()
 	as::script::entity entity;
 	as::script::parse_file("resources/objects/viking_room_model.json", false, entity);
 
-
-	//as::shader shader;
-	//as::create_shader_from_files("resources/shaders/default_vertex_shader.glsl", "resources/shaders/default_fragment_shader.glsl", shader);
-	//as::model testing_model = *static_cast<as::model*>(entity.data_ptr); // issue with the mesh data being null (copying problem)
-	as::model testing_model;
-	as::model source_model;
-	source_model.meshes.resize(1);
-	source_model = *(as::model*)entity.data_ptr;
-	as::deep_copy_model(source_model, testing_model);
-	
-	//as::texture texture;
-	//as::load_texture("resources/textures/viking_room.png", texture);
-	//strcpy(texture.uniform_name, "uniform_texture");
-
-	//as::add_textures_to_shader({texture}, shader);
-
-	//as::model testing_model;
-	//std::vector<as::texture> testing_textures;
-	//load_model("resources/models/viking_room.obj", testing_model, testing_textures);
-
-	//as::assign_shader(shader, testing_model.meshes);
-
 	as::camera camera;
 	as::update_camera_vectors(camera);
 	camera.position -= camera.front * 5.f;
@@ -45,13 +23,10 @@ i32 main()
 	{
 		as::process_input(display_handle);
 		as::clear_background();
-		as::draw({ testing_model }, camera);
+		as::script::draw({entity}, camera);
 		as::update(display_handle);
 	}
 
-	as::script::clean(entity);
-	//as::delete_shader(shader);
-	as::delete_model_data(testing_model);
-	//as::delete_shader_program(shader_program);
+	as::script::delete_entity_data(entity);
 	as::terminate_display();
 }

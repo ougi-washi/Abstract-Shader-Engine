@@ -347,8 +347,7 @@ bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<
 bool as::assign_shader(as::shader& shader, as::mesh& mesh)
 {
 	AS_LOG(LV_LOG, "Assigning shader to mesh");
-	mesh.shader_ptr = (as::shader*)malloc(sizeof(as::shader));
-	memcpy(mesh.shader_ptr, &shader, sizeof(as::shader));
+	mesh.shader_ptr = &shader;
 	return true;
 }
 
@@ -406,7 +405,6 @@ bool as::delete_mesh_data(as::mesh& mesh)
 	glDeleteBuffers(1, &mesh.VBO);
 	glDeleteBuffers(1, &mesh.EBO);
 	glDeleteVertexArrays(1, &mesh.VAO);
-	//free(mesh.shader_ptr) (UNSURE IF WE SHALL FREE IT AS IT CAN BE USED SOMEWHERE ELSE)
 	return check_gl_error();
 }
 
@@ -581,16 +579,11 @@ bool as::draw(const as::model& model, const as::camera& camera)
 	return check_gl_error();
 }
 
-bool as::deep_copy_model(const as::model& source, as::model& destination)
+bool as::deep_copy_model(const as::model* source, as::model* destination)
 {
-	if (&source && &destination)
+	if (source && destination)
 	{
-		memcpy(&destination, &source, sizeof(as::model));
-		destination.meshes.resize(source.meshes.size());
-		for (u16 i = 0; i < source.meshes.size(); i++)
-		{
-			memcpy(&destination.meshes[i], &source.meshes[i], sizeof(as::mesh));
-		}
+		memcpy(destination, source, sizeof(source));
 		return true;
 	}
 	AS_LOG(LV_ERROR, "Cannot deep copy shader, nullptr");
@@ -602,11 +595,9 @@ bool as::deep_copy_model(const as::model& source, void* destination)
 	as::model* destination_model = (as::model*)destination;
 	if (destination_model)
 	{
-		strcpy(destination_model->path, "");
-		destination_model->meshes.clear();
-		destination_model->transform = glm::mat4(1.f);
-		return as::deep_copy_model(source, *destination_model);
+		return as::deep_copy_model(&source, destination_model);
 	}
+	return false;
 }
 
 bool as::delete_model_data(as::model& model)
@@ -628,11 +619,17 @@ bool as::draw(const std::vector<as::model>& models, const as::camera& camera)
 {
 	for (const as::model& current_model : models)
 	{
-		
-		for (const as::mesh& mesh : current_model.meshes)
-		{
-			draw(mesh);
-		}
+		draw(current_model, camera);
+	}
+	return check_gl_error();
+}
+
+bool as::draw(const std::vector<as::model*>& models, const camera& camera)
+{
+	for (const as::model* current_model : models)
+	{
+		AS_ASSERT(current_model, "Invalid model pointer");
+		draw(*current_model, camera);
 	}
 	return check_gl_error();
 }

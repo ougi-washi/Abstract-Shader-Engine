@@ -47,14 +47,14 @@ namespace as
 	// models
 	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
 	bool draw(const as::model& model, const as::camera& camera);
-	bool deep_copy_model(const as::model& source, as::model& destination);
+	bool deep_copy_model(const as::model* source, as::model* destination);
 	bool deep_copy_model(const as::model& source, void* destination);
-	//bool deep_copy_model(void* source, void* destination);
 	bool delete_model_data(as::model& model);
 
 	// render
 	void clear_background();
 	bool draw(const std::vector<as::model>& models, const as::camera& camera);
+	bool draw(const std::vector<as::model*>& models, const as::camera& camera);
 	void update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform);
 
 	// camera
