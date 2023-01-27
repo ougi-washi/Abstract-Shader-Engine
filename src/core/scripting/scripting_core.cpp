@@ -56,7 +56,16 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 		std::string entity_type = json_data["type"].get<std::string>();
 		out_entity.type = variable_string_to_enum(entity_type);
 
-		if (out_entity.type == variable_type::MODEL)
+		if (out_entity.type == as::script::WORLD)
+		{
+			if (json_data.contains("entities"))
+			{
+				std::vector<std::string> entities = json_data["entities"].get<std::vector<std::string>>();
+				
+			}
+		}
+
+		if (out_entity.type == as::script::MODEL)
 		{
 			as::model out_model;
 
@@ -96,7 +105,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 			}
 			out_entity.data_ptr = new as::model(out_model);
 		}
-		if (out_entity.type == variable_type::SHADER)
+		if (out_entity.type == as::script::SHADER)
 		{
 			as::shader out_shader;
 			std::string vertex_path;
@@ -151,7 +160,7 @@ bool as::script::parse_file(const std::string& path, const bool& absolute_path, 
 				return false;
 			}
 		}
-		if (out_entity.type == variable_type::TEXTURE)
+		if (out_entity.type == as::script::TEXTURE)
 		{
 			if (json_data.contains("path"))
 			{
@@ -217,10 +226,6 @@ bool as::script::get_model_from_entity(const as::script::entity& entity, as::mod
 		{
 			AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
 		}
-	}
-	else
-	{
-		AS_LOG(LV_ERROR, "Cannot get model from entity, type is not model");
 	}
 	return false;
 }

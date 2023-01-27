@@ -9,11 +9,12 @@ namespace as
 		enum variable_type : u8
 		{
 			NONE = 0,
-			MODEL = 1,
-			SHADER = 2,
-			TEXTURE = 3
+			WORLD = 1,
+			MODEL = 2,
+			SHADER = 3,
+			TEXTURE = 4
 		};
-		static std::vector<std::string> variable_type_strings = { "none", "model", "shader", "texture"};
+		static std::vector<std::string> variable_type_strings = { "none", "world", "model", "shader", "texture"};
 
 		struct entity
 		{
