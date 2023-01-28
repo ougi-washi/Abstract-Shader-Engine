@@ -3,7 +3,7 @@
 #include "khronos/display_glfw.h"
 
 
-bool as::create_display_handle(const bool& is_raw_display, const u16& width, const u16& height, as::display_handle& display_handle)
+bool as::create_display_handle(const bool& is_raw_display, const u16& width, const u16& height, as::input_handle& input, as::display_handle& display_handle)
 {
 	display_handle.is_raw_display = is_raw_display;
 	display_handle.width = width;
@@ -16,7 +16,7 @@ bool as::create_display_handle(const bool& is_raw_display, const u16& width, con
 	}
 	else
 	{
-		bool creation_result = as::create_window(display_handle.GLFW, width, height);
+		bool creation_result = as::create_window(display_handle.GLFW, width, height, input);
 		AS_ASSERT(creation_result, "Could not create window handle");
 		return creation_result;
 	}
@@ -172,14 +172,14 @@ f32 as::get_display_ratio(const as::display_handle& display_handle)
 	return 1.33f;
 }
 
-bool as::process_input(const as::display_handle& display_handle)
+bool as::process_input(const as::display_handle& display_handle, as::input_handle& input_handle)
 {
 	if (display_handle.is_raw_display)
 	{
 	}
 	else
 	{
-		return as::process_input(display_handle.GLFW);
+		return as::process_input(display_handle.GLFW, input_handle);
 	}
 	return false;
 }

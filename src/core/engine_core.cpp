@@ -44,6 +44,439 @@ void as::configure()
 	//wglSwapIntervalEXT(1); figure out a way to include this
 }
 
+std::string get_path(const json& json_data, const char* path_json_type)
+{
+	if (json_data.contains(path_json_type))
+	{
+		std::string path = json_data[path_json_type].get<std::string>();
+		if (json_data.contains("absolute_path"))
+		{
+			if (json_data["absolute_path"].get<bool>())
+			{
+				return path;
+			}
+			else
+			{
+				return as::util::get_current_path() + "/../" + path;
+			}
+		}
+	}
+	return std::string();
+}
+
+bool get_bool(const json& json_data, const char* json_field_name, bool& out_bool)
+{
+	if (json_data.contains(json_field_name))
+	{
+		out_bool = json_data[json_field_name].get<bool>();
+		return true;
+	}
+	return false;
+}
+
+bool get_vec3(const json& json_data, const char* json_field_name, glm::vec3& out_vector)
+{
+	if (json_data.contains(json_field_name) && json_data[json_field_name].size() >= 3)
+	{
+		out_vector.x = json_data[json_field_name][0];
+		out_vector.y = json_data[json_field_name][1];
+		out_vector.z = json_data[json_field_name][2];
+		return true;
+	}
+	return false;
+}
+
+bool get_transform(const json& json_data, as::transform& out_transform)
+{
+	if (json_data.contains("transform"))
+	{
+		json transform_json_data = json_data["transform"];
+		bool is_valid_location = get_vec3(transform_json_data, "location", out_transform.location);
+		bool is_valid_rotation = get_vec3(transform_json_data, "rotation", out_transform.rotation);
+		bool is_valid_scale = get_vec3(transform_json_data, "scale", out_transform.scale);
+		return is_valid_location && is_valid_rotation && is_valid_scale;
+	}
+	return false;
+}
+
+std::string as::variable_enum_to_string(const as::ent::entity_type& in_type)
+{
+	return entity_type_strings[in_type];
+}
+
+as::ent::entity_type as::variable_string_to_enum(const std::string& in_type_str)
+{
+	for (u8 i = 0; i < entity_type_strings.size(); i++)
+	{
+		if (entity_type_strings[i] == in_type_str)
+		{
+			return (ent::entity_type)i;
+		}
+	}
+	return as::ent::entity_type::NONE;
+}
+
+bool as::get_model_from_entity(const as::entity& entity, as::model& out_model)
+{
+	if (entity.type == as::ent::entity_type::MODEL)
+	{
+		if (entity.data_ptr)
+		{
+			out_model = *static_cast<as::model*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::get_model_from_entity(const entity& entity, as::model*& out_model)
+{
+	if (entity.type == as::ent::entity_type::MODEL)
+	{
+		if (entity.data_ptr)
+		{
+			out_model = static_cast<as::model*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::get_camera_from_entity(const as::entity& entity, as::camera& out_camera)
+{
+	if (entity.type == as::ent::entity_type::CAMERA)
+	{
+		if (entity.data_ptr)
+		{
+			out_camera = *static_cast<as::camera*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::get_camera_from_entity(const as::entity& entity, as::camera*& out_camera)
+{
+	if (entity.type == as::ent::entity_type::CAMERA)
+	{
+		if (entity.data_ptr)
+		{
+			out_camera = (as::camera*)entity.data_ptr;
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::get_world_from_entity(const as::entity& entity, as::world& out_world)
+{
+	if (entity.type == as::ent::entity_type::WORLD)
+	{
+		if (entity.data_ptr)
+		{
+			out_world = *static_cast<as::world*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get world from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::parse_file(const std::string& path, const bool& absolute_path, as::entity& out_entity)
+{
+	as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
+
+	std::string new_path;
+	if (absolute_path)
+	{
+		new_path = path;
+	}
+	else
+	{
+		new_path = as::util::get_current_path() + "/../" + path;
+	}
+
+	json json_data = as::util::read_json_file(new_path);
+	if (json_data.contains("type"))
+	{
+		std::string entity_type = json_data["type"].get<std::string>();
+		out_entity.type = variable_string_to_enum(entity_type);
+
+		if (out_entity.type == as::ent::entity_type::WORLD)
+		{
+			as::world out_world;
+			if (json_data.contains("entities"))
+			{
+				std::vector<std::string> entities_file_paths = json_data["entities"].get<std::vector<std::string>>();
+				for (const std::string& current_entity_file_path : entities_file_paths)
+				{
+					as::entity current_entity;
+					if (parse_file(current_entity_file_path, absolute_path, current_entity))
+					{
+						out_world.entities.push_back(current_entity);
+					}
+				}
+			}
+			if (json_data.contains("sub_worlds"))
+			{
+				std::vector<std::string> sub_worlds_file_paths = json_data["sub_worlds"].get<std::vector<std::string>>();
+				for (const std::string& current_sub_worlds_file_path : sub_worlds_file_paths)
+				{
+					as::entity current_entity;
+					if (parse_file(current_sub_worlds_file_path, absolute_path, current_entity))
+					{
+						as::world current_sub_world;
+						if (get_world_from_entity(current_entity, current_sub_world))
+						{
+							out_world.sub_worlds.push_back(current_sub_world);
+						}
+					}
+				}
+			}
+			if (json_data.contains("is_active"))
+			{
+				bool is_active = false;
+				if (get_bool(json_data, "is_active", is_active))
+				{
+					out_world.is_active = is_active;
+				}
+			}
+			out_entity.data_ptr = new as::world(out_world);
+		}
+		else if (out_entity.type == as::ent::entity_type::MODEL)
+		{
+			as::model out_model;
+
+			if (json_data.contains("path"))
+			{
+				std::string model_path = json_data["path"].get<std::string>();
+				std::vector<as::texture> out_textures;
+				as::load_model(model_path.c_str(), out_model, out_textures);
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Model json file does not have path");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+			if (json_data.contains("shaders"))
+			{
+				std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
+				for (u16 i = 0; i < shaders.size(); i++)
+				{
+					as::entity shader_entity;
+					if (parse_file(shaders[i], absolute_path, shader_entity))
+					{
+						if (out_model.meshes.size() > i && shader_entity.data_ptr)
+						{
+							as::assign_shader(*static_cast<as::shader*>(shader_entity.data_ptr), out_model.meshes[i]);
+						}
+						out_entity.sub_entities.push_back(shader_entity);
+					}
+				}
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Model json file does not have shaders");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+			as::transform out_transform;
+			if (get_transform(json_data, out_transform))
+			{
+				as::apply_transform(out_transform, out_model);
+			};
+			out_entity.data_ptr = new as::model(out_model);
+		}
+		else if (out_entity.type == as::ent::entity_type::SHADER)
+		{
+			as::shader out_shader;
+			std::string vertex_path;
+			std::string fragment_path;
+			if (json_data.contains("vertex_path"))
+			{
+				vertex_path = json_data["vertex_path"].get<std::string>();
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Shader json file does not have vertex shader");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+			if (json_data.contains("fragment_path"))
+			{
+				fragment_path = json_data["fragment_path"].get<std::string>();
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+			if (json_data.contains("textures"))
+			{
+				std::vector<std::string> textures = json_data["textures"].get<std::vector<std::string>>();
+				for (u16 i = 0; i < textures.size(); i++)
+				{
+					as::entity texture_entity;
+					if (parse_file(textures[i], absolute_path, texture_entity))
+					{
+						if (texture_entity.data_ptr)
+						{
+							as::add_texture_to_shader(*static_cast<as::texture*>(texture_entity.data_ptr), out_shader);
+						}
+						out_entity.sub_entities.push_back(texture_entity);
+					}
+				}
+			}
+			if (as::create_shader_from_files(vertex_path.c_str(), fragment_path.c_str(), out_shader))
+			{
+				u32 shader_program;
+				as::create_shader_program(shader_program);
+				as::bind_shaders_to_program(shader_program, out_shader);
+				out_entity.data_ptr = new as::shader(out_shader);
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Could not create the shader");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+		}
+		else if (out_entity.type == as::ent::entity_type::TEXTURE)
+		{
+			if (json_data.contains("path"))
+			{
+				std::string texture_path = json_data["path"].get<std::string>();
+				as::texture out_texture;
+				if (json_data.contains("uniform_name"))
+				{
+					std::string uniform_name = json_data["uniform_name"].get<std::string>();
+					strcpy(out_texture.uniform_name, uniform_name.c_str());
+				}
+				if (as::load_texture(texture_path.c_str(), out_texture))
+				{
+					out_entity.data_ptr = new as::texture(out_texture);
+				}
+				else
+				{
+					AS_LOG(LV_WARNING, "Could not load the texture");
+					as::delete_entity_data(out_entity);
+					return false;
+				}
+			}
+			else
+			{
+				AS_LOG(LV_WARNING, "Texture json file does not have path");
+				as::delete_entity_data(out_entity);
+				return false;
+			}
+		}
+		else if (out_entity.type == as::ent::entity_type::CAMERA)
+		{
+			as::camera out_camera;
+			as::transform out_transform;
+			as::update_camera_vectors(out_camera);
+			get_transform(json_data, out_camera.transform);
+			if (json_data.contains("is_active"))
+			{
+				out_camera.is_active = json_data["is_active"].get<bool>();
+			}
+			out_entity.data_ptr = new as::camera(out_camera);
+		}
+	}
+	return true;
+}
+
+bool as::draw(const std::vector<as::entity>& entities, const as::camera& camera)
+{
+	for (const as::entity& current_entity : entities)
+	{
+		as::model current_model;
+		if (as::get_model_from_entity(current_entity, current_model))
+		{
+			as::draw(current_model, camera);
+		}
+	}
+	return true;
+}
+
+void as::delete_entity_data(as::entity*& entity)
+{
+	if (entity)
+	{
+		delete(entity->data_ptr);
+		delete(entity->fn_ptr);
+
+		for (as::entity& sub_entity : entity->sub_entities)
+		{
+			as::entity* sub_entity_ptr = &sub_entity; 
+			delete_entity_data(sub_entity_ptr);
+		}
+
+		as::world world;
+		if (as::get_world_from_entity(*entity, world))
+		{
+			for (as::entity& sub_entity : world.entities)
+			{
+				as::entity* sub_entity_ptr = &sub_entity;
+				delete_entity_data(sub_entity_ptr);
+			}
+			world.entities.clear();
+		}
+
+		as::model model;
+		if (as::get_model_from_entity(*entity, model))
+		{
+			as::delete_model_data(model);
+		}
+		delete(entity);
+	}
+}
+
+void as::apply_location(const glm::vec3& location, glm::mat4& transform_matrix)
+{
+	transform_matrix = glm::translate(transform_matrix, location);
+}
+
+void as::apply_rotation(const glm::vec3& rotation, glm::mat4& transform_matrix)
+{
+	transform_matrix = glm::rotate(transform_matrix, glm::radians(rotation.x), glm::vec3(1.f, 0.f, 0.f));
+	transform_matrix = glm::rotate(transform_matrix, glm::radians(rotation.y), glm::vec3(0.f, 1.f, 0.f));
+	transform_matrix = glm::rotate(transform_matrix, glm::radians(rotation.z), glm::vec3(0.f, 0.f, 1.f));
+}
+
+void as::apply_scale(const glm::vec3& scale, glm::mat4& transform_matrix)
+{
+	transform_matrix = glm::scale(transform_matrix, scale);
+}
+
+void as::apply_transform(const transform& transform, glm::mat4& transform_matrix)
+{
+	apply_location(transform.location, transform_matrix);
+	apply_rotation(transform.rotation, transform_matrix);
+	apply_scale(transform.scale, transform_matrix);
+}
+
 bool as::create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader)
 {
 	bool vert_shader_result, frag_shader_result;
@@ -405,6 +838,8 @@ bool as::delete_mesh_data(as::mesh& mesh)
 	glDeleteBuffers(1, &mesh.VBO);
 	glDeleteBuffers(1, &mesh.EBO);
 	glDeleteVertexArrays(1, &mesh.VAO);
+	mesh.indices.clear();
+	mesh.vertices.clear();
 	return check_gl_error();
 }
 
@@ -557,12 +992,32 @@ void as::load_model(const char* path, as::model& out_model, std::vector<as::text
 	process_node(scene, scene->mRootNode, out_model.meshes, out_textures);
 }
 
+void as::apply_location(const glm::vec3& location, as::model& model)
+{
+	apply_location(location, model.transform_matrix);
+}
+
+void as::apply_rotation(const glm::vec3& rotation, as::model& model)
+{
+	apply_rotation(rotation, model.transform_matrix);
+}
+
+void as::apply_scale(const glm::vec3& scale, as::model& model)
+{
+	apply_scale(scale, model.transform_matrix);
+}
+
+void as::apply_transform(const as::transform& transform, as::model& model)
+{
+	apply_transform(transform, model.transform_matrix);
+}
+
 bool as::draw(const as::model& model, const as::camera& camera)
 {
 	if (!model.meshes.empty() && model.meshes[0].shader_ptr)
 	{
 		u32 current_shader_program = model.meshes[0].shader_ptr->shader_program;
-		update_draw_uniforms(current_shader_program, camera, model.transform);
+		update_draw_uniforms(current_shader_program, camera, model.transform_matrix);
 
 		for (const as::mesh& mesh : model.meshes)
 		{
@@ -570,7 +1025,7 @@ bool as::draw(const as::model& model, const as::camera& camera)
 			{
 				current_shader_program = mesh.shader_ptr->shader_program; 
 				glUseProgram(current_shader_program);
-				update_draw_uniforms(current_shader_program, camera, model.transform); // update again in case shader program changed
+				update_draw_uniforms(current_shader_program, camera, model.transform_matrix); // update again in case shader program changed
 			}
 
 			draw(mesh);
@@ -606,6 +1061,7 @@ bool as::delete_model_data(as::model& model)
 	{
 		delete_mesh_data(current_mesh);
 	}
+	model.meshes.clear();
 	return check_gl_error();
 }
 
@@ -624,7 +1080,7 @@ bool as::draw(const std::vector<as::model>& models, const as::camera& camera)
 	return check_gl_error();
 }
 
-bool as::draw(const std::vector<as::model*>& models, const camera& camera)
+bool as::draw(const std::vector<const as::model*>& models, const camera& camera)
 {
 	for (const as::model* current_model : models)
 	{
@@ -643,7 +1099,7 @@ void as::update_draw_uniforms(const u32& shader_program, const as::camera& camer
 
 glm::mat4 as::get_matrix_view(const as::camera& camera)
 {
-	return glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+	return glm::lookAt(camera.transform.location, camera.transform.location + camera.front, camera.up);
 }
 
 glm::mat4 as::get_matrix_projection(const as::camera& camera)
@@ -655,8 +1111,8 @@ void as::update_camera_vectors(as::camera& camera)
 {
 	// calculate the new Front vector
 	glm::vec3 front;
-	f32 pitch = camera.rotation.y;
-	f32 yaw = camera.rotation.z;
+	f32 pitch = camera.transform.rotation.y;
+	f32 yaw = camera.transform.rotation.z;
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -664,4 +1120,43 @@ void as::update_camera_vectors(as::camera& camera)
 	// also re-calculate the Right and Up vector
 	camera.right = glm::normalize(glm::cross(camera.front, camera.world_up));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 	camera.up = glm::normalize(glm::cross(camera.right, camera.front));
+}
+
+bool as::draw(const as::world& world, const f32& aspect_ratio)
+{
+	std::vector<const as::model*> models_to_draw;
+	as::camera* camera_to_use = nullptr;
+	for (const as::entity& current_entity : world.entities)
+	{
+		as::model* out_model = nullptr;
+		as::camera* out_camera = nullptr;
+		if (get_model_from_entity(current_entity, out_model))
+		{
+			models_to_draw.push_back(out_model);
+		}
+		else if (get_camera_from_entity(current_entity, out_camera))
+		{
+			if (out_camera && out_camera->is_active)
+			{
+				out_camera->aspect_ratio = aspect_ratio;
+				camera_to_use = out_camera;
+			}
+		}
+	}
+
+	if (models_to_draw.empty())
+	{
+		AS_LOG(LV_WARNING, "Cannot draw 0 models, check the world content");
+		return false;
+	}
+	else if (!camera_to_use)
+	{
+		AS_LOG(LV_WARNING, "Cannot draw with no active camera, check the world content");
+		return false;
+	}
+	else
+	{
+		draw(models_to_draw, *camera_to_use);
+	}
+	return true;
 }

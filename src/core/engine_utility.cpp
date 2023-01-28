@@ -212,6 +212,18 @@ void as::util::write_file_str(const char* filename, const char* data)
 	}
 }
 
+std::string as::util::vec3_to_string(const glm::vec3& vec)
+{
+	return std::to_string(vec.x) + ";" + std::to_string(vec.y) + ";" + std::to_string(vec.z);
+}
+
+std::string as::util::transform_to_string(const as::transform& transform)
+{
+	return	"L:" + vec3_to_string(transform.location) +
+			"|R:" + vec3_to_string(transform.rotation) +
+			"|S:" + vec3_to_string(transform.scale);
+}
+
 void as::timer::start_timer(timer::handle& handle)
 {
 	handle.start = std::chrono::system_clock::now();

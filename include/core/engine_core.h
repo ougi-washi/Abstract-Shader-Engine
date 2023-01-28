@@ -5,6 +5,24 @@ namespace as
 	// generic 
 	void configure();
 
+	// entities
+	std::string variable_enum_to_string(const as::ent::entity_type& in_type);
+	as::ent::entity_type variable_string_to_enum(const std::string& in_type_str);
+	bool get_model_from_entity(const as::entity& entity, as::model& out_model);
+	bool get_model_from_entity(const as::entity& entity, as::model*& out_model);
+	bool get_camera_from_entity(const as::entity& entity, as::camera& out_camera);
+	bool get_camera_from_entity(const as::entity& entity, as::camera*& out_camera);
+	bool get_world_from_entity(const as::entity& entity, as::world& out_world);
+	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
+	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
+	void delete_entity_data(as::entity*& entity);
+
+	// transform
+	void apply_location(const glm::vec3& location, glm::mat4& transform_matrix);
+	void apply_rotation(const glm::vec3& rotation, glm::mat4& transform_matrix);
+	void apply_scale(const glm::vec3& scale, glm::mat4& transform_matrix);
+	void apply_transform(const as::transform& transform, glm::mat4& transform_matrix);
+
 	// shaders
 	bool create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader);
 	bool create_shader_from_files(const char* vert_shader_path, const char* frag_shader_path, as::shader& out_shader);
@@ -46,6 +64,10 @@ namespace as
 
 	// models
 	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
+	void apply_location(const glm::vec3& location, as::model& model);
+	void apply_rotation(const glm::vec3& rotation, as::model& model);
+	void apply_scale(const glm::vec3& scale, as::model& model);
+	void apply_transform(const as::transform& transform, as::model& model);
 	bool draw(const as::model& model, const as::camera& camera);
 	bool deep_copy_model(const as::model* source, as::model* destination);
 	bool deep_copy_model(const as::model& source, void* destination);
@@ -54,11 +76,14 @@ namespace as
 	// render
 	void clear_background();
 	bool draw(const std::vector<as::model>& models, const as::camera& camera);
-	bool draw(const std::vector<as::model*>& models, const as::camera& camera);
+	bool draw(const std::vector<const as::model*>& models, const as::camera& camera);
 	void update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform);
 
 	// camera
 	glm::mat4 get_matrix_view(const as::camera& camera);
 	glm::mat4 get_matrix_projection(const as::camera& camera);
 	void update_camera_vectors(as::camera& camera);
+
+	// world
+	bool draw(const as::world& world, const f32& aspect_ratio);
 };

@@ -19,6 +19,38 @@ namespace as
 		TEXTURE = 0x1702,
 		VECTOR // ??
 	};
+	
+	namespace ent
+	{
+		enum entity_type : u8
+		{
+			NONE = 0,
+			WORLD = 1,
+			MODEL = 2,
+			SHADER = 3,
+			TEXTURE = 4,
+			CAMERA = 5
+		};
+	}
+
+	static std::vector<std::string> entity_type_strings =
+	{
+		"none", // 0
+		"world", // 1
+		"model", // 2
+		"shader", // 3
+		"texture", // 4
+		"camera", // 5
+	};
+
+	struct entity
+	{
+		ent::entity_type type;
+		std::vector<as::entity> sub_entities;
+
+		void* data_ptr = nullptr;
+		void* fn_ptr = nullptr; // currently not in use
+	};
 
 	struct texture
 	{
@@ -63,6 +95,13 @@ namespace as
 		float weights[MAX_BONE_INFLUENCE];
 	};
 
+	struct transform
+	{
+		glm::vec3 location = glm::vec3(0.f);
+		glm::vec3 rotation = glm::vec3(0.f);// X : roll // Y : pitch // Z : yaw
+		glm::vec3 scale = glm::vec3(1.f);
+	};
+
 	struct mesh
 	{
 		// model
@@ -82,20 +121,19 @@ namespace as
 	{
 		char path[500] = "";
 		std::vector<as::mesh> meshes;
-		glm::mat4 transform = glm::mat4(1.f);
+		glm::mat4 transform_matrix = glm::mat4(1.f);
 	};
 	
 	struct camera
 	{
 		// camera Attributes
-		glm::vec3 position = glm::vec3(0.f);
 		glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
 		glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
 		glm::vec3 right;
 		glm::vec3 world_up;
 
-		// euler Angles
-		glm::vec3 rotation; // X : roll // Y : pitch // Z : yaw
+		// transform
+		as::transform transform;
 
 		// camera options
 		f32 movement_speed = 1.f;
@@ -106,6 +144,15 @@ namespace as
 		f32 near_plane = .1f;
 		f32 far_plane = 100.f;
 		f32 aspect_ratio = 1.3f;
+
+		u8 is_active : 1;
+	};
+
+	struct world
+	{
+		std::vector<as::entity> entities;
+		std::vector<as::world> sub_worlds;
+		u8 is_active : 1;
 	};
 
 	namespace timer

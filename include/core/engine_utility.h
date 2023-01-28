@@ -28,6 +28,10 @@ namespace as
 		json read_json_file(const std::string& path);
 		char* read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
+
+		/** string */
+		std::string vec3_to_string(const glm::vec3& vec);
+		std::string transform_to_string(const as::transform& transform);
 	};
 
 	namespace timer

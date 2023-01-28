@@ -3,6 +3,8 @@
 #include "glad/gl.h"
 #include <GLFW/glfw3.h>
 
+as::input_handle* input;
+
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, i32 width, i32 height)
@@ -12,7 +14,18 @@ void framebuffer_size_callback(GLFWwindow* window, i32 width, i32 height)
 	glViewport(0, 0, width, height);
 }
 
-bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (input)
+	{
+		as::key_params params;
+		params.input_event = static_cast<as::input_event_type>(action);
+		params.type = static_cast<as::key_type>(key);
+		input->on_receive_input(params);
+	}
+}
+
+bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height, as::input_handle& in_input)
 {
 	// glfw: initialize and configure
 	// ------------------------------
@@ -35,7 +48,11 @@ bool as::create_window(GLFWwindow*& window, const u16& width, const u16& height)
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
+	
+	// input
+	input = &in_input;
+	glfwSetKeyCallback(window, key_callback);
+	
 	// glad: load all OpenGL function pointers with glfw
 	// ---------------------------------------
 	if (gladLoadGL(glfwGetProcAddress))
@@ -58,14 +75,17 @@ bool as::should_loop(GLFWwindow* window)
 	return false;
 }
 
-bool as::process_input(GLFWwindow* window)
+bool as::process_input(GLFWwindow* window, as::input_handle& input_handle)
 {
 	if (window)
 	{
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		{
-			glfwSetWindowShouldClose(window, true);
-		}
+		//as::key_params params;
+		////params.input_event = 
+		////input_handle.on_input(,)
+		//if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		//{
+		//	glfwSetWindowShouldClose(window, true);
+		//}
 		return true;
 	}
 	return false;

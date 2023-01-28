@@ -28,6 +28,7 @@ namespace as
 
 	struct display_handle
 	{
+		// general
 		u8 is_raw_display :1 ;
 		u16 width; 
 		u16 height;
