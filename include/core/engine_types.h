@@ -46,7 +46,7 @@ namespace as
 	struct entity
 	{
 		ent::entity_type type;
-		std::vector<as::entity> sub_entities;
+		std::vector<as::entity*> sub_entities;
 
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use

@@ -201,9 +201,16 @@ bool as::get_world_from_entity(const as::entity& entity, as::world& out_world)
 	return false;
 }
 
-bool as::parse_file(const std::string& path, const bool& absolute_path, as::entity& out_entity)
+bool as::parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity)
 {
-	as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
+	if (out_entity)
+	{
+		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
+	}
+	else
+	{
+		out_entity = new as::entity();
+	}
 
 	std::string new_path;
 	if (absolute_path)
@@ -219,9 +226,9 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 	if (json_data.contains("type"))
 	{
 		std::string entity_type = json_data["type"].get<std::string>();
-		out_entity.type = variable_string_to_enum(entity_type);
+		out_entity->type = as::variable_string_to_enum(entity_type);
 
-		if (out_entity.type == as::ent::entity_type::WORLD)
+		if (out_entity->type == as::ent::entity_type::WORLD)
 		{
 			as::world out_world;
 			if (json_data.contains("entities"))
@@ -229,10 +236,10 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> entities_file_paths = json_data["entities"].get<std::vector<std::string>>();
 				for (const std::string& current_entity_file_path : entities_file_paths)
 				{
-					as::entity current_entity;
+					as::entity* current_entity = new as::entity();
 					if (parse_file(current_entity_file_path, absolute_path, current_entity))
 					{
-						out_world.entities.push_back(current_entity);
+						out_world.entities.push_back(*current_entity);
 					}
 				}
 			}
@@ -241,11 +248,11 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> sub_worlds_file_paths = json_data["sub_worlds"].get<std::vector<std::string>>();
 				for (const std::string& current_sub_worlds_file_path : sub_worlds_file_paths)
 				{
-					as::entity current_entity;
+					as::entity* current_entity;
 					if (parse_file(current_sub_worlds_file_path, absolute_path, current_entity))
 					{
 						as::world current_sub_world;
-						if (get_world_from_entity(current_entity, current_sub_world))
+						if (get_world_from_entity(*current_entity, current_sub_world))
 						{
 							out_world.sub_worlds.push_back(current_sub_world);
 						}
@@ -260,9 +267,9 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 					out_world.is_active = is_active;
 				}
 			}
-			out_entity.data_ptr = new as::world(out_world);
+			out_entity->data_ptr = new as::world(out_world);
 		}
-		else if (out_entity.type == as::ent::entity_type::MODEL)
+		else if (out_entity->type == as::ent::entity_type::MODEL)
 		{
 			as::model out_model;
 
@@ -283,14 +290,14 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
 				for (u16 i = 0; i < shaders.size(); i++)
 				{
-					as::entity shader_entity;
+					as::entity* shader_entity = new as::entity();
 					if (parse_file(shaders[i], absolute_path, shader_entity))
 					{
-						if (out_model.meshes.size() > i && shader_entity.data_ptr)
+						if (out_model.meshes.size() > i && shader_entity->data_ptr)
 						{
-							as::assign_shader(*static_cast<as::shader*>(shader_entity.data_ptr), out_model.meshes[i]);
+							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model.meshes[i]);
 						}
-						out_entity.sub_entities.push_back(shader_entity);
+						out_entity->sub_entities.push_back(shader_entity);
 					}
 				}
 			}
@@ -305,9 +312,9 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			{
 				as::apply_transform(out_transform, out_model);
 			};
-			out_entity.data_ptr = new as::model(out_model);
+			out_entity->data_ptr = new as::model(out_model);
 		}
-		else if (out_entity.type == as::ent::entity_type::SHADER)
+		else if (out_entity->type == as::ent::entity_type::SHADER)
 		{
 			as::shader out_shader;
 			std::string vertex_path;
@@ -335,16 +342,17 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("textures"))
 			{
 				std::vector<std::string> textures = json_data["textures"].get<std::vector<std::string>>();
+				out_entity->sub_entities.reserve(textures.size());
 				for (u16 i = 0; i < textures.size(); i++)
 				{
-					as::entity texture_entity;
+					as::entity* texture_entity = new as::entity();;
 					if (parse_file(textures[i], absolute_path, texture_entity))
 					{
-						if (texture_entity.data_ptr)
+						if (texture_entity->data_ptr)
 						{
-							as::add_texture_to_shader(*static_cast<as::texture*>(texture_entity.data_ptr), out_shader);
+							as::add_texture_to_shader(*static_cast<as::texture*>(texture_entity->data_ptr), out_shader);
 						}
-						out_entity.sub_entities.push_back(texture_entity);
+						out_entity->sub_entities[i] = texture_entity;
 					}
 				}
 			}
@@ -353,7 +361,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				u32 shader_program;
 				as::create_shader_program(shader_program);
 				as::bind_shaders_to_program(shader_program, out_shader);
-				out_entity.data_ptr = new as::shader(out_shader);
+				out_entity->data_ptr = new as::shader(out_shader);
 			}
 			else
 			{
@@ -362,7 +370,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				return false;
 			}
 		}
-		else if (out_entity.type == as::ent::entity_type::TEXTURE)
+		else if (out_entity->type == as::ent::entity_type::TEXTURE)
 		{
 			if (json_data.contains("path"))
 			{
@@ -375,7 +383,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				}
 				if (as::load_texture(texture_path.c_str(), out_texture))
 				{
-					out_entity.data_ptr = new as::texture(out_texture);
+					out_entity->data_ptr = new as::texture(out_texture);
 				}
 				else
 				{
@@ -391,7 +399,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				return false;
 			}
 		}
-		else if (out_entity.type == as::ent::entity_type::CAMERA)
+		else if (out_entity->type == as::ent::entity_type::CAMERA)
 		{
 			as::camera out_camera;
 			as::transform out_transform;
@@ -401,7 +409,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			{
 				out_camera.is_active = json_data["is_active"].get<bool>();
 			}
-			out_entity.data_ptr = new as::camera(out_camera);
+			out_entity->data_ptr = new as::camera(out_camera);
 		}
 	}
 	return true;
@@ -424,13 +432,9 @@ void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
-		delete(entity->data_ptr);
-		delete(entity->fn_ptr);
-
-		for (as::entity& sub_entity : entity->sub_entities)
+		for (as::entity* sub_entity : entity->sub_entities)
 		{
-			as::entity* sub_entity_ptr = &sub_entity; 
-			delete_entity_data(sub_entity_ptr);
+			delete_entity_data(sub_entity);
 		}
 
 		as::world world;
@@ -449,6 +453,8 @@ void as::delete_entity_data(as::entity*& entity)
 		{
 			as::delete_model_data(model);
 		}
+		delete(entity->data_ptr);
+		delete(entity->fn_ptr);
 		delete(entity);
 	}
 }

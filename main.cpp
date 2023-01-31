@@ -13,16 +13,16 @@ i32 main()
 
 	as::configure();
 
-	as::entity entity;
+	as::entity* entity = new as::entity();
 	as::parse_file("resources/objects/default_world.json", false, entity);
 	
 	as::world world;
-	as::get_world_from_entity(entity, world);
+	as::get_world_from_entity(*entity, world);
 
 	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
 		as::parse_file("resources/objects/default_world.json", false, entity);
-		as::get_world_from_entity(entity, world);
+		as::get_world_from_entity(*entity, world);
 	};
 
 	while (as::should_display_loop(display_handle))
