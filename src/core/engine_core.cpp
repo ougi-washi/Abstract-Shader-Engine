@@ -267,17 +267,18 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 					out_world.is_active = is_active;
 				}
 			}
+			delete_entity_data(out_entity->data_ptr);
 			out_entity->data_ptr = new as::world(out_world);
 		}
 		else if (out_entity->type == as::ent::entity_type::MODEL)
 		{
-			as::model out_model;
+			as::model* out_model = new as::model();
 
 			if (json_data.contains("path"))
 			{
 				std::string model_path = json_data["path"].get<std::string>();
 				std::vector<as::texture> out_textures;
-				as::load_model(model_path.c_str(), out_model, out_textures);
+				as::load_model(model_path.c_str(), *out_model, out_textures);
 			}
 			else
 			{
@@ -293,9 +294,9 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 					as::entity* shader_entity = new as::entity();
 					if (parse_file(shaders[i], absolute_path, shader_entity))
 					{
-						if (out_model.meshes.size() > i && shader_entity->data_ptr)
+						if (out_model->meshes.size() > i && shader_entity->data_ptr)
 						{
-							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model.meshes[i]);
+							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model->meshes[i]);
 						}
 						out_entity->sub_entities.push_back(shader_entity);
 					}
@@ -310,9 +311,10 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			as::transform out_transform;
 			if (get_transform(json_data, out_transform))
 			{
-				as::apply_transform(out_transform, out_model);
+				as::apply_transform(out_transform, *out_model);
 			};
-			out_entity->data_ptr = new as::model(out_model);
+			delete_entity_data(out_entity->data_ptr);
+			out_entity->data_ptr = out_model;
 		}
 		else if (out_entity->type == as::ent::entity_type::SHADER)
 		{
@@ -352,7 +354,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 						{
 							as::add_texture_to_shader(*static_cast<as::texture*>(texture_entity->data_ptr), out_shader);
 						}
-						out_entity->sub_entities[i] = texture_entity;
+						out_entity->sub_entities.push_back(texture_entity);
 					}
 				}
 			}
@@ -361,6 +363,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				u32 shader_program;
 				as::create_shader_program(shader_program);
 				as::bind_shaders_to_program(shader_program, out_shader);
+				delete_entity_data(out_entity->data_ptr);
 				out_entity->data_ptr = new as::shader(out_shader);
 			}
 			else
@@ -383,6 +386,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				}
 				if (as::load_texture(texture_path.c_str(), out_texture))
 				{
+					delete_entity_data(out_entity->data_ptr);
 					out_entity->data_ptr = new as::texture(out_texture);
 				}
 				else
@@ -409,6 +413,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			{
 				out_camera.is_active = json_data["is_active"].get<bool>();
 			}
+			delete_entity_data(out_entity->data_ptr);
 			out_entity->data_ptr = new as::camera(out_camera);
 		}
 	}
@@ -453,9 +458,25 @@ void as::delete_entity_data(as::entity*& entity)
 		{
 			as::delete_model_data(model);
 		}
-		delete(entity->data_ptr);
-		delete(entity->fn_ptr);
-		delete(entity);
+		if (entity->data_ptr)
+		{
+			delete(entity->data_ptr);
+			entity->data_ptr = nullptr;
+		}
+		if (entity->fn_ptr)
+		{
+			delete(entity->fn_ptr);
+			entity->fn_ptr = nullptr;
+		}
+	}
+}
+
+void as::delete_entity_data(void*& data_ptr)
+{
+	as::entity* entity_ptr = (as::entity*)data_ptr;
+	if (entity_ptr)
+	{
+		delete_entity_data(entity_ptr);
 	}
 }
 
@@ -840,12 +861,13 @@ bool as::deep_copy_mesh(const as::mesh* source, void*& destination)
 
 bool as::delete_mesh_data(as::mesh& mesh)
 {
-	AS_LOG(LV_LOG, "Deleting object data");
+	AS_LOG(LV_LOG, "Deleting object data, current size: " + std::to_string(mesh.indices.size()));
 	glDeleteBuffers(1, &mesh.VBO);
 	glDeleteBuffers(1, &mesh.EBO);
 	glDeleteVertexArrays(1, &mesh.VAO);
 	mesh.indices.clear();
 	mesh.vertices.clear();
+	AS_LOG(LV_LOG, "New size : " + std::to_string(mesh.indices.size()));
 	return check_gl_error();
 }
 

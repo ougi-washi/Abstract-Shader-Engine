@@ -16,6 +16,7 @@ namespace as
 	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
 	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
 	void delete_entity_data(as::entity*& entity);
+	void delete_entity_data(void*& data_ptr);
 
 	// transform
 	void apply_location(const glm::vec3& location, glm::mat4& transform_matrix);
