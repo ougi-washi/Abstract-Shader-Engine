@@ -16,19 +16,20 @@ i32 main()
 	as::entity* entity = nullptr;
 	as::parse_file("resources/objects/default_world.json", false, entity);
 	
-	as::world world;
-	as::get_world_from_entity(*entity, world);
+	as::world* world = nullptr;
+	as::get_world_from_entity(entity, world);
 
-	bool can_load = true;
-	input.on_receive_input = [&entity, &world, &can_load](const as::key_params& params)
+	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
-		if (can_load)
+		if (params.type == as::Z)
 		{
-			can_load = false;
+			
+		}
+		if (params.input_event == as::PRESSED && params.type == as::R)
+		{
 			if (as::parse_file("resources/objects/default_world.json", false, entity))
 			{
-				as::get_world_from_entity(*entity, world);
-				can_load = true;
+				as::get_world_from_entity(entity, world);
 			}
 		}
 	};

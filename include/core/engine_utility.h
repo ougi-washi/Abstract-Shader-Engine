@@ -26,7 +26,7 @@ namespace as
 		void replace_char(std::string & string_to_update, const char& source, const char& target);
 		std::string read_file(const std::string& filename);
 		json read_json_file(const std::string& path);
-		char* read_file(const char* filename);
+		std::string read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
 
 		/** string */

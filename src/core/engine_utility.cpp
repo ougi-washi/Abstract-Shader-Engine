@@ -180,13 +180,14 @@ json as::util::read_json_file(const std::string& path)
 	return json::parse(json_string);
 }
 
-char* as::util::read_file(const char* filename)
+std::string as::util::read_file(const char* filename)
 {
 	FILE* f = fopen(filename, "rb");
+	std::string result_string;
 	if (!f)
 	{
 		AS_LOG(LV_WARNING, "File [" + std::string(filename) + "] not found, a crash may occur");
-		return nullptr;
+		return result_string;
 	}
 	fseek(f, 0, SEEK_END);
 	long fsize = ftell(f);
@@ -198,8 +199,10 @@ char* as::util::read_file(const char* filename)
 		fread(string, fsize, 1, f);
 		fclose(f);
 		string[fsize] = 0;
+		result_string = std::string(string);
 	}
-	return string;
+	free(string);
+	return result_string;
 }
 
 void as::util::write_file_str(const char* filename, const char* data)

@@ -9,17 +9,20 @@ namespace as
 	std::string variable_enum_to_string(const as::ent::entity_type& in_type);
 	as::ent::entity_type variable_string_to_enum(const std::string& in_type_str);
 	bool get_model_from_entity(const as::entity& entity, as::model& out_model);
-	bool get_model_from_entity(const as::entity& entity, as::model*& out_model);
+	bool get_model_from_entity(const as::entity* entity, as::model*& out_model);
 	bool get_camera_from_entity(const as::entity& entity, as::camera& out_camera);
 	bool get_camera_from_entity(const as::entity& entity, as::camera*& out_camera);
 	bool get_world_from_entity(const as::entity& entity, as::world& out_world);
+	bool get_world_from_entity(const as::entity* entity, as::world*& out_world);
 	bool get_shader_from_entity(const as::entity& entity, as::shader& out_shader);
+	bool get_shader_from_entity(const as::entity* entity, as::shader*& out_shader);
 	bool get_texture_from_entity(const as::entity& entity, as::texture& out_texture);
+	bool get_texture_from_entity(const as::entity* entity, as::texture*& out_texture);
+
 	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
 	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
 	size get_entity_size(const as::entity& entity);
 	void delete_entity_data(as::entity*& entity);
-	void delete_entity_data(as::entity& entity);
 	void delete_entity_data(void*& data_ptr);
 
 	// transform
@@ -29,14 +32,14 @@ namespace as
 	void apply_transform(const as::transform& transform, glm::mat4& transform_matrix);
 
 	// shaders
-	bool create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader& out_shader);
-	bool create_shader_from_files(const char* vert_shader_path, const char* frag_shader_path, as::shader& out_shader);
+	bool create_shader(const char* vert_shader_src, const char* frag_shader_src, as::shader*& out_shader);
+	bool create_shader_from_files(const char* vert_shader_path, const char* frag_shader_path, as::shader*& out_shader);
 	void create_shader_program(u32& out_shader_program);
-	bool bind_shaders_to_program(const u32& shader_program, as::shader& shader_to_attach);
+	bool bind_shaders_to_program(const u32& shader_program, as::shader*& shader_to_attach);
 	bool deep_copy_shader(const as::shader* source, as::shader*& destination);
 	bool deep_copy_shader(const as::shader* source, void*& destination);
 	size get_shader_size(const as::shader& shader);
-	void delete_shader_data(as::shader& shader);
+	void delete_shader_data(as::shader*& shader);
 	void delete_shader_program(const u32& shader_program);
 	
 	// shader uniforms
@@ -54,10 +57,11 @@ namespace as
 
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
-	void add_textures_to_shader(const std::vector<as::texture>& textures, as::shader& shader);
-	void add_texture_to_shader(const as::texture& textures, as::shader& shader);
+	void add_textures_to_shader(std::vector<as::texture*>& textures, as::shader& shader);
+	void add_texture_to_shader(as::texture* textures, as::shader*& shader);
 	bool deep_copy_texture(const as::texture* source, as::texture*& destination);
 	bool deep_copy_texture(const as::texture* source, void*& destination);
+	void delete_texture_data(as::texture*& texture);
 	size get_texture_size(const as::texture& texture);
 
 	// meshes
@@ -67,7 +71,7 @@ namespace as
 	bool deep_copy_mesh(const as::mesh* source, as::mesh*& destination);
 	bool deep_copy_mesh(const as::mesh* source, void*& destination);
 	bool draw(const as::mesh& mesh);
-	bool delete_mesh_data(as::mesh& mesh);
+	void delete_mesh_data(as::mesh*& mesh);
 
 	// models
 	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
@@ -80,6 +84,7 @@ namespace as
 	bool deep_copy_model(const as::model& source, void* destination);
 	size get_model_size(const as::model& model);
 	bool delete_model_data(as::model& model);
+	bool delete_model_data(as::model*& model);
 
 	// render
 	void clear_background();
@@ -92,9 +97,12 @@ namespace as
 	glm::mat4 get_matrix_projection(const as::camera& camera);
 	void update_camera_vectors(as::camera& camera);
 	size get_camera_size(const as::camera& camera);
+	
 
 	// world
 	bool draw(const as::world& world, const f32& aspect_ratio);
+	bool draw(const as::world* world, const f32& aspect_ratio);
 	size get_world_size(const as::world& world);
 	void delete_world_data(as::world& world);
+	void delete_world_data(as::world*& world);
 };

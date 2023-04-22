@@ -79,7 +79,7 @@ namespace as
 		i32 vertex_shader;
 		i32 fragment_shader;
 		std::vector<as::uniform> uniforms; // to change from vector
-		std::vector<as::texture> textures; // to change from vector (this can be changed to an array of pointers later if needed.
+		std::vector<as::texture*> textures; // to change from vector
 
 		// internal
 		u32 shader_program = 0;
@@ -121,7 +121,7 @@ namespace as
 	struct model
 	{
 		char path[500] = "";
-		std::vector<as::mesh> meshes;
+		std::vector<as::mesh*> meshes;
 		glm::mat4 transform_matrix = glm::mat4(1.f);
 	};
 	
@@ -151,8 +151,7 @@ namespace as
 
 	struct world
 	{
-		std::vector<as::entity> entities;
-		std::vector<as::world> sub_worlds;
+		std::vector<as::entity*> entities;
 		u8 is_active : 1;
 	};
 
