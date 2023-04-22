@@ -31,25 +31,26 @@ namespace as
 			TEXTURE = 4,
 			CAMERA = 5
 		};
-	}
+	};
 
 	static std::vector<std::string> entity_type_strings =
 	{
-		"none", // 0
-		"world", // 1
-		"model", // 2
-		"shader", // 3
-		"texture", // 4
-		"camera", // 5
+		"none",		// 0
+		"world",	// 1
+		"model",	// 2
+		"shader",	// 3
+		"texture",	// 4
+		"camera"	// 5
 	};
 
 	struct entity
 	{
-		ent::entity_type type;
+		ent::entity_type type = ent::NONE;
 		std::vector<as::entity*> sub_entities;
 
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use
+		size size = 0;
 	};
 
 	struct texture

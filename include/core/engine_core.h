@@ -13,9 +13,13 @@ namespace as
 	bool get_camera_from_entity(const as::entity& entity, as::camera& out_camera);
 	bool get_camera_from_entity(const as::entity& entity, as::camera*& out_camera);
 	bool get_world_from_entity(const as::entity& entity, as::world& out_world);
+	bool get_shader_from_entity(const as::entity& entity, as::shader& out_shader);
+	bool get_texture_from_entity(const as::entity& entity, as::texture& out_texture);
 	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
 	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
+	size get_entity_size(const as::entity& entity);
 	void delete_entity_data(as::entity*& entity);
+	void delete_entity_data(as::entity& entity);
 	void delete_entity_data(void*& data_ptr);
 
 	// transform
@@ -31,7 +35,8 @@ namespace as
 	bool bind_shaders_to_program(const u32& shader_program, as::shader& shader_to_attach);
 	bool deep_copy_shader(const as::shader* source, as::shader*& destination);
 	bool deep_copy_shader(const as::shader* source, void*& destination);
-	void delete_shader(const as::shader& shader);
+	size get_shader_size(const as::shader& shader);
+	void delete_shader_data(as::shader& shader);
 	void delete_shader_program(const u32& shader_program);
 	
 	// shader uniforms
@@ -53,6 +58,7 @@ namespace as
 	void add_texture_to_shader(const as::texture& textures, as::shader& shader);
 	bool deep_copy_texture(const as::texture* source, as::texture*& destination);
 	bool deep_copy_texture(const as::texture* source, void*& destination);
+	size get_texture_size(const as::texture& texture);
 
 	// meshes
 	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh);
@@ -72,6 +78,7 @@ namespace as
 	bool draw(const as::model& model, const as::camera& camera);
 	bool deep_copy_model(const as::model* source, as::model* destination);
 	bool deep_copy_model(const as::model& source, void* destination);
+	size get_model_size(const as::model& model);
 	bool delete_model_data(as::model& model);
 
 	// render
@@ -84,7 +91,10 @@ namespace as
 	glm::mat4 get_matrix_view(const as::camera& camera);
 	glm::mat4 get_matrix_projection(const as::camera& camera);
 	void update_camera_vectors(as::camera& camera);
+	size get_camera_size(const as::camera& camera);
 
 	// world
 	bool draw(const as::world& world, const f32& aspect_ratio);
+	size get_world_size(const as::world& world);
+	void delete_world_data(as::world& world);
 };

@@ -122,8 +122,12 @@ bool as::get_model_from_entity(const as::entity& entity, as::model& out_model)
 	{
 		if (entity.data_ptr)
 		{
-			out_model = *static_cast<as::model*>(entity.data_ptr);
-			return true;
+			as::model* found_model = static_cast<as::model*>(entity.data_ptr);
+			if (found_model)
+			{
+				out_model = *found_model;
+				return true;
+			}
 		}
 		else
 		{
@@ -201,16 +205,49 @@ bool as::get_world_from_entity(const as::entity& entity, as::world& out_world)
 	return false;
 }
 
+bool as::get_shader_from_entity(const as::entity& entity, as::shader& out_shader)
+{
+	if (entity.type == as::ent::entity_type::SHADER)
+	{
+		if (entity.data_ptr)
+		{
+			out_shader = *static_cast<as::shader*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
+bool as::get_texture_from_entity(const as::entity& entity, as::texture& out_texture)
+{
+	if (entity.type == as::ent::entity_type::TEXTURE)
+	{
+		if (entity.data_ptr)
+		{
+			out_texture = *static_cast<as::texture*>(entity.data_ptr);
+			return true;
+		}
+		else
+		{
+			AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
+		}
+	}
+	return false;
+}
+
 bool as::parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity)
 {
+	AS_LOG(LV_LOG, "Parse file [" + path + "]");
+	
 	if (out_entity)
 	{
 		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
 	}
-	else
-	{
-		out_entity = new as::entity();
-	}
+	out_entity = new as::entity();
 
 	std::string new_path;
 	if (absolute_path)
@@ -236,7 +273,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> entities_file_paths = json_data["entities"].get<std::vector<std::string>>();
 				for (const std::string& current_entity_file_path : entities_file_paths)
 				{
-					as::entity* current_entity = new as::entity();
+					as::entity* current_entity = nullptr;
 					if (parse_file(current_entity_file_path, absolute_path, current_entity))
 					{
 						out_world.entities.push_back(*current_entity);
@@ -248,7 +285,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> sub_worlds_file_paths = json_data["sub_worlds"].get<std::vector<std::string>>();
 				for (const std::string& current_sub_worlds_file_path : sub_worlds_file_paths)
 				{
-					as::entity* current_entity;
+					as::entity* current_entity = nullptr;
 					if (parse_file(current_sub_worlds_file_path, absolute_path, current_entity))
 					{
 						as::world current_sub_world;
@@ -268,17 +305,19 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				}
 			}
 			delete_entity_data(out_entity->data_ptr);
+			out_entity->size = get_world_size(out_world);
 			out_entity->data_ptr = new as::world(out_world);
+			//std::memcpy(out_entity->data_ptr, &out_world, out_entity->size);
 		}
 		else if (out_entity->type == as::ent::entity_type::MODEL)
 		{
-			as::model* out_model = new as::model();
+			as::model out_model;
 
 			if (json_data.contains("path"))
 			{
 				std::string model_path = json_data["path"].get<std::string>();
 				std::vector<as::texture> out_textures;
-				as::load_model(model_path.c_str(), *out_model, out_textures);
+				as::load_model(model_path.c_str(), out_model, out_textures);
 			}
 			else
 			{
@@ -291,12 +330,12 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
 				for (u16 i = 0; i < shaders.size(); i++)
 				{
-					as::entity* shader_entity = new as::entity();
+					as::entity* shader_entity = nullptr;
 					if (parse_file(shaders[i], absolute_path, shader_entity))
 					{
-						if (out_model->meshes.size() > i && shader_entity->data_ptr)
+						if (out_model.meshes.size() > i && shader_entity->data_ptr)
 						{
-							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model->meshes[i]);
+							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model.meshes[i]);
 						}
 						out_entity->sub_entities.push_back(shader_entity);
 					}
@@ -311,10 +350,12 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			as::transform out_transform;
 			if (get_transform(json_data, out_transform))
 			{
-				as::apply_transform(out_transform, *out_model);
+				as::apply_transform(out_transform, out_model);
 			};
-			delete_entity_data(out_entity->data_ptr);
-			out_entity->data_ptr = out_model;
+			as::delete_entity_data(out_entity->data_ptr);
+			out_entity->size = as::get_model_size(out_model);
+			//out_entity->data_ptr = malloc(out_entity->size);
+			out_entity->data_ptr = new as::model(out_model);
 		}
 		else if (out_entity->type == as::ent::entity_type::SHADER)
 		{
@@ -433,24 +474,82 @@ bool as::draw(const std::vector<as::entity>& entities, const as::camera& camera)
 	return true;
 }
 
+size as::get_entity_size(const as::entity& entity)
+{
+	size total_size = 0;
+
+	for (as::entity* sub_entity : entity.sub_entities)
+	{
+		total_size += get_entity_size(*sub_entity);
+	}
+
+	switch (entity.type)
+	{
+	case ent::WORLD:
+	{
+		as::world world;
+		if (as::get_world_from_entity(entity, world))
+		{
+			total_size += get_world_size(world);
+		}
+	}
+	case ent::MODEL:
+	{
+		as::model model;
+		if (as::get_model_from_entity(entity, model))
+		{
+			total_size += as::get_model_size(model);
+		}
+		break;
+	}
+	case ent::SHADER:
+	{
+		as::shader shader;
+		if (as::get_shader_from_entity(entity, shader))
+		{
+			total_size += as::get_shader_size(shader);
+		}
+		break;
+	}
+	case ent::TEXTURE:
+	{
+		as::texture texture;
+		if (as::get_texture_from_entity(entity, texture))
+		{
+			total_size += get_texture_size(texture);
+		}
+		break;
+	}
+	case ent::CAMERA:
+	{
+		as::camera camera;
+		if (as::get_camera_from_entity(entity, camera))
+		{
+			total_size += get_camera_size(camera);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+
+	total_size += sizeof(entity);
+	return total_size;
+}
+
 void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
 		for (as::entity* sub_entity : entity->sub_entities)
 		{
-			delete_entity_data(sub_entity);
+			as::delete_entity_data(sub_entity);
 		}
 
 		as::world world;
 		if (as::get_world_from_entity(*entity, world))
 		{
-			for (as::entity& sub_entity : world.entities)
-			{
-				as::entity* sub_entity_ptr = &sub_entity;
-				delete_entity_data(sub_entity_ptr);
-			}
-			world.entities.clear();
+			as::delete_world_data(world);
 		}
 
 		as::model model;
@@ -458,6 +557,7 @@ void as::delete_entity_data(as::entity*& entity)
 		{
 			as::delete_model_data(model);
 		}
+
 		if (entity->data_ptr)
 		{
 			delete(entity->data_ptr);
@@ -468,6 +568,45 @@ void as::delete_entity_data(as::entity*& entity)
 			delete(entity->fn_ptr);
 			entity->fn_ptr = nullptr;
 		}
+		delete(entity);
+		entity = nullptr;
+	}
+}
+
+void as::delete_entity_data(as::entity& entity)
+{
+	for (as::entity* sub_entity : entity.sub_entities)
+	{
+		delete_entity_data(sub_entity);
+	}
+
+	as::world world;
+	if (as::get_world_from_entity(entity, world))
+	{
+		as::delete_world_data(world);
+	}
+
+	as::model model;
+	if (as::get_model_from_entity(entity, model))
+	{
+		as::delete_model_data(model);
+	}
+
+	as::shader shader;
+	if (as::get_shader_from_entity(entity, shader))
+	{
+		as::delete_shader_data(shader);
+	}
+
+	if (entity.data_ptr)
+	{
+		delete(entity.data_ptr);
+		entity.data_ptr = nullptr;
+	}
+	if (entity.fn_ptr)
+	{
+		delete(entity.fn_ptr);
+		entity.fn_ptr = nullptr;
 	}
 }
 
@@ -478,6 +617,8 @@ void as::delete_entity_data(void*& data_ptr)
 	{
 		delete_entity_data(entity_ptr);
 	}
+	delete(data_ptr);
+	data_ptr = nullptr;
 }
 
 void as::apply_location(const glm::vec3& location, glm::mat4& transform_matrix)
@@ -535,6 +676,8 @@ bool as::create_shader_from_files(const char* vert_shader_path, const char* frag
 		{
 			return create_shader(vert_shader, frag_shader, out_shader);
 		}
+		delete(vert_shader);
+		delete(frag_shader);
 	}
 	return false;
 }
@@ -582,11 +725,30 @@ bool as::deep_copy_shader(const as::shader* source, void*& destination)
 	return as::deep_copy_shader(source, destination_shader);
 }
 
-void as::delete_shader(const as::shader& shader)
+size as::get_shader_size(const as::shader& shader)
+{
+	size total_size = 0;
+
+	for (const as::uniform& uniform : shader.uniforms)
+	{
+		total_size += sizeof(as::uniform);
+	}
+	for (const as::texture& texture : shader.textures)
+	{
+		total_size += get_texture_size(texture);
+	}
+
+	total_size += sizeof(shader);
+	return total_size;
+}
+
+void as::delete_shader_data(as::shader& shader)
 {
 	AS_LOG(LV_LOG, "Deleting shader");
 	glDeleteShader(shader.vertex_shader);
 	glDeleteShader(shader.fragment_shader);
+	shader.textures.clear();
+	shader.uniforms.clear();
 }
 
 void as::delete_shader_program(const u32& shader_program)
@@ -746,6 +908,11 @@ bool as::deep_copy_texture(const as::texture* source, void*& destination)
 	return deep_copy_texture(source, destination_texture);
 }
 
+size as::get_texture_size(const as::texture& texture)
+{
+	return sizeof(texture);
+}
+
 bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
 {
 	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
@@ -861,13 +1028,11 @@ bool as::deep_copy_mesh(const as::mesh* source, void*& destination)
 
 bool as::delete_mesh_data(as::mesh& mesh)
 {
-	AS_LOG(LV_LOG, "Deleting object data, current size: " + std::to_string(mesh.indices.size()));
-	glDeleteBuffers(1, &mesh.VBO);
-	glDeleteBuffers(1, &mesh.EBO);
-	glDeleteVertexArrays(1, &mesh.VAO);
+	//glDeleteBuffers(1, &mesh.VBO);
+	//glDeleteBuffers(1, &mesh.EBO);
+	//glDeleteVertexArrays(1, &mesh.VAO);
 	mesh.indices.clear();
 	mesh.vertices.clear();
-	AS_LOG(LV_LOG, "New size : " + std::to_string(mesh.indices.size()));
 	return check_gl_error();
 }
 
@@ -1083,6 +1248,19 @@ bool as::deep_copy_model(const as::model& source, void* destination)
 	return false;
 }
 
+size as::get_model_size(const as::model& model)
+{
+	size total_size = 0;
+	for (const as::mesh& mesh : model.meshes)
+	{
+		total_size += mesh.vertices.size() * sizeof(as::vertex);
+		total_size += mesh.indices.size() * sizeof(u32);
+		total_size += sizeof(as::mesh);
+	}
+	total_size += sizeof(model);
+	return total_size;
+}
+
 bool as::delete_model_data(as::model& model)
 {
 	for (as::mesh& current_mesh : model.meshes)
@@ -1150,6 +1328,11 @@ void as::update_camera_vectors(as::camera& camera)
 	camera.up = glm::normalize(glm::cross(camera.right, camera.front));
 }
 
+size as::get_camera_size(const as::camera& camera)
+{
+	return sizeof(camera);
+}
+
 bool as::draw(const as::world& world, const f32& aspect_ratio)
 {
 	std::vector<const as::model*> models_to_draw;
@@ -1187,4 +1370,33 @@ bool as::draw(const as::world& world, const f32& aspect_ratio)
 		draw(models_to_draw, *camera_to_use);
 	}
 	return true;
+}
+
+size as::get_world_size(const as::world& world)
+{
+	size total_size = 0;
+	for (const as::entity& world_entities : world.entities)
+	{
+		total_size += get_entity_size(world_entities);
+	}
+	for (const as::world& sub_worlds : world.sub_worlds)
+	{
+		total_size += get_world_size(sub_worlds);
+	}
+	total_size += sizeof(world);
+	return total_size;
+}
+
+void as::delete_world_data(as::world& world)
+{
+	for (as::entity& sub_entity : world.entities)
+	{
+		delete_entity_data(sub_entity);
+	}
+	for (as::world& sub_world : world.sub_worlds)
+	{
+		delete_world_data(sub_world);
+	}
+	world.entities.clear();
+	world.sub_worlds.clear();
 }
