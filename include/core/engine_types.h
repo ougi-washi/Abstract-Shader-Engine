@@ -151,7 +151,9 @@ namespace as
 
 	struct world
 	{
-		std::vector<as::entity*> entities;
+		//std::vector<as::entity*> entities;
+		as::entity** entities = nullptr;
+		u16 entities_count = 0;
 		u8 is_active : 1;
 	};
 

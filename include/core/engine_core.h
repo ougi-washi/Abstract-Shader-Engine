@@ -61,7 +61,6 @@ namespace as
 	void add_texture_to_shader(as::texture* textures, as::shader*& shader);
 	bool deep_copy_texture(const as::texture* source, as::texture*& destination);
 	bool deep_copy_texture(const as::texture* source, void*& destination);
-	void delete_texture_data(as::texture*& texture);
 	size get_texture_size(const as::texture& texture);
 
 	// meshes
@@ -83,7 +82,6 @@ namespace as
 	bool deep_copy_model(const as::model* source, as::model* destination);
 	bool deep_copy_model(const as::model& source, void* destination);
 	size get_model_size(const as::model& model);
-	bool delete_model_data(as::model& model);
 	bool delete_model_data(as::model*& model);
 
 	// render
@@ -103,6 +101,5 @@ namespace as
 	bool draw(const as::world& world, const f32& aspect_ratio);
 	bool draw(const as::world* world, const f32& aspect_ratio);
 	size get_world_size(const as::world& world);
-	void delete_world_data(as::world& world);
 	void delete_world_data(as::world*& world);
 };

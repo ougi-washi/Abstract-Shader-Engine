@@ -334,12 +334,14 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("entities"))
 			{
 				std::vector<std::string> entities_file_paths = json_data["entities"].get<std::vector<std::string>>();
-				for (const std::string& current_entity_file_path : entities_file_paths)
+				out_world->entities_count = entities_file_paths.size();
+				out_world->entities = (as::entity**)malloc(sizeof(as::entity*) * out_world->entities_count);
+				for (u16 i = 0 ; i < out_world->entities_count ; i++)
 				{
 					as::entity* current_entity = nullptr;
-					if (parse_file(current_entity_file_path, absolute_path, current_entity))
+					if (parse_file(entities_file_paths[i], absolute_path, current_entity) && current_entity)
 					{
-						out_world->entities.push_back(current_entity);
+						out_world->entities[i] = current_entity;
 					}
 				}
 			}
@@ -596,6 +598,11 @@ void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
+		for (as::entity*& sub_entity : entity->sub_entities)
+		{
+			as::delete_entity_data(sub_entity);
+		}
+
 		as::world* world = nullptr;
 		if (as::get_world_from_entity(entity, world))
 		{
@@ -612,17 +619,6 @@ void as::delete_entity_data(as::entity*& entity)
 		if (as::get_shader_from_entity(entity, shader))
 		{
 			as::delete_shader_data(shader);
-		}
-
-		//as::texture* texture = nullptr;
-		//if (as::get_texture_from_entity(entity, texture))
-		//{
-		//	as::delete_texture_data(texture);
-		//}
-
-		for (as::entity*& sub_entity : entity->sub_entities)
-		{
-			as::delete_entity_data(sub_entity);
 		}
 
 		if (entity->data_ptr)
@@ -941,15 +937,6 @@ bool as::deep_copy_texture(const as::texture* source, void*& destination)
 {
 	as::texture* destination_texture = static_cast<as::texture*>(destination);
 	return deep_copy_texture(source, destination_texture);
-}
-
-void as::delete_texture_data(as::texture*& texture)
-{
-	if (texture)
-	{
-		delete(texture);
-		texture = nullptr;
-	}
 }
 
 size as::get_texture_size(const as::texture& texture)
@@ -1384,17 +1371,19 @@ bool as::draw(const as::world& world, const f32& aspect_ratio)
 {
 	std::vector<const as::model*> models_to_draw;
 	as::camera* camera_to_use = nullptr;
-	for (const as::entity* current_entity : world.entities)
+	//for (const as::entity* current_entity : world.entities)
+	//{ temp
+	for (u16 i = 0 ; i < 2 ; i++)
 	{
-		if (current_entity)
+		if (world.entities[i])
 		{
 			as::model* out_model = nullptr;
 			as::camera* out_camera = nullptr;
-			if (get_model_from_entity(current_entity, out_model))
+			if (get_model_from_entity(world.entities[i], out_model))
 			{
 				models_to_draw.push_back(out_model);
 			}
-			else if (get_camera_from_entity(*current_entity, out_camera))
+			else if (get_camera_from_entity(*world.entities[i], out_camera))
 			{
 				if (out_camera && out_camera->is_active)
 				{
@@ -1425,28 +1414,23 @@ bool as::draw(const as::world& world, const f32& aspect_ratio)
 size as::get_world_size(const as::world& world)
 {
 	size total_size = 0;
-	for (const as::entity* world_entities : world.entities)
-	{
-		total_size += get_entity_size(*world_entities);
-	}
-	total_size += sizeof(world);
+	//for (const as::entity* world_entities : world.entities)
+	//{
+	//	total_size += get_entity_size(*world_entities);
+	//}
+	//total_size += sizeof(world);
 	return total_size;
-}
-
-void as::delete_world_data(as::world& world)
-{
-	for (as::entity* sub_entity : world.entities)
-	{
-		delete_entity_data(sub_entity);
-	}
-	world.entities.clear();
 }
 
 void as::delete_world_data(as::world*& world)
 {
-	for (as::entity* sub_entity : world->entities)
+	if (world)
 	{
-		delete_entity_data(sub_entity);
+		for (u16 i = 0; i < world->entities_count; i++)
+		{
+			delete_entity_data(world->entities[i]);
+		}
+		free(world->entities);
+		world->entities = nullptr;
 	}
-	world->entities.clear();
 }
