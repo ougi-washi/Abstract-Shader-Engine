@@ -357,13 +357,13 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 		}
 		else if (out_entity->type == as::ent::entity_type::MODEL)
 		{
-			as::model* out_model = new as::model;
+			as::model* out_model = nullptr;
 
 			if (json_data.contains("path"))
 			{
 				std::string model_path = json_data["path"].get<std::string>();
 				std::vector<as::texture> out_textures;
-				as::load_model(model_path.c_str(), *out_model, out_textures);
+				as::load_model(model_path.c_str(), out_model, out_textures);
 			}
 			else
 			{
@@ -434,7 +434,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				out_entity->sub_entities.reserve(textures.size());
 				for (u16 i = 0; i < textures.size(); i++)
 				{
-					as::entity* texture_entity = new as::entity();;
+					as::entity* texture_entity = nullptr;
 					if (parse_file(textures[i], absolute_path, texture_entity))
 					{
 						if (texture_entity->data_ptr)
@@ -465,16 +465,16 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("path"))
 			{
 				std::string texture_path = json_data["path"].get<std::string>();
-				as::texture out_texture;
+				as::texture* out_texture = new as::texture();
 				if (json_data.contains("uniform_name"))
 				{
 					std::string uniform_name = json_data["uniform_name"].get<std::string>();
-					strcpy(out_texture.uniform_name, uniform_name.c_str());
+					strcpy(out_texture->uniform_name, uniform_name.c_str());
 				}
-				if (as::load_texture(texture_path.c_str(), out_texture))
+				if (as::load_texture(texture_path.c_str(), *out_texture))
 				{
 					delete_entity_data(out_entity->data_ptr);
-					out_entity->data_ptr = new as::texture(out_texture);
+					out_entity->data_ptr = out_texture;
 				}
 				else
 				{
@@ -596,11 +596,6 @@ void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
-		for (as::entity* sub_entity : entity->sub_entities)
-		{
-			as::delete_entity_data(sub_entity);
-		}
-
 		as::world* world = nullptr;
 		if (as::get_world_from_entity(entity, world))
 		{
@@ -619,22 +614,27 @@ void as::delete_entity_data(as::entity*& entity)
 			as::delete_shader_data(shader);
 		}
 
-		as::texture* texture = nullptr;
-		if (as::get_texture_from_entity(entity, texture))
+		//as::texture* texture = nullptr;
+		//if (as::get_texture_from_entity(entity, texture))
+		//{
+		//	as::delete_texture_data(texture);
+		//}
+
+		for (as::entity*& sub_entity : entity->sub_entities)
 		{
-			as::delete_texture_data(texture);
+			as::delete_entity_data(sub_entity);
 		}
 
-		//if (entity->data_ptr)
-		//{
-		//	delete(entity->data_ptr);
-		//	entity->data_ptr = nullptr;
-		//}
-		//if (entity->fn_ptr)
-		//{
-		//	delete(entity->fn_ptr);
-		//	entity->fn_ptr = nullptr;
-		//}
+		if (entity->data_ptr)
+		{
+			delete(entity->data_ptr);
+			entity->data_ptr = nullptr;
+		}
+		if (entity->fn_ptr)
+		{
+			delete(entity->fn_ptr);
+			entity->fn_ptr = nullptr;
+		}
 		if (entity)
 		{
 			delete(entity);
@@ -778,10 +778,10 @@ void as::delete_shader_data(as::shader*& shader)
 	AS_LOG(LV_LOG, "Deleting shader");
 	glDeleteShader(shader->vertex_shader);
 	glDeleteShader(shader->fragment_shader);
-	for (as::texture* texture : shader->textures)
-	{
-		delete_texture_data(texture);
-	}
+	//for (as::texture* texture : shader->textures)
+	//{
+	//	delete_texture_data(texture);
+	//}
 	shader->textures.clear();
 	shader->uniforms.clear();
 }
@@ -1212,8 +1212,12 @@ bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh*>& ou
 	return false;
 };
 
-void as::load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures)
+void as::load_model(const char* path, as::model*& out_model, std::vector<as::texture>& out_textures)
 {
+	if (out_model == nullptr)
+	{
+		out_model = new as::model();
+	}
 	std::string full_path = as::util::get_current_path() + "/../" + std::string(path);
 	AS_LOG(LV_LOG, "Loading model [" + full_path + "]");
 	Assimp::Importer import;
@@ -1224,8 +1228,8 @@ void as::load_model(const char* path, as::model& out_model, std::vector<as::text
 		AS_LOG(LV_WARNING, import.GetErrorString());
 		return;
 	}
-	strcpy(out_model.path, full_path.c_str());
-	process_node(scene, scene->mRootNode, out_model.meshes, out_textures);
+	strcpy(out_model->path, full_path.c_str());
+	process_node(scene, scene->mRootNode, out_model->meshes, out_textures);
 }
 
 void as::apply_location(const glm::vec3& location, as::model& model)

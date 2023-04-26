@@ -74,7 +74,7 @@ namespace as
 	void delete_mesh_data(as::mesh*& mesh);
 
 	// models
-	void load_model(const char* path, as::model& out_model, std::vector<as::texture>& out_textures);
+	void load_model(const char* path, as::model*& out_model, std::vector<as::texture>& out_textures);
 	void apply_location(const glm::vec3& location, as::model& model);
 	void apply_rotation(const glm::vec3& rotation, as::model& model);
 	void apply_scale(const glm::vec3& scale, as::model& model);
