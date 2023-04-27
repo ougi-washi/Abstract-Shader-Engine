@@ -16,6 +16,7 @@ This project is developed with a set of rules in mind:
 - [CMake](https://cmake.org/download/)
 
 ## TODOs
+- Remove all utils from the engine_core file (eg. string conversions)
 - Handle per-shader multiple textures allocation and deallocation
 - Add render thread
 - Add entities and shader file changes thread (check every few frames and update the scene according to the change)

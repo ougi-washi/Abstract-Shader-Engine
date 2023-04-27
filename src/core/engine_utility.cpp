@@ -227,6 +227,11 @@ std::string as::util::transform_to_string(const as::transform& transform)
 			"|S:" + vec3_to_string(transform.scale);
 }
 
+std::string as::util::bool_to_string(const bool& boolean)
+{
+	return (boolean) ? "true" : "false";
+}
+
 void as::timer::start_timer(timer::handle& handle)
 {
 	handle.start = std::chrono::system_clock::now();

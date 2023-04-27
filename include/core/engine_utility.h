@@ -32,6 +32,7 @@ namespace as
 		/** string */
 		std::string vec3_to_string(const glm::vec3& vec);
 		std::string transform_to_string(const as::transform& transform);
+		std::string bool_to_string(const bool& boolean);
 	};
 
 	namespace timer

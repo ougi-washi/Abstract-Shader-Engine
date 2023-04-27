@@ -191,6 +191,30 @@ bool as::get_camera_from_entity(const as::entity& entity, as::camera*& out_camer
 	return false;
 }
 
+bool as::get_camera_from_entity(const as::entity* entity, as::camera*& out_camera)
+{
+	if (entity)
+	{
+		if (entity->type == as::ent::entity_type::CAMERA)
+		{
+			if (entity->data_ptr)
+			{
+				out_camera = (as::camera*)entity->data_ptr;
+				return true;
+			}
+			else
+			{
+				AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
+			}
+		}
+	}
+	else
+	{
+		AS_LOG(LV_ERROR, "Cannot get camera from entity, entity is nullptr")
+	}
+	return false;
+}
+
 bool as::get_world_from_entity(const as::entity& entity, as::world& out_world)
 {
 	if (entity.type == as::ent::entity_type::WORLD)
@@ -280,6 +304,37 @@ bool as::get_texture_from_entity(const as::entity& entity, as::texture& out_text
 		}
 	}
 	return false;
+}
+
+std::string as::to_string(const as::entity* entity)
+{
+	if (entity)
+	{
+		{
+			as::world* world = nullptr;
+			if (as::get_world_from_entity(entity, world))
+			{
+				return as::to_string(world);
+			}
+		}
+
+		{
+			as::camera* camera = nullptr;
+			if (as::get_camera_from_entity(entity, camera))
+			{
+				return as::to_string(camera);
+			}
+		}
+
+		{
+			as::model* model = nullptr;
+			if (as::get_model_from_entity(entity, model))
+			{
+				return as::to_string(model);
+			}
+		}
+	}
+	return std::string();
 }
 
 bool as::get_texture_from_entity(const as::entity* entity, as::texture*& out_texture)
@@ -381,7 +436,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 					as::entity* shader_entity = nullptr;
 					if (parse_file(shaders[i], absolute_path, shader_entity))
 					{
-						if (out_model->meshes.size() > i && shader_entity->data_ptr)
+						if (out_model->meshes && out_model->mesh_count > i && shader_entity->data_ptr)
 						{
 							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), *out_model->meshes[i]);
 						}
@@ -402,7 +457,6 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			};
 			as::delete_entity_data(out_entity->data_ptr);
 			out_entity->size = as::get_model_size(*out_model);
-			//out_entity->data_ptr = malloc(out_entity->size);
 			out_entity->data_ptr = out_model;
 		}
 		else if (out_entity->type == as::ent::entity_type::SHADER)
@@ -598,10 +652,6 @@ void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
-		for (as::entity*& sub_entity : entity->sub_entities)
-		{
-			as::delete_entity_data(sub_entity);
-		}
 
 		as::world* world = nullptr;
 		if (as::get_world_from_entity(entity, world))
@@ -619,6 +669,11 @@ void as::delete_entity_data(as::entity*& entity)
 		if (as::get_shader_from_entity(entity, shader))
 		{
 			as::delete_shader_data(shader);
+		}
+
+		for (as::entity*& sub_entity : entity->sub_entities)
+		{
+			as::delete_entity_data(sub_entity);
 		}
 
 		if (entity->data_ptr)
@@ -760,13 +815,40 @@ size as::get_shader_size(const as::shader& shader)
 	{
 		total_size += sizeof(as::uniform);
 	}
-	for (const as::texture* texture : shader.textures)
+	for (u16 i = 0 ; i < shader.texture_count ; i++)
 	{
-		total_size += get_texture_size(*texture);
+		if (shader.textures[i])
+		{
+			total_size += get_texture_size(shader.textures[i]);
+		}
 	}
-
 	total_size += sizeof(shader);
 	return total_size;
+}
+
+std::string as::to_string(const as::shader* shader)
+{
+	std::string final_string = "";
+	if (shader)
+	{
+		final_string += "{\n	fragment_shader:" +
+			std::to_string(shader->fragment_shader) +
+			",\n	vertex_shader:" +
+			std::to_string(shader->vertex_shader) +
+			",\n	texture_count:" +
+			std::to_string(shader->texture_count) +
+			",\n	textures:[";
+		for (u16 i = 0 ; i < shader->texture_count ; i++)
+		{
+			final_string += as::to_string(shader->textures[i]);
+			if (shader->texture_count != i - 1)
+			{
+				final_string += ",\n	";
+			}
+		}
+		final_string += "]}";
+	}
+	return final_string;
 }
 
 void as::delete_shader_data(as::shader*& shader)
@@ -774,11 +856,8 @@ void as::delete_shader_data(as::shader*& shader)
 	AS_LOG(LV_LOG, "Deleting shader");
 	glDeleteShader(shader->vertex_shader);
 	glDeleteShader(shader->fragment_shader);
-	//for (as::texture* texture : shader->textures)
-	//{
-	//	delete_texture_data(texture);
-	//}
-	shader->textures.clear();
+	free(shader->textures);
+	shader->textures = nullptr;
 	shader->uniforms.clear();
 }
 
@@ -849,7 +928,7 @@ void as::set_uniform_mat4(const u32& shader_program, const char* name, const glm
 
 void as::bind_uniforms(const as::shader& shader)
 {
-	for (u16 i = 0 ; i < shader.textures.size() ; i++)
+	for (u16 i = 0 ; i < shader.texture_count ; i++)
 	{
 		glActiveTexture(GL_TEXTURE0 + i);
 		set_uniform_integer(shader.shader_program, shader.textures[i]->uniform_name, i);
@@ -909,17 +988,29 @@ bool as::load_texture(const char* path, as::texture& out_texture)
 	return false;
 }
 
-void as::add_textures_to_shader(std::vector<as::texture*>& textures, as::shader& shader)
+void as::add_texture_to_shader(as::texture* texture, as::shader*& shader)
 {
-	for (as::texture* current_texture : textures)
+	if (texture && shader)
 	{
-		shader.textures.push_back(current_texture);
+		shader->texture_count++;
+		if (shader->texture_count > 0 && shader->textures)
+		{
+			shader->textures = (as::texture**)realloc(shader->textures, sizeof(as::texture) * shader->texture_count);
+		}
+		else
+		{
+			shader->textures = (as::texture**)malloc(sizeof(as::texture));
+		}
+		if (shader->textures)
+		{
+			shader->textures[shader->texture_count - 1] = texture;
+		}
 	}
-}
-
-void as::add_texture_to_shader(as::texture* textures, as::shader*& shader)
-{
-	shader->textures.push_back(textures);
+	else
+	{
+		AS_LOG(LV_WARNING, "Cannot add texture to shader, nullptr ptr");
+	}
+	//shader->textures.push_back(textures);
 }
 
 bool as::deep_copy_texture(const as::texture* source, as::texture*& destination)
@@ -944,7 +1035,41 @@ size as::get_texture_size(const as::texture& texture)
 	return sizeof(texture);
 }
 
-bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh& out_mesh)
+std::string as::to_string(const as::texture* texture)
+{
+	std::string final_string = "";
+	if (texture)
+	{
+		final_string += "{\n	path:" +
+			std::string(texture->path) +
+			",\n	height:" +
+			std::to_string(texture->height) +
+			",\n	width:" +
+			std::to_string(texture->width) +
+			"\n}";
+	}
+	return final_string;
+}
+
+size as::get_texture_size(const as::texture* texture)
+{
+	if (texture)
+	{
+		return sizeof(*texture);
+	}
+	AS_LOG(LV_WARNING, "Texture pointer invalid, cannot get the size");
+	return 0;
+}
+
+void as::delete_texture_data(as::texture*& texture)
+{
+	if (texture)
+	{
+		free(texture);
+	}
+}
+
+bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh*& out_mesh)
 {
 	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
 
@@ -955,21 +1080,31 @@ bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<
 	}
 
 	i64 vertices_size = sizeof(as::vertex) * vertices.size();
-	out_mesh.vertices = vertices;
-
 	i64 indices_size = sizeof(u32) * indices.size();
-	out_mesh.indices = indices;
+
+	if (out_mesh)
+	{
+		free(out_mesh);
+	}
+	out_mesh = (as::mesh*)malloc(sizeof(as::mesh));
+
+	out_mesh->vertex_count = vertices.size();
+	out_mesh->index_count = indices.size();
+	out_mesh->vertices = (as::vertex*)malloc(vertices_size);
+	out_mesh->indices = (u32*)malloc(indices_size);
+	memcpy(out_mesh->vertices, vertices.data(), vertices_size);
+	memcpy(out_mesh->indices, indices.data(), indices_size);
 
 	// create buffers/arrays
-	glGenVertexArrays(1, &out_mesh.VAO);
-	glGenBuffers(1, &out_mesh.VBO);
-	glGenBuffers(1, &out_mesh.EBO);
+	glGenVertexArrays(1, &out_mesh->VAO);
+	glGenBuffers(1, &out_mesh->VBO);
+	glGenBuffers(1, &out_mesh->EBO);
 
 	// bind and set buffer
-	glBindVertexArray(out_mesh.VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, out_mesh.VBO);
+	glBindVertexArray(out_mesh->VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, out_mesh->VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices_size, &vertices[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_mesh.EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, out_mesh->EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, &indices[0], GL_STATIC_DRAW);
 
 	// set the vertex attribute pointers
@@ -1024,7 +1159,7 @@ bool as::draw(const as::mesh& mesh)
 	{
 		as::bind_uniforms(*mesh.shader_ptr);
 		glBindVertexArray(mesh.VAO);
-		glDrawElements(GL_TRIANGLES, static_cast<u32>(mesh.indices.size()), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, static_cast<u32>(mesh.index_count), GL_UNSIGNED_INT, 0);
 
 		// reset
 		glBindVertexArray(0);
@@ -1057,13 +1192,39 @@ bool as::deep_copy_mesh(const as::mesh* source, void*& destination)
 	return deep_copy_mesh(source, destination_mesh);
 }
 
+std::string as::to_string(const as::mesh* mesh)
+{
+	std::string final_string = "";
+	if (mesh)
+	{
+		final_string += "mesh\n{\n	indices:" +
+			std::to_string(mesh->index_count) +
+			", vertices:" +
+			std::to_string(mesh->vertex_count) +
+			",\n	shader:\n" +
+			as::to_string(mesh->shader_ptr) +
+			"\n}";
+	}
+	return final_string;
+}
+
 void as::delete_mesh_data(as::mesh*& mesh)
 {
-	mesh->indices.clear();
-	mesh->vertices.clear();
-
-	delete(mesh);
-	mesh = nullptr;
+	if (mesh)
+	{
+		if (mesh->indices)
+		{
+			free(mesh->indices);
+			mesh->indices = nullptr;
+		}
+		if (mesh->vertices)
+		{
+			free(mesh->vertices);
+			mesh->vertices = nullptr;
+		}
+		free(mesh);
+		mesh = nullptr;
+	}
 }
 
 bool load_material_textures(aiMaterial* material, aiTextureType type, const char* type_name, std::vector<as::texture>& out_textures)
@@ -1170,7 +1331,7 @@ bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh*& out_mesh, std::
 	// 4. height maps
 	load_material_textures(material, aiTextureType_AMBIENT, "texture_height", out_textures);
 
-	return as::create_mesh(vertices, indices, *out_mesh);
+	return as::create_mesh(vertices, indices, out_mesh);
 }
 
 bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh*>& out_meshes, std::vector<as::texture>& out_textures)
@@ -1183,7 +1344,7 @@ bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh*>& ou
 			// the node object only contains indices to index the actual objects in the scene. 
 			// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			as::mesh* processed_mesh = new as::mesh();
+			as::mesh* processed_mesh = nullptr;
 			if (process_mesh(mesh, scene, processed_mesh, out_textures))
 			{
 				out_meshes.push_back(processed_mesh);
@@ -1216,7 +1377,15 @@ void as::load_model(const char* path, as::model*& out_model, std::vector<as::tex
 		return;
 	}
 	strcpy(out_model->path, full_path.c_str());
-	process_node(scene, scene->mRootNode, out_model->meshes, out_textures);
+	std::vector <as::mesh*> meshes;
+	process_node(scene, scene->mRootNode, meshes, out_textures);
+	out_model->mesh_count = meshes.size();
+	if (meshes.data())
+	{
+		out_model->meshes = (as::mesh**)malloc(sizeof(as::mesh) * meshes.size());
+		*out_model->meshes = *meshes.data();
+	}
+	//free(meshes.data());
 }
 
 void as::apply_location(const glm::vec3& location, as::model& model)
@@ -1241,21 +1410,21 @@ void as::apply_transform(const as::transform& transform, as::model& model)
 
 bool as::draw(const as::model& model, const as::camera& camera)
 {
-	if (!model.meshes.empty() && model.meshes[0]->shader_ptr)
+	if (model.mesh_count > 0 && model.meshes[0]->shader_ptr)
 	{
 		u32 current_shader_program = model.meshes[0]->shader_ptr->shader_program;
 		update_draw_uniforms(current_shader_program, camera, model.transform_matrix);
 
-		for (const as::mesh* mesh : model.meshes)
+		for (u16 i = 0 ; i < model.mesh_count ; i++)
 		{
-			if (mesh->shader_ptr && mesh->shader_ptr->shader_program != current_shader_program)
+			if (model.meshes[i] && model.meshes[i]->shader_ptr && model.meshes[i]->shader_ptr->shader_program != current_shader_program)
 			{
-				current_shader_program = mesh->shader_ptr->shader_program; 
+				current_shader_program = model.meshes[i]->shader_ptr->shader_program;
 				glUseProgram(current_shader_program);
 				update_draw_uniforms(current_shader_program, camera, model.transform_matrix); // update again in case shader program changed
 			}
 
-			draw(*mesh);
+			draw(*model.meshes[i]);
 		}
 	}
 	return check_gl_error();
@@ -1285,23 +1454,49 @@ bool as::deep_copy_model(const as::model& source, void* destination)
 size as::get_model_size(const as::model& model)
 {
 	size total_size = 0;
-	for (const as::mesh* mesh : model.meshes)
+	for (u16 i = 0 ; i < model.mesh_count ; i++)
 	{
-		total_size += mesh->vertices.size() * sizeof(as::vertex);
-		total_size += mesh->indices.size() * sizeof(u32);
-		total_size += sizeof(as::mesh);
+		if (model.meshes[i])
+		{
+			total_size += model.meshes[i]->vertex_count * sizeof(as::vertex);
+			total_size += model.meshes[i]->index_count * sizeof(u32);
+			total_size += sizeof(as::mesh);
+		}
 	}
 	total_size += sizeof(model);
 	return total_size;
 }
 
+std::string as::to_string(const as::model* model)
+{
+	std::string final_string = "";
+	if (model)
+	{
+		final_string += "model:\n{\n	path:" +
+			std::string(model->path) +
+			",\n	meshes:";
+		for (u16 i = 0; i < model->mesh_count; i++)
+		{
+			final_string += as::to_string(model->meshes[i]);
+			final_string += ",\n	";
+		}
+		final_string += "\n}";
+	}
+	return final_string;
+}
+
 bool as::delete_model_data(as::model*& model)
 {
-	for (as::mesh*& current_mesh : model->meshes)
+	//for (as::mesh*& current_mesh : model->meshes)
+	//{
+	//	delete_mesh_data(current_mesh);
+	//}
+	for (u16 i = 0; i < model->mesh_count; i++)
 	{
-		delete_mesh_data(current_mesh);
+		delete_mesh_data(model->meshes[i]);
 	}
-	model->meshes.clear();
+	free(model->meshes);
+	model->meshes = nullptr;
 	return check_gl_error();
 }
 
@@ -1367,6 +1562,18 @@ size as::get_camera_size(const as::camera& camera)
 	return sizeof(camera);
 }
 
+std::string as::to_string(const as::camera* camera)
+{
+	std::string final_string = "";
+	if (camera)
+	{
+		final_string += "camera:\n{\n	transform:" +
+			util::transform_to_string(camera->transform) +
+			"\n}";
+	}
+	return final_string;
+}
+
 bool as::draw(const as::world& world, const f32& aspect_ratio)
 {
 	std::vector<const as::model*> models_to_draw;
@@ -1414,12 +1621,35 @@ bool as::draw(const as::world& world, const f32& aspect_ratio)
 size as::get_world_size(const as::world& world)
 {
 	size total_size = 0;
-	//for (const as::entity* world_entities : world.entities)
-	//{
-	//	total_size += get_entity_size(*world_entities);
-	//}
-	//total_size += sizeof(world);
+	for (u16 i = 0; i < world.entities_count; i++)
+	{
+		if (world.entities[i])
+		{
+			get_entity_size(*world.entities[i]);
+		}
+	}
 	return total_size;
+}
+
+std::string as::to_string(const as::world* world)
+{
+	std::string final_string = "";
+	if (world)
+	{
+		final_string += "world:\n{\n	is_active:" +
+			util::bool_to_string(world->is_active) +
+			",\n	entities:\n[\n	";
+		for (u16 i = 0 ; i < world->entities_count ; i++)
+		{
+			final_string += as::to_string(world->entities[i]);
+			if (world->entities_count != i - 1)
+			{
+				final_string += ",\n	";
+			}
+		}
+		final_string += "]\n}";
+	}
+	return final_string;
 }
 
 void as::delete_world_data(as::world*& world)

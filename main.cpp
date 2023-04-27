@@ -19,6 +19,7 @@ i32 main()
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
 
+	AS_LOG(LV_LOG, as::to_string(entity));
 	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
 		if (params.type == as::Z)
@@ -27,6 +28,7 @@ i32 main()
 		}
 		if (params.input_event == as::PRESSED && params.type == as::R)
 		{
+			AS_LOG(LV_LOG, as::to_string(entity));
 			if (as::parse_file("resources/objects/default_world.json", false, entity))
 			{
 				as::get_world_from_entity(entity, world);
