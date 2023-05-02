@@ -118,20 +118,13 @@ as::ent::entity_type as::variable_string_to_enum(const std::string& in_type_str)
 
 bool as::get_model_from_entity(const as::entity& entity, as::model& out_model)
 {
-	if (entity.type == as::ent::entity_type::MODEL)
+	if (entity.type == as::ent::entity_type::MODEL && entity.data_ptr)
 	{
-		if (entity.data_ptr)
+		as::model* found_model = static_cast<as::model*>(entity.data_ptr);
+		if (found_model)
 		{
-			as::model* found_model = static_cast<as::model*>(entity.data_ptr);
-			if (found_model)
-			{
-				out_model = *found_model;
-				return true;
-			}
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
+			out_model = *found_model;
+			return true;
 		}
 	}
 	return false;
@@ -141,17 +134,10 @@ bool as::get_model_from_entity(const as::entity* entity, as::model*& out_model)
 {
 	if (entity)
 	{
-		if (entity->type == as::ent::entity_type::MODEL)
+		if (entity->type == as::ent::entity_type::MODEL && entity->data_ptr)
 		{
-			if (entity->data_ptr)
-			{
-				out_model = static_cast<as::model*>(entity->data_ptr);
-				return true;
-			}
-			else
-			{
-				AS_LOG(LV_ERROR, "Cannot get model from entity, data is nullptr")
-			}
+			out_model = static_cast<as::model*>(entity->data_ptr);
+			return true;
 		}
 	}
 	return false;
@@ -363,7 +349,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 	
 	if (out_entity)
 	{
-		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
+		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0, caching will be implemented later
 	}
 	out_entity = (as::entity*)malloc(sizeof(as::entity));
 	*out_entity = as::entity();
@@ -585,15 +571,6 @@ bool as::draw(const std::vector<as::entity>& entities, const as::camera& camera)
 	return true;
 }
 
-bool as::draw(const as::world* world, const f32& aspect_ratio)
-{
-	if (world)
-	{
-		return draw(*world, aspect_ratio);
-	}
-	return false;
-}
-
 size as::get_entity_size(const as::entity* entity)
 {
 	size total_size = 0;
@@ -602,7 +579,6 @@ size as::get_entity_size(const as::entity* entity)
 	{
 		total_size += get_entity_size(entity->sub_entities[i]);
 	}
-
 
 	switch (entity->type)
 	{
@@ -699,11 +675,9 @@ void as::delete_entity_data(as::entity*& entity)
 		{
 			as::delete_entity_data(entity->sub_entities[i]);
 		}
-		if (entity->sub_entities)
-		{
-			free(entity->sub_entities);
-			entity->sub_entities = nullptr;
-		}
+		free(entity->sub_entities);
+		entity->sub_entities = nullptr;
+		entity->sub_entities_count = 0;
 
 		if (entity->data_ptr)
 		{
@@ -1517,10 +1491,6 @@ std::string as::to_string(const as::model* model)
 
 bool as::delete_model_data(as::model*& model)
 {
-	//for (as::mesh*& current_mesh : model->meshes)
-	//{
-	//	delete_mesh_data(current_mesh);
-	//}
 	for (u16 i = 0; i < model->mesh_count; i++)
 	{
 		delete_mesh_data(model->meshes[i]);
@@ -1604,48 +1574,49 @@ std::string as::to_string(const as::camera* camera)
 	return final_string;
 }
 
-bool as::draw(const as::world& world, const f32& aspect_ratio)
+bool as::draw(const as::world* world, const f32& aspect_ratio)
 {
-	std::vector<const as::model*> models_to_draw;
-	as::camera* camera_to_use = nullptr;
-	//for (const as::entity* current_entity : world.entities)
-	//{ temp
-	for (u16 i = 0 ; i < 2 ; i++)
+	if (world)
 	{
-		if (world.entities[i])
+		std::vector<const as::model*> models_to_draw;
+		as::camera* camera_to_use = nullptr;
+		for (u16 i = 0; i < world->entities_count; i++)
 		{
-			as::model* out_model = nullptr;
-			as::camera* out_camera = nullptr;
-			if (get_model_from_entity(world.entities[i], out_model))
+			if (world->entities[i])
 			{
-				models_to_draw.push_back(out_model);
-			}
-			else if (get_camera_from_entity(*world.entities[i], out_camera))
-			{
-				if (out_camera && out_camera->is_active)
+				as::model* out_model = nullptr;
+				as::camera* out_camera = nullptr;
+				if (get_model_from_entity(world->entities[i], out_model))
 				{
-					out_camera->aspect_ratio = aspect_ratio;
-					camera_to_use = out_camera;
+					models_to_draw.push_back(out_model);
+				}
+				else if (get_camera_from_entity(*world->entities[i], out_camera))
+				{
+					if (out_camera && out_camera->is_active)
+					{
+						out_camera->aspect_ratio = aspect_ratio;
+						camera_to_use = out_camera;
+					}
 				}
 			}
 		}
-	}
 
-	if (models_to_draw.empty())
-	{
-		AS_LOG(LV_WARNING, "Cannot draw 0 models, check the world content");
-		return false;
+		if (models_to_draw.empty())
+		{
+			AS_LOG(LV_WARNING, "Cannot draw 0 models, check the world content");
+			return false;
+		}
+		else if (!camera_to_use)
+		{
+			AS_LOG(LV_WARNING, "Cannot draw with no active camera, check the world content");
+			return false;
+		}
+		else
+		{
+			return draw(models_to_draw, *camera_to_use);
+		}
 	}
-	else if (!camera_to_use)
-	{
-		AS_LOG(LV_WARNING, "Cannot draw with no active camera, check the world content");
-		return false;
-	}
-	else
-	{
-		draw(models_to_draw, *camera_to_use);
-	}
-	return true;
+	return false;
 }
 
 size as::get_world_size(const as::world& world)

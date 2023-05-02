@@ -2,7 +2,9 @@
   "type": "world",
   "entities": [
     "resources/objects/default_camera.json",
-    "resources/objects/viking_room_model.json"
+    "resources/objects/viking_room_model.json",
+    "resources/objects/viking_room_model2.json",
+    "resources/objects/viking_room_model3.json"
   ],
   "is_active": true
 }

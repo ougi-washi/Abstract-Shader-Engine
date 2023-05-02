@@ -5,9 +5,9 @@
     "resources/objects/viking_room_shader.json"
   ],
   "transform": {
-    "location": [ 0.0, 0.0, 0.0 ],
-    "rotation": [ -90.0, -20.0, 120.0 ],
-    "scale": [ 1.0, 1.0, 1.0 ]
+    "location": [0.0, 0.0, -2.0],
+    "rotation": [ -90.0, -20.0, 220.0 ],
+    "scale": [1.0, 1.0, 1.0]
   },
   "absolute_path": false
 }

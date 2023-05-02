@@ -33,6 +33,7 @@ namespace as
 		};
 	};
 
+	// move to .cpp due to translation unit issue
 	static std::vector<std::string> entity_type_strings =
 	{
 		"none",		// 0
