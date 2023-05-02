@@ -46,7 +46,8 @@ namespace as
 	struct entity
 	{
 		ent::entity_type type = ent::NONE;
-		std::vector<as::entity*> sub_entities;
+		as::entity** sub_entities = nullptr;
+		u32 sub_entities_count = 0;
 
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use
@@ -79,7 +80,6 @@ namespace as
 		i32 vertex_shader;
 		i32 fragment_shader;
 		std::vector<as::uniform> uniforms; // to change from vector
-		//std::vector<as::texture*> textures; // to change from vector
 		as::texture** textures = nullptr;
 		u16 texture_count = 0;
 		// internal

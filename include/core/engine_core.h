@@ -22,7 +22,9 @@ namespace as
 	std::string to_string(const as::entity* entity);
 	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
 	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
-	size get_entity_size(const as::entity& entity);
+	size get_entity_size(const as::entity* entity);
+	void add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity);
+
 	void delete_entity_data(as::entity*& entity);
 	void delete_entity_data(void*& data_ptr);
 

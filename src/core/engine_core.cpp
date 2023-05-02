@@ -440,7 +440,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 						{
 							as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), *out_model->meshes[i]);
 						}
-						out_entity->sub_entities.push_back(shader_entity);
+						as::add_sub_entity(out_entity, shader_entity);
 					}
 				}
 			}
@@ -487,7 +487,6 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("textures"))
 			{
 				std::vector<std::string> textures = json_data["textures"].get<std::vector<std::string>>();
-				out_entity->sub_entities.reserve(textures.size());
 				for (u16 i = 0; i < textures.size(); i++)
 				{
 					as::entity* texture_entity = nullptr;
@@ -497,7 +496,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 						{
 							as::add_texture_to_shader(static_cast<as::texture*>(texture_entity->data_ptr), out_shader);
 						}
-						out_entity->sub_entities.push_back(texture_entity);
+						as::add_sub_entity(out_entity, texture_entity);
 					}
 				}
 			}
@@ -585,46 +584,47 @@ bool as::draw(const as::world* world, const f32& aspect_ratio)
 	return false;
 }
 
-size as::get_entity_size(const as::entity& entity)
+size as::get_entity_size(const as::entity* entity)
 {
 	size total_size = 0;
 
-	for (as::entity* sub_entity : entity.sub_entities)
+	for (u32 i = 0 ; i < entity->sub_entities_count ; i++)
 	{
-		total_size += get_entity_size(*sub_entity);
+		total_size += get_entity_size(entity->sub_entities[i]);
 	}
 
-	switch (entity.type)
+
+	switch (entity->type)
 	{
 	case ent::WORLD:
 	{
-		as::world world;
+		as::world* world = nullptr;
 		if (as::get_world_from_entity(entity, world))
 		{
-			total_size += get_world_size(world);
+			total_size += get_world_size(*world);
 		}
 	}
 	case ent::MODEL:
 	{
-		as::model model;
+		as::model* model = nullptr;
 		if (as::get_model_from_entity(entity, model))
 		{
-			total_size += as::get_model_size(model);
+			total_size += as::get_model_size(*model);
 		}
 		break;
 	}
 	case ent::SHADER:
 	{
-		as::shader shader;
+		as::shader* shader = nullptr;
 		if (as::get_shader_from_entity(entity, shader))
 		{
-			total_size += as::get_shader_size(shader);
+			total_size += as::get_shader_size(*shader);
 		}
 		break;
 	}
 	case ent::TEXTURE:
 	{
-		as::texture texture;
+		as::texture* texture = nullptr;
 		if (as::get_texture_from_entity(entity, texture))
 		{
 			total_size += get_texture_size(texture);
@@ -633,10 +633,10 @@ size as::get_entity_size(const as::entity& entity)
 	}
 	case ent::CAMERA:
 	{
-		as::camera camera;
+		as::camera* camera = nullptr;
 		if (as::get_camera_from_entity(entity, camera))
 		{
-			total_size += get_camera_size(camera);
+			total_size += get_camera_size(*camera);
 		}
 		break;
 	}
@@ -648,11 +648,25 @@ size as::get_entity_size(const as::entity& entity)
 	return total_size;
 }
 
+void as::add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity)
+{
+
+	parent_entity->sub_entities_count++;
+	if (parent_entity->sub_entities)
+	{
+		parent_entity->sub_entities = (as::entity**)realloc(parent_entity->sub_entities, sizeof(as::entity*) * parent_entity->sub_entities_count);
+	}
+	else
+	{
+		parent_entity->sub_entities = (as::entity**)malloc(sizeof(as::entity*) * parent_entity->sub_entities_count);
+	}
+	parent_entity->sub_entities[parent_entity->sub_entities_count - 1] = sub_entity;
+}
+
 void as::delete_entity_data(as::entity*& entity)
 {
 	if (entity)
 	{
-
 		as::world* world = nullptr;
 		if (as::get_world_from_entity(entity, world))
 		{
@@ -671,19 +685,24 @@ void as::delete_entity_data(as::entity*& entity)
 			as::delete_shader_data(shader);
 		}
 
-		for (as::entity*& sub_entity : entity->sub_entities)
+		for (u32 i = 0; i < entity->sub_entities_count; i++)
 		{
-			as::delete_entity_data(sub_entity);
+			as::delete_entity_data(entity->sub_entities[i]);
+		}
+		if (entity->sub_entities)
+		{
+			free(entity->sub_entities);
+			entity->sub_entities = nullptr;
 		}
 
 		if (entity->data_ptr)
 		{
-			delete(entity->data_ptr);
+			free(entity->data_ptr);
 			entity->data_ptr = nullptr;
 		}
 		if (entity->fn_ptr)
 		{
-			delete(entity->fn_ptr);
+			free(entity->fn_ptr);
 			entity->fn_ptr = nullptr;
 		}
 		if (entity)
@@ -1625,7 +1644,7 @@ size as::get_world_size(const as::world& world)
 	{
 		if (world.entities[i])
 		{
-			get_entity_size(*world.entities[i]);
+			get_entity_size(world.entities[i]);
 		}
 	}
 	return total_size;
@@ -1664,3 +1683,4 @@ void as::delete_world_data(as::world*& world)
 		world->entities = nullptr;
 	}
 }
+
