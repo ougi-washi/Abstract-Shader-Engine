@@ -77,8 +77,8 @@ namespace as
 	struct shader
 	{
 		// external
-		i32 vertex_shader;
-		i32 fragment_shader;
+		i32 vertex_shader = -1;
+		i32 fragment_shader = -1;
 		std::vector<as::uniform> uniforms; // to change from vector
 		as::texture** textures = nullptr;
 		u16 texture_count = 0;
@@ -134,8 +134,8 @@ namespace as
 		// camera Attributes
 		glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
 		glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
-		glm::vec3 right;
-		glm::vec3 world_up;
+		glm::vec3 right = glm::vec3(1.f, 0.f, 0.f);;
+		glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
 
 		// transform
 		as::transform transform;

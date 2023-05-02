@@ -102,7 +102,7 @@ namespace as
 	// camera
 	glm::mat4 get_matrix_view(const as::camera& camera);
 	glm::mat4 get_matrix_projection(const as::camera& camera);
-	void update_camera_vectors(as::camera& camera);
+	void update_camera_vectors(as::camera* camera);
 	size get_camera_size(const as::camera& camera);
 	std::string to_string(const as::camera* camera);
 

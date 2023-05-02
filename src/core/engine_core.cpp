@@ -365,7 +365,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 	{
 		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0
 	}
-	out_entity = new as::entity();
+	out_entity = (as::entity*)malloc(sizeof(as::entity));
+	*out_entity = as::entity();
 
 	std::string new_path;
 	if (absolute_path)
@@ -385,7 +386,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 
 		if (out_entity->type == as::ent::entity_type::WORLD)
 		{
-			as::world* out_world = new as::world();
+			as::world* out_world = (as::world*)malloc(sizeof(as::world));
+			*out_world = as::world();
 			if (json_data.contains("entities"))
 			{
 				std::vector<std::string> entities_file_paths = json_data["entities"].get<std::vector<std::string>>();
@@ -461,7 +463,13 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 		}
 		else if (out_entity->type == as::ent::entity_type::SHADER)
 		{
-			as::shader* out_shader = new as::shader();
+			as::shader* out_shader = (as::shader*)malloc(sizeof(as::shader));
+			// I believe normal initialization is not possible due to the uniforms being std::vector
+			out_shader->vertex_shader = -1;
+			out_shader->fragment_shader = -1;
+			out_shader->textures = nullptr;
+			out_shader->texture_count = 0;
+			out_shader->shader_program = 0;
 			std::string vertex_path;
 			std::string fragment_path;
 			if (json_data.contains("vertex_path"))
@@ -520,7 +528,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("path"))
 			{
 				std::string texture_path = json_data["path"].get<std::string>();
-				as::texture* out_texture = new as::texture();
+				as::texture* out_texture = (as::texture*)malloc(sizeof(as::texture));
+				*out_texture = as::texture();
 				if (json_data.contains("uniform_name"))
 				{
 					std::string uniform_name = json_data["uniform_name"].get<std::string>();
@@ -547,16 +556,17 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 		}
 		else if (out_entity->type == as::ent::entity_type::CAMERA)
 		{
-			as::camera out_camera;
-			as::transform out_transform;
+			as::camera* out_camera = (as::camera*)malloc(sizeof(as::camera));
+			*out_camera = as::camera();
+
 			as::update_camera_vectors(out_camera);
-			get_transform(json_data, out_camera.transform);
+			get_transform(json_data, out_camera->transform);
 			if (json_data.contains("is_active"))
 			{
-				out_camera.is_active = json_data["is_active"].get<bool>();
+				out_camera->is_active = json_data["is_active"].get<bool>();
 			}
 			delete_entity_data(out_entity->data_ptr);
-			out_entity->data_ptr = new as::camera(out_camera);
+			out_entity->data_ptr = out_camera;
 		}
 	}
 	return true;
@@ -1383,7 +1393,8 @@ void as::load_model(const char* path, as::model*& out_model, std::vector<as::tex
 {
 	if (out_model == nullptr)
 	{
-		out_model = new as::model();
+		out_model = (as::model*)malloc(sizeof(as::model));
+		*out_model = as::model();
 	}
 	std::string full_path = as::util::get_current_path() + "/../" + std::string(path);
 	AS_LOG(LV_LOG, "Loading model [" + full_path + "]");
@@ -1561,19 +1572,19 @@ glm::mat4 as::get_matrix_projection(const as::camera& camera)
 	return glm::perspective(camera.fov, camera.aspect_ratio, camera.near_plane, camera.far_plane);
 }
 
-void as::update_camera_vectors(as::camera& camera)
+void as::update_camera_vectors(as::camera* camera)
 {
 	// calculate the new Front vector
 	glm::vec3 front;
-	f32 pitch = camera.transform.rotation.y;
-	f32 yaw = camera.transform.rotation.z;
+	f32 pitch = camera->transform.rotation.y;
+	f32 yaw = camera->transform.rotation.z;
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	camera.front = glm::normalize(front);
+	camera->front = glm::normalize(front);
 	// also re-calculate the Right and Up vector
-	camera.right = glm::normalize(glm::cross(camera.front, camera.world_up));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-	camera.up = glm::normalize(glm::cross(camera.right, camera.front));
+	camera->right = glm::normalize(glm::cross(camera->front, camera->world_up));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+	camera->up = glm::normalize(glm::cross(camera->right, camera->front));
 }
 
 size as::get_camera_size(const as::camera& camera)
