@@ -1,4 +1,5 @@
 #include "engine_core.h"
+#include "engine_memory.h"
 #include "engine_utility.h"
 #include "display_core.h"
 #include "input/input_types.h"
@@ -6,7 +7,6 @@
 
 i32 main()
 {
-
 	as::input_handle input;
 	as::display_handle display_handle;
 	as::create_display_handle(false, 800, 600, input, display_handle);
@@ -15,9 +15,24 @@ i32 main()
 
 	as::entity* entity = nullptr;
 	as::parse_file("resources/objects/default_world.json", false, entity);
-	
+
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
+
+	as::entity* test_entity = nullptr;
+
+	as::entity* test_entity2 = nullptr;
+
+	test_entity = as_malloc<as::entity>(1);
+	test_entity2 = as_malloc<as::entity>(1);
+	test_entity->type = as::ent::MODEL;
+	test_entity2->type = as::ent::TEXTURE;
+	AS_FREE(test_entity);
+	AS_FREE(test_entity2);
+
+
+	AS_LOG(LV_LOG, std::to_string(allocated_memory));
+
 
 	AS_LOG(LV_LOG, as::to_string(entity));
 	input.on_receive_input = [&entity, &world](const as::key_params& params)

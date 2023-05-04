@@ -52,7 +52,7 @@ namespace as
 
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use
-		size size = 0;
+		size_t size = 0;
 	};
 
 	struct texture

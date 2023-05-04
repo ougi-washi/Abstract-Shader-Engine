@@ -571,9 +571,9 @@ bool as::draw(const std::vector<as::entity>& entities, const as::camera& camera)
 	return true;
 }
 
-size as::get_entity_size(const as::entity* entity)
+size_t as::get_entity_size(const as::entity* entity)
 {
-	size total_size = 0;
+	size_t total_size = 0;
 
 	for (u32 i = 0 ; i < entity->sub_entities_count ; i++)
 	{
@@ -810,9 +810,9 @@ bool as::deep_copy_shader(const as::shader* source, void*& destination)
 	return as::deep_copy_shader(source, destination_shader);
 }
 
-size as::get_shader_size(const as::shader& shader)
+size_t as::get_shader_size(const as::shader& shader)
 {
-	size total_size = 0;
+	size_t total_size = 0;
 
 	for (const as::uniform& uniform : shader.uniforms)
 	{
@@ -1033,7 +1033,7 @@ bool as::deep_copy_texture(const as::texture* source, void*& destination)
 	return deep_copy_texture(source, destination_texture);
 }
 
-size as::get_texture_size(const as::texture& texture)
+size_t as::get_texture_size(const as::texture& texture)
 {
 	return sizeof(texture);
 }
@@ -1054,7 +1054,7 @@ std::string as::to_string(const as::texture* texture)
 	return final_string;
 }
 
-size as::get_texture_size(const as::texture* texture)
+size_t as::get_texture_size(const as::texture* texture)
 {
 	if (texture)
 	{
@@ -1455,9 +1455,9 @@ bool as::deep_copy_model(const as::model& source, void* destination)
 	return false;
 }
 
-size as::get_model_size(const as::model& model)
+size_t as::get_model_size(const as::model& model)
 {
-	size total_size = 0;
+	size_t total_size = 0;
 	for (u16 i = 0 ; i < model.mesh_count ; i++)
 	{
 		if (model.meshes[i])
@@ -1557,7 +1557,7 @@ void as::update_camera_vectors(as::camera* camera)
 	camera->up = glm::normalize(glm::cross(camera->right, camera->front));
 }
 
-size as::get_camera_size(const as::camera& camera)
+size_t as::get_camera_size(const as::camera& camera)
 {
 	return sizeof(camera);
 }
@@ -1619,9 +1619,9 @@ bool as::draw(const as::world* world, const f32& aspect_ratio)
 	return false;
 }
 
-size as::get_world_size(const as::world& world)
+size_t as::get_world_size(const as::world& world)
 {
-	size total_size = 0;
+	size_t total_size = 0;
 	for (u16 i = 0; i < world.entities_count; i++)
 	{
 		if (world.entities[i])
