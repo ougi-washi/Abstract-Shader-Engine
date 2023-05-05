@@ -1,9 +1,7 @@
 #include "engine_core.h"
-#include "engine_memory.h"
 #include "engine_utility.h"
 #include "display_core.h"
 #include "input/input_types.h"
-
 
 i32 main()
 {
@@ -19,22 +17,6 @@ i32 main()
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
 
-	as::entity* test_entity = nullptr;
-
-	as::entity* test_entity2 = nullptr;
-
-	test_entity = as_malloc<as::entity>(1);
-	test_entity2 = as_malloc<as::entity>(1);
-	test_entity->type = as::ent::MODEL;
-	test_entity2->type = as::ent::TEXTURE;
-	AS_FREE(test_entity);
-	AS_FREE(test_entity2);
-
-
-	AS_LOG(LV_LOG, std::to_string(allocated_memory));
-
-
-	AS_LOG(LV_LOG, as::to_string(entity));
 	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
 		if (params.type == as::Z)
@@ -43,7 +25,7 @@ i32 main()
 		}
 		if (params.input_event == as::PRESSED && params.type == as::R)
 		{
-			AS_LOG(LV_LOG, as::to_string(entity));
+
 			if (as::parse_file("resources/objects/default_world.json", false, entity))
 			{
 				as::get_world_from_entity(entity, world);

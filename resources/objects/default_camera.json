@@ -1,7 +1,7 @@
 {
   "type": "camera",
   "transform": {
-    "location": [ -5.0, 0.0, 0.0 ],
+    "location": [ -11, 2.0, 0.0 ],
     "rotation": [ 0.0, 0.0, 0.0 ],
     "scale": [ 1.0, 1.0, 1.0 ]
   },

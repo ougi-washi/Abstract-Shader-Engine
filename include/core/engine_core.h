@@ -1,4 +1,5 @@
 #include "engine_types.h"
+#include "engine_memory.h"
 
 namespace as
 {
@@ -72,11 +73,10 @@ namespace as
 
 	// meshes
 	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh*& out_mesh);
-	bool assign_shader(as::shader& shader, as::mesh& out_meshe);
-	bool assign_shader(as::shader& shader, std::vector<as::mesh>& out_meshes);
+	bool assign_shader(as::shader& shader, as::mesh*& out_mesh);
 	bool deep_copy_mesh(const as::mesh* source, as::mesh*& destination);
 	bool deep_copy_mesh(const as::mesh* source, void*& destination);
-	bool draw(const as::mesh& mesh);
+	bool draw(const as::mesh* mesh);
 	std::string to_string(const as::mesh* mesh);
 	void delete_mesh_data(as::mesh*& mesh);
 

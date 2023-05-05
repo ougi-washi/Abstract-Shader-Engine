@@ -10,66 +10,24 @@ namespace as
 	{
 		void* ptr = nullptr;
 		size_t size = 0;
-		char file[200] = "";
+		char file[256] = "";
 		u16 line = 0;
+		char type[128] = "";
 	};
 };
 
-u32 allocations_count = 0;
-u64 allocated_memory = 0;
-as::allocation** allocations = nullptr;
+extern u32 allocations_count;
+extern u64 allocated_memory;
+extern as::allocation** allocations;
 
-template<class T>
-T* as_malloc(const u32& count)
-{
-	const u64 allocation_size = sizeof(T) * count;
-	T* _ptr = nullptr;
-	if (allocations)
-	{
-		allocations = (as::allocation**)realloc(allocations, sizeof(as::allocation*) * allocations_count);
-	}
-	else
-	{
-		allocations = (as::allocation**)malloc(sizeof(as::allocation*));
-	}
-	as::allocation* temp_allocation = (as::allocation*)malloc(sizeof(as::allocation));
-	memcpy(temp_allocation->file, __FILE__, sizeof(__FILE__));
-	temp_allocation->line = __LINE__;
-	temp_allocation->size = allocation_size;
-	_ptr = (T*)malloc(allocation_size);
-	*_ptr = T();
-	temp_allocation->ptr = _ptr;
-	allocations[allocations_count] = temp_allocation;
-	allocated_memory += allocation_size;
-	allocations_count++;
-	return _ptr;
-};
+extern void* as_malloc_fn(const size_t& _size, const char* _file, const u32& _line, const char* _type = "");
+extern void* as_realloc_fn(void* _ptr, const size_t& _size, const char* _file, const u32& _line);
+extern void as_free_fn(void* _ptr);
+extern char* as_allocation_to_string(as::allocation* _allocation);
+extern void as_log_memory();
 
-#define AS_FREE(_ptr)\
-{\
-	i64 removed_index = -1;\
-	for (u32 i = 0; i < allocations_count; i++)\
-	{\
-		if (removed_index == -1 && allocations[i]->ptr == _ptr)\
-		{\
-			free(_ptr);\
-			_ptr = nullptr;\
-			allocated_memory -= allocations[i]->size;\
-			removed_index = i;\
-		}\
-		else if (removed_index >= 0 && i > 0)\
-		{\
-			allocations[i - 1] = allocations[i];\
-		}\
-	}\
-	allocations_count--;\
-	if (allocations_count == 0)\
-	{\
-		free(allocations);\
-		allocations = nullptr;\
-	}\
-	else\
-	{\
-		allocations = (as::allocation**)realloc(allocations, sizeof(as::allocation*) * allocations_count);\
-	}\
-};
+#define AS_MALLOC(_size) (as_malloc_fn(_size, __FILE__, __LINE__))
+#define AS_MALLOC_WITH_TYPE(_size, _type) (as_malloc_fn(_size, __FILE__, __LINE__, _type))
+#define AS_REALLOC(_ptr, _size) (as_realloc_fn(_ptr, _size, __FILE__, __LINE__))
+#define AS_FREE(_ptr) (as_free_fn(_ptr))
+#define AS_LOG_MEMORY() (as_log_memory())
