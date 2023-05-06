@@ -17,20 +17,6 @@ i32 main()
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
 
-	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
-	{
-		as::get_world_from_entity(entity, world);
-	}
-
-	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
-	{
-		as::get_world_from_entity(entity, world);
-	}
-
-	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
-	{
-		as::get_world_from_entity(entity, world);
-	}
 	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
 		if (params.type == as::Z)

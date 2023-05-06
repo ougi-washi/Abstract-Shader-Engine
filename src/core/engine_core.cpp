@@ -1590,9 +1590,18 @@ bool as::draw(const std::vector<const as::model*>& models, const as::world* worl
 
 void as::update_draw_uniforms(const u32& shader_program, const as::world* world, const glm::mat4& model_transform)
 {
+	// camera
 	as::camera* camera = find_active_camera(world);
-	as::set_uniform_mat4(shader_program, "projection", as::get_matrix_projection(*camera)); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-	as::set_uniform_mat4(shader_program, "view", as::get_matrix_view(*camera));
+	if (camera)
+	{
+		as::set_uniform_mat4(shader_program, "projection", as::get_matrix_projection(*camera)); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+		as::set_uniform_mat4(shader_program, "view", as::get_matrix_view(*camera));
+	}
+	else
+	{
+		AS_LOG(LV_WARNING, "No active camera");
+	}
+
 	as::set_uniform_mat4(shader_program, "model", model_transform);
 }
 

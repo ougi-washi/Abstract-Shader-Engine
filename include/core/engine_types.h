@@ -166,6 +166,7 @@ namespace as
 	{
 		as::transform transform_mat;
 		f32 intensity = 1.f;
+		glm::vec3 color = glm::vec3(1.f);
 	};
 
 	struct world
