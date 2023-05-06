@@ -1,0 +1,7 @@
+{
+  "type": "shader",
+  "vertex_path": "resources/shaders/default_vertex_shader.glsl",
+  "fragment_path": "resources/shaders/default_fragment_shader.glsl",
+  "textures": [],
+  "absolute_path": false
+}

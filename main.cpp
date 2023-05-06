@@ -12,7 +12,7 @@ i32 main()
 	as::configure();
 
 	as::entity* entity = nullptr;
-	as::parse_file("resources/objects/default_world.json", false, entity);
+	as::parse_file(DEFAULT_WORLD_PATH, false, entity);
 
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
@@ -26,7 +26,7 @@ i32 main()
 		if (params.input_event == as::PRESSED && params.type == as::R)
 		{
 
-			if (as::parse_file("resources/objects/default_world.json", false, entity))
+			if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
 			{
 				as::get_world_from_entity(entity, world);
 			}

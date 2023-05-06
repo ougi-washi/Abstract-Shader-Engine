@@ -347,18 +347,6 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 {
 	AS_LOG(LV_LOG, "Parse file [" + path + "]");
 
-
-	if (out_entity)
-	{
-		AS_LOG(LV_LOG, "_______________PRE-FREE_______________");
-		AS_LOG_MEMORY();
-		as::delete_entity_data(out_entity); // for now delete everything and repeat from 0, caching will be implemented later
-		AS_LOG(LV_LOG, "_______________POST-FREE_______________");
-		AS_LOG_MEMORY();
-	}
-	out_entity = (as::entity*)AS_MALLOC(sizeof(as::entity));
-	*out_entity = as::entity();
-
 	std::string new_path;
 	if (absolute_path)
 	{
@@ -368,6 +356,19 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 	{
 		new_path = as::util::get_current_path() + "/../" + path;
 	}
+
+	if (out_entity)
+	{
+		AS_LOG(LV_LOG, "_______________PRE-FREE_______________");
+		AS_LOG_MEMORY();
+		as::delete_entity_data(out_entity);
+		AS_LOG(LV_LOG, "_______________POST-FREE_______________");
+		AS_LOG_MEMORY();
+	}
+
+	out_entity = (as::entity*)AS_MALLOC(sizeof(as::entity));
+	*out_entity = as::entity();
+	memcpy(out_entity->path, new_path.c_str(), 256);
 
 	json json_data = as::util::read_json_file(new_path);
 	if (json_data.contains("type"))
@@ -428,14 +429,29 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 					as::entity* shader_entity = nullptr;
 					if (parse_file(shaders[i], absolute_path, shader_entity))
 					{
-						if (out_model->meshes && out_model->mesh_count > i && shader_entity->data_ptr)
+						if (out_model->meshes && shader_entity->data_ptr)
 						{
-							for (u16 j = 0 ; j < out_model->mesh_count ; j++)
+							if (out_model->mesh_count > i)
 							{
-								as::assign_shader(*static_cast<as::shader*>(shader_entity->data_ptr), out_model->meshes[j]);
+								as::assign_shader(static_cast<as::shader*>(shader_entity->data_ptr), out_model->meshes[i]);
+								as::add_sub_entity(out_entity, shader_entity);
 							}
-							as::add_sub_entity(out_entity, shader_entity);
 						}
+					}
+				}
+				if (out_model->mesh_count > shaders.size())
+				{
+					as::entity* defaullt_shader_entity = nullptr;
+					if (parse_file(DEFAULT_SHADER_PATH, absolute_path, defaullt_shader_entity))
+					{
+						for (u16 i = 0; i < out_model->mesh_count; i++)
+						{
+							if (out_model->meshes[i] && !out_model->meshes[i]->shader_ptr)
+							{
+								as::assign_shader(static_cast<as::shader*>(defaullt_shader_entity->data_ptr), out_model->meshes[i]);
+							}
+						}
+						as::add_sub_entity(out_entity, defaullt_shader_entity);
 					}
 				}
 			}
@@ -460,7 +476,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			// I believe normal initialization is not possible due to the uniforms being std::vector
 			out_shader->vertex_shader = -1;
 			out_shader->fragment_shader = -1;
-			out_shader->textures = nullptr;
+			memset(out_shader->textures, 0, sizeof(as::texture*) * MAX_TEXTURE_COUNT_PER_SHADER);
 			out_shader->texture_count = 0;
 			out_shader->shader_program = 0;
 			std::string vertex_path;
@@ -521,23 +537,46 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			if (json_data.contains("path"))
 			{
 				std::string texture_path = json_data["path"].get<std::string>();
-				as::texture* out_texture = (as::texture*)AS_MALLOC(sizeof(as::texture));
-				*out_texture = as::texture();
-				if (json_data.contains("uniform_name"))
+
+				bool found_texture = false;
+				// TODO: caching
+				//for (size_t i = 0; i < allocations_count; i++)
+				//{
+				//	as::entity* found_entity_ptr = static_cast<as::entity*>(allocations[i]->ptr);
+				//	if (found_entity_ptr && found_entity_ptr->type == as::ent::TEXTURE)
+				//	{
+				//		as::texture* found_texture_ptr = static_cast<as::texture*>(found_entity_ptr->data_ptr);
+				//		std::string path_string = util::get_current_path() + "/../" + std::string(texture_path);
+				//		if (found_texture_ptr && strcmp(found_texture_ptr->path, path_string.c_str()) == 0)
+				//		{
+				//			AS_LOG(LV_LOG, "Texture " + texture_path + "already defined, using the found pointer.");
+				//			out_entity = found_entity_ptr;
+				//			found_texture = true;
+				//		}
+				//	}
+				//}
+				if (!found_texture)
 				{
-					std::string uniform_name = json_data["uniform_name"].get<std::string>();
-					strcpy(out_texture->uniform_name, uniform_name.c_str());
-				}
-				if (as::load_texture(texture_path.c_str(), *out_texture))
-				{
-					delete_entity_data(out_entity->data_ptr);
-					out_entity->data_ptr = out_texture;
-				}
-				else
-				{
-					AS_LOG(LV_WARNING, "Could not load the texture");
-					as::delete_entity_data(out_entity);
-					return false;
+					as::texture* out_texture = (as::texture*)AS_MALLOC(sizeof(as::texture));
+					*out_texture = as::texture();
+					if (json_data.contains("uniform_name"))
+					{
+						std::string uniform_name = json_data["uniform_name"].get<std::string>();
+						strcpy(out_texture->uniform_name, uniform_name.c_str());
+					}
+					if (as::load_texture(texture_path.c_str(), *out_texture))
+					{
+						delete_entity_data(out_entity->data_ptr);
+						out_entity->data_ptr = out_texture;
+					}
+					else
+					{
+						AS_LOG(LV_WARNING, "Could not load the texture");
+						AS_FREE(out_texture);
+						out_texture = nullptr;
+						as::delete_entity_data(out_entity);
+						return false;
+					}
 				}
 			}
 			else
@@ -547,8 +586,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				return false;
 			}
 		}
-		else 
-		if (out_entity->type == as::ent::entity_type::CAMERA)
+		else if (out_entity->type == as::ent::entity_type::CAMERA)
 		{
 			as::camera* out_camera = (as::camera*)AS_MALLOC(sizeof(as::camera));
 			*out_camera = as::camera();
@@ -659,7 +697,7 @@ void as::add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity)
 
 void as::delete_entity_data(as::entity*& entity)
 {
-	if (entity)
+	if (entity && entity->type < as::ent::MAX)
 	{
 		as::shader* shader = nullptr;
 		if (as::get_shader_from_entity(entity, shader))
@@ -804,7 +842,7 @@ bool as::deep_copy_shader(const as::shader* source, as::shader*& destination)
 	if (source && destination)
 	{
 		memcpy(destination, source, sizeof(as::shader));
-		destination->textures = source->textures;
+		memcpy(destination->textures, source->textures, sizeof(as::texture*) * MAX_TEXTURE_COUNT_PER_SHADER);
 		destination->uniforms = source->uniforms;
 		return true;
 	}
@@ -866,8 +904,11 @@ void as::delete_shader_data(as::shader*& shader)
 {
 	glDeleteShader(shader->vertex_shader);
 	glDeleteShader(shader->fragment_shader);
-	AS_FREE(shader->textures);
-	shader->textures = nullptr;
+	for (u16 i = 0 ; i < shader->texture_count ; i++ )
+	{
+		AS_FREE(shader->textures[i]);
+		shader->textures[i] = nullptr;
+	}
 	shader->uniforms.clear();
 }
 
@@ -1003,10 +1044,13 @@ void as::add_texture_to_shader(as::texture* texture, as::shader*& shader)
 	if (texture && shader)
 	{
 		shader->texture_count++;
-		shader->textures = (as::texture**)AS_REALLOC(shader->textures, sizeof(as::texture*) * shader->texture_count);
-		if (shader->textures)
+		if (shader->texture_count <= MAX_TEXTURE_COUNT_PER_SHADER)
 		{
 			shader->textures[shader->texture_count - 1] = texture;
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Cannot add texture to shader, it exceeds the number of possible textures per shader");
 		}
 	}
 	else
@@ -1140,11 +1184,11 @@ bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<
 	return check_gl_error();
 }
 
-bool as::assign_shader(as::shader& shader, as::mesh*& out_mesh)
+bool as::assign_shader(as::shader* shader, as::mesh*& out_mesh)
 {
-	if (out_mesh)
+	if (out_mesh && shader)
 	{
-		out_mesh->shader_ptr = &shader;
+		out_mesh->shader_ptr = shader;
 		return true;
 	}
 	return false;
@@ -1327,14 +1371,15 @@ bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh*& out_mesh, std::
 	// process materials
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 	
+	// automatic materials disabled for now
 	// 1. diffuse maps
-	load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse", out_textures);
+	//load_material_textures(material, aiTextureType_DIFFUSE, "texture_diffuse", out_textures);
 	// 2. specular maps
-	load_material_textures(material, aiTextureType_SPECULAR, "texture_specular", out_textures);
+	//load_material_textures(material, aiTextureType_SPECULAR, "texture_specular", out_textures);
 	// 3. normal maps
-	load_material_textures(material, aiTextureType_HEIGHT, "texture_normal", out_textures);
+	//load_material_textures(material, aiTextureType_HEIGHT, "texture_normal", out_textures);
 	// 4. height maps
-	load_material_textures(material, aiTextureType_AMBIENT, "texture_height", out_textures);
+	//load_material_textures(material, aiTextureType_AMBIENT, "texture_height", out_textures);
 
 	return as::create_mesh(vertices, indices, out_mesh);
 }
@@ -1582,7 +1627,7 @@ bool as::draw(const as::world* world, const f32& aspect_ratio)
 		std::vector<const as::model*> models_to_draw;
 		as::camera* camera_to_use = nullptr;
 		for (u16 i = 0; i < world->entities_count; i++)
-		{
+		{	
 			if (world->entities[i])
 			{
 				as::model* out_model = nullptr;

@@ -1,0 +1,9 @@
+{
+  "type": "shader",
+  "vertex_path": "resources/shaders/default_vertex_shader.glsl",
+  "fragment_path": "resources/shaders/pbr_fragment_shader.glsl",
+  "textures": [
+    "resources/objects/sponza/sponza_texture_vase.json"
+  ],
+  "absolute_path": false
+}

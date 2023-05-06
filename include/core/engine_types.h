@@ -8,6 +8,7 @@
 #include <chrono>
 
 #define MAX_BONE_INFLUENCE 4
+#define MAX_TEXTURE_COUNT_PER_SHADER 256
 
 namespace as
 {
@@ -29,7 +30,8 @@ namespace as
 			MODEL = 2,
 			SHADER = 3,
 			TEXTURE = 4,
-			CAMERA = 5
+			CAMERA = 5,
+			MAX = 6
 		};
 	};
 
@@ -41,7 +43,8 @@ namespace as
 		"model",	// 2
 		"shader",	// 3
 		"texture",	// 4
-		"camera"	// 5
+		"camera",	// 5
+		"max"	// 6
 	};
 
 	struct entity
@@ -53,6 +56,7 @@ namespace as
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use
 		size_t size = 0;
+		char path[256] = "";
 	};
 
 	struct texture
@@ -81,7 +85,7 @@ namespace as
 		i32 vertex_shader = -1;
 		i32 fragment_shader = -1;
 		std::vector<as::uniform> uniforms; // to change from vector
-		as::texture** textures = nullptr;
+		as::texture* textures[MAX_TEXTURE_COUNT_PER_SHADER]; // 256 possible texture per shader
 		u16 texture_count = 0;
 		// internal
 		u32 shader_program = 0;
@@ -169,3 +173,8 @@ namespace as
 		};
 	};
 };
+
+
+#define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"
+#define DEFAULT_CAMERA_PATH "resources/objects/defaults/default_camera.json"
+#define DEFAULT_SHADER_PATH "resources/objects/defaults/default_shader.json"

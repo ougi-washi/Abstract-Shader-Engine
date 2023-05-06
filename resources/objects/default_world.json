@@ -1,8 +1,0 @@
-{
-  "type": "world",
-  "entities": [
-    "resources/objects/default_camera.json",
-    "resources/objects/sponza_model.json"
-  ],
-  "is_active": true
-}
