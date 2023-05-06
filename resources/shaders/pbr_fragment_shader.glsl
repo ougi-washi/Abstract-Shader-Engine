@@ -2,6 +2,7 @@
 
 in vec3 vertex_color;
 in vec2 tex_coord;
+in vec3 normal;
 out vec4 out_frag_color;  
 
 uniform sampler2D uniform_texture;
@@ -9,5 +10,5 @@ uniform sampler2D uniform_texture1;
 
 void main()
 {
-	out_frag_color = texture(uniform_texture, tex_coord);	
+	out_frag_color = vec4(normal, 1.0);//texture(uniform_texture, tex_coord);	
 }

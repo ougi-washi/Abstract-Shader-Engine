@@ -22,7 +22,7 @@ namespace as
 	bool get_texture_from_entity(const as::entity* entity, as::texture*& out_texture);
 	std::string to_string(const as::entity* entity);
 	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
-	bool draw(const std::vector<as::entity>& entities, const as::camera& camera);
+	bool draw(const std::vector<as::entity*>& entities, const as::world* world);
 	size_t get_entity_size(const as::entity* entity);
 	void add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity);
 
@@ -62,7 +62,6 @@ namespace as
 
 	// textures
 	bool load_texture(const char* path, as::texture& out_texture);
-	void add_textures_to_shader(std::vector<as::texture*>& textures, as::shader& shader);
 	void add_texture_to_shader(as::texture* texture, as::shader*& shader);
 	bool deep_copy_texture(const as::texture* source, as::texture*& destination);
 	bool deep_copy_texture(const as::texture* source, void*& destination);
@@ -86,7 +85,7 @@ namespace as
 	void apply_rotation(const glm::vec3& rotation, as::model& model);
 	void apply_scale(const glm::vec3& scale, as::model& model);
 	void apply_transform(const as::transform& transform, as::model& model);
-	bool draw(const as::model& model, const as::camera& camera);
+	bool draw(const as::model* model, const as::world* world);
 	bool deep_copy_model(const as::model* source, as::model* destination);
 	bool deep_copy_model(const as::model& source, void* destination);
 	size_t get_model_size(const as::model& model);
@@ -95,11 +94,12 @@ namespace as
 
 	// render
 	void clear_background();
-	bool draw(const std::vector<as::model>& models, const as::camera& camera);
-	bool draw(const std::vector<const as::model*>& models, const as::camera& camera);
-	void update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform);
+	bool draw(const std::vector<as::model*>& models, const as::world* world);
+	bool draw(const std::vector<const as::model*>& models, const as::world* world);
+	void update_draw_uniforms(const u32& shader_program, const as::world* world, const glm::mat4& model_transform);
 
 	// camera
+	as::camera* find_active_camera(const as::world* world);
 	glm::mat4 get_matrix_view(const as::camera& camera);
 	glm::mat4 get_matrix_projection(const as::camera& camera);
 	void update_camera_vectors(as::camera* camera);

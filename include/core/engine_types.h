@@ -28,10 +28,12 @@ namespace as
 			NONE = 0,
 			WORLD = 1,
 			MODEL = 2,
-			SHADER = 3,
-			TEXTURE = 4,
-			CAMERA = 5,
-			MAX = 6
+			SHAPE = 3,
+			SHADER = 4,
+			TEXTURE = 5,
+			CAMERA = 6,
+			LIGHT = 7,
+			MAX = 8
 		};
 	};
 
@@ -41,10 +43,12 @@ namespace as
 		"none",		// 0
 		"world",	// 1
 		"model",	// 2
-		"shader",	// 3
-		"texture",	// 4
-		"camera",	// 5
-		"max"	// 6
+		"shape",	// 3
+		"shader",	// 4
+		"texture",	// 5
+		"camera",	// 6
+		"light",	// 7
+		"max"	// 8
 	};
 
 	struct entity
@@ -143,7 +147,7 @@ namespace as
 		glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
 
 		// transform
-		as::transform transform;
+		as::transform transform_mat;
 
 		// camera options
 		f32 movement_speed = 1.f;
@@ -156,6 +160,12 @@ namespace as
 		f32 aspect_ratio = 1.3f;
 
 		u8 is_active : 1;
+	};
+
+	struct light
+	{
+		as::transform transform_mat;
+		f32 intensity = 1.f;
 	};
 
 	struct world

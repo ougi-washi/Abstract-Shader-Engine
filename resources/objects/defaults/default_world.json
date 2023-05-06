@@ -2,7 +2,8 @@
   "type": "world",
   "entities": [
     "resources/objects/defaults/default_camera.json",
-    "resources/objects/sponza/sponza_model.json"
+    "resources/objects/defaults/default_light.json",
+    "resources/objects/dragon_model.json"
   ],
   "is_active": true
 }

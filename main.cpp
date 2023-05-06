@@ -17,6 +17,20 @@ i32 main()
 	as::world* world = nullptr;
 	as::get_world_from_entity(entity, world);
 
+	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
+	{
+		as::get_world_from_entity(entity, world);
+	}
+
+	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
+	{
+		as::get_world_from_entity(entity, world);
+	}
+
+	if (as::parse_file(DEFAULT_WORLD_PATH, false, entity))
+	{
+		as::get_world_from_entity(entity, world);
+	}
 	input.on_receive_input = [&entity, &world](const as::key_params& params)
 	{
 		if (params.type == as::Z)
@@ -35,8 +49,6 @@ i32 main()
 
 	while (as::should_display_loop(display_handle))
 	{
-		// next step figure out the file refresh and cash
-		//as::process_input(display_handle);
 		as::clear_background();
 		as::draw(world, as::get_display_ratio(display_handle));
 		as::update(display_handle);

@@ -4,6 +4,8 @@
 
 #include "engine_types.h"
 
+#define MAX_ALLOCATIONS_COUNT 257400
+
 namespace as
 {
 	struct allocation
@@ -18,7 +20,7 @@ namespace as
 
 extern u32 allocations_count;
 extern u64 allocated_memory;
-extern as::allocation** allocations;
+extern as::allocation allocations[];
 
 extern void* as_malloc_fn(const size_t& _size, const char* _file, const u32& _line, const char* _type = "");
 extern void* as_realloc_fn(void* _ptr, const size_t& _size, const char* _file, const u32& _line);

@@ -1,6 +1,0 @@
-{
-  "type": "texture",
-  "path": "resources/textures/viking_room.png",
-  "uniform_name": "uniform_texture",
-  "absolute_path": false
-}

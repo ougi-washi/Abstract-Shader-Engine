@@ -528,6 +528,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			else
 			{
 				AS_LOG(LV_WARNING, "Could not create the shader");
+				AS_FREE(out_shader);
+				out_shader = nullptr;
 				as::delete_entity_data(out_entity);
 				return false;
 			}
@@ -592,7 +594,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			*out_camera = as::camera();
 
 			as::update_camera_vectors(out_camera);
-			get_transform(json_data, out_camera->transform);
+			get_transform(json_data, out_camera->transform_mat);
 			if (json_data.contains("is_active"))
 			{
 				out_camera->is_active = json_data["is_active"].get<bool>();
@@ -600,18 +602,31 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			delete_entity_data(out_entity->data_ptr);
 			out_entity->data_ptr = out_camera;
 		}
+		else if (out_entity->type == as::ent::entity_type::LIGHT)
+		{
+			as::light* out_light = (as::light*)AS_MALLOC(sizeof(as::light));
+			*out_light = as::light();
+
+			get_transform(json_data, out_light->transform_mat);
+			if (json_data.contains("intensity"))
+			{
+				out_light->intensity = json_data["intensity"].get<f32>();
+			}
+			delete_entity_data(out_entity->data_ptr);
+			out_entity->data_ptr = out_light;
+		}
 	}
 	return true;
 }
 
-bool as::draw(const std::vector<as::entity>& entities, const as::camera& camera)
+bool as::draw(const std::vector<as::entity*>& entities, const as::world* world)
 {
-	for (const as::entity& current_entity : entities)
+	for (const as::entity* current_entity : entities)
 	{
-		as::model current_model;
+		as::model* current_model = nullptr;
 		if (as::get_model_from_entity(current_entity, current_model))
 		{
-			as::draw(current_model, camera);
+			as::draw(current_model, world);
 		}
 	}
 	return true;
@@ -908,6 +923,7 @@ void as::delete_shader_data(as::shader*& shader)
 	{
 		AS_FREE(shader->textures[i]);
 		shader->textures[i] = nullptr;
+
 	}
 	shader->uniforms.clear();
 }
@@ -1458,23 +1474,23 @@ void as::apply_transform(const as::transform& transform, as::model& model)
 	apply_transform(transform, model.transform_matrix);
 }
 
-bool as::draw(const as::model& model, const as::camera& camera)
+bool as::draw(const as::model* model, const as::world* world)
 {
-	if (model.mesh_count > 0 && model.meshes[0]->shader_ptr)
+	if (model && model->mesh_count > 0 && model->meshes[0]->shader_ptr)
 	{
-		u32 current_shader_program = model.meshes[0]->shader_ptr->shader_program;
-		update_draw_uniforms(current_shader_program, camera, model.transform_matrix);
+		u32 current_shader_program = model->meshes[0]->shader_ptr->shader_program;
+		update_draw_uniforms(current_shader_program, world, model->transform_matrix);
 
-		for (u16 i = 0 ; i < model.mesh_count ; i++)
+		for (u16 i = 0 ; i < model->mesh_count ; i++)
 		{
-			if (model.meshes[i] && model.meshes[i]->shader_ptr && model.meshes[i]->shader_ptr->shader_program != current_shader_program)
+			if (model->meshes[i] && model->meshes[i]->shader_ptr && model->meshes[i]->shader_ptr->shader_program != current_shader_program)
 			{
-				current_shader_program = model.meshes[i]->shader_ptr->shader_program;
+				current_shader_program = model->meshes[i]->shader_ptr->shader_program;
 				glUseProgram(current_shader_program);
-				update_draw_uniforms(current_shader_program, camera, model.transform_matrix); // update again in case shader program changed
+				update_draw_uniforms(current_shader_program, world, model->transform_matrix); // update again in case shader program changed
 			}
 
-			draw(model.meshes[i]);
+			draw(model->meshes[i]);
 		}
 	}
 	return check_gl_error();
@@ -1552,48 +1568,70 @@ void as::clear_background()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-bool as::draw(const std::vector<as::model>& models, const as::camera& camera)
-{
-	for (const as::model& current_model : models)
-	{
-		draw(current_model, camera);
-	}
-	return check_gl_error();
-}
-
-bool as::draw(const std::vector<const as::model*>& models, const camera& camera)
+bool as::draw(const std::vector<as::model*>& models, const as::world* world)
 {
 	for (const as::model* current_model : models)
 	{
 		AS_ASSERT(current_model, "Invalid model pointer");
-		draw(*current_model, camera);
+		draw(current_model, world);
 	}
 	return check_gl_error();
 }
 
-void as::update_draw_uniforms(const u32& shader_program, const as::camera& camera, const glm::mat4& model_transform)
+bool as::draw(const std::vector<const as::model*>& models, const as::world* world)
 {
-	as::set_uniform_mat4(shader_program, "projection", as::get_matrix_projection(camera)); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-	as::set_uniform_mat4(shader_program, "view", as::get_matrix_view(camera));
+	for (const as::model* current_model : models)
+	{
+		AS_ASSERT(current_model, "Invalid model pointer");
+		draw(current_model, world);
+	}
+	return check_gl_error();
+}
+
+void as::update_draw_uniforms(const u32& shader_program, const as::world* world, const glm::mat4& model_transform)
+{
+	as::camera* camera = find_active_camera(world);
+	as::set_uniform_mat4(shader_program, "projection", as::get_matrix_projection(*camera)); // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+	as::set_uniform_mat4(shader_program, "view", as::get_matrix_view(*camera));
 	as::set_uniform_mat4(shader_program, "model", model_transform);
+}
+
+as::camera* as::find_active_camera(const as::world* world)
+{
+	for (u32 i = 0 ; i < world->entities_count ; i++)
+	{
+		if (world->entities[i] && world->entities[i]->type == as::ent::CAMERA)
+		{
+			as::camera* found_camera = static_cast<as::camera*>(world->entities[i]->data_ptr);
+			if (found_camera && found_camera->is_active)
+			{
+				return found_camera;
+			}
+		}
+	}
+	return nullptr;
 }
 
 glm::mat4 as::get_matrix_view(const as::camera& camera)
 {
-	return glm::lookAt(camera.transform.location, camera.transform.location + camera.front, camera.up);
+	return glm::lookAt(camera.transform_mat.location, camera.transform_mat.location + camera.front, camera.up);
 }
 
 glm::mat4 as::get_matrix_projection(const as::camera& camera)
 {
-	return glm::perspective(camera.fov, camera.aspect_ratio, camera.near_plane, camera.far_plane);
+	if (camera.aspect_ratio > 0.01)
+	{
+		return glm::perspective(camera.fov, camera.aspect_ratio, camera.near_plane, camera.far_plane);
+	}
+	return glm::mat4();
 }
 
 void as::update_camera_vectors(as::camera* camera)
 {
 	// calculate the new Front vector
 	glm::vec3 front;
-	f32 pitch = camera->transform.rotation.y;
-	f32 yaw = camera->transform.rotation.z;
+	f32 pitch = camera->transform_mat.rotation.y;
+	f32 yaw = camera->transform_mat.rotation.z;
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -1614,7 +1652,7 @@ std::string as::to_string(const as::camera* camera)
 	if (camera)
 	{
 		final_string += "camera:\n{\n	transform:" +
-			util::transform_to_string(camera->transform) +
+			util::transform_to_string(camera->transform_mat) +
 			"\n}";
 	}
 	return final_string;
@@ -1659,7 +1697,7 @@ bool as::draw(const as::world* world, const f32& aspect_ratio)
 		}
 		else
 		{
-			return draw(models_to_draw, *camera_to_use);
+			return draw(models_to_draw, world);
 		}
 	}
 	return false;
