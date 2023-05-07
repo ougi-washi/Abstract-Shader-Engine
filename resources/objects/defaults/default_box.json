@@ -1,0 +1,13 @@
+{
+  "type": "model",
+  "path": "resources/models/cube.obj",
+  "shaders": [
+    "resources/objects/defaults/default_shader.json"
+  ],
+  "transform": {
+    "location": [ 0.0, 0.0, 0.0 ],
+    "rotation": [ 0.0, 0.0, 0.0 ],
+    "scale": [ 1.0, 1.0, 1.0 ]
+  },
+  "absolute_path": false
+}

@@ -9,6 +9,7 @@
 
 #include "json/json.hpp"
 using json = nlohmann::json;
+#define JSON_NOEXCEPTION 1
 
 namespace as
 {

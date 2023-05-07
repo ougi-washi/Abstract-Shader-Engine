@@ -71,7 +71,7 @@ namespace as
 	void delete_texture_data(as::texture*& texture);
 
 	// meshes
-	bool create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh*& out_mesh);
+	bool create_mesh(const as::vertex* vertices, const size_t& vertices_count, const u32* indices, const size_t& indices_count , as::mesh*& out_mesh);
 	bool assign_shader(as::shader* shader, as::mesh*& out_mesh);
 	bool deep_copy_mesh(const as::mesh* source, as::mesh*& destination);
 	bool deep_copy_mesh(const as::mesh* source, void*& destination);
@@ -81,6 +81,7 @@ namespace as
 
 	// models
 	void load_model(const char* path, as::model*& out_model, std::vector<as::texture>& out_textures);
+	void load_model(const void* model_json_data, as::model*& out_model);
 	void apply_location(const glm::vec3& location, as::model& model);
 	void apply_rotation(const glm::vec3& rotation, as::model& model);
 	void apply_scale(const glm::vec3& scale, as::model& model);

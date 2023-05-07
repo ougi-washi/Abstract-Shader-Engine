@@ -177,7 +177,12 @@ std::string as::util::read_file(const std::string& filename)
 json as::util::read_json_file(const std::string& path)
 {
 	std::string json_string = read_file(path);
-	return json::parse(json_string);
+	if (does_file_exist(path))
+	{
+		return json::parse(json_string);
+	}
+	AS_LOG(LV_WARNING, "File [" + path + "] does not exist");
+	return json();
 }
 
 std::string as::util::read_file(const char* filename)

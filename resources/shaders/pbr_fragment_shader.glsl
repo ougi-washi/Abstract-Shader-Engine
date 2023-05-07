@@ -9,6 +9,7 @@ struct light
 	vec3 color;
 };
 
+in vec3 position;
 in vec3 vertex_color;
 in vec2 tex_coord;
 in vec3 normal;
@@ -27,20 +28,22 @@ void main()
 	
 	for(int i = 0 ; i < light_count ; i++)
 	{
+		float distance_to_light = length(lights[i].location - position);
+		float attenuation = 1/(1 + 0.09 * distance_to_light + 0.032 * pow(distance_to_light , 2));
 		final_color += (dot(normalize(normal), normalize(lights[i].location)) * lights[i].intensity * lights[i].color );
-		vec3 band_color = (lights[i].color * lights[i].intensity);
-
+		//final_color *= vec3(1/(.002 * pow(distance_to_light, 2)));
 	}
-	float band_mask = get_band_mask(lights[0].location, 0.0, 0.);
-	final_color = mix(final_color, lights[0].color, band_mask);	
 
-	band_mask = get_band_mask(lights[1].location, 0.0, 0.);
-	final_color = mix(final_color, lights[1].color, band_mask);	
+	for(int i = 0 ; i < light_count ; i++)
+	{
+		float band_mask = get_band_mask(lights[i].location, 0.0, 0.);
+		final_color = mix(final_color, lights[i].color, band_mask);	
+	}
 
 	out_frag_color = vec4(final_color, 1.0);
 }
 
 float get_band_mask(const vec3 light_location, const float offset, const float range)
 {
-	return smoothstep(dot(normalize(normal), normalize(light_location)) , .85, -.9);
+	return smoothstep(dot(normalize(normal), normalize(light_location)) , .8, -.9);
 };

@@ -19,6 +19,7 @@ This project is developed with a set of rules in mind:
 - Remove all utils from the engine_core file (eg. string conversions)
 - Handle per-shader multiple textures allocation and deallocation
 - Add render thread
+- Add caching to the entities and matching files and create a thread that parses the files and rebuild the entity if any change has happened to the cached file, then update the cache.
 - Add entities and shader file changes thread (check every few frames and update the scene according to the change)
 - Drag and drop adds entities to the world json and updates the scene
 - Add Vulkan support back

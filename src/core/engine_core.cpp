@@ -41,6 +41,7 @@ bool check_gl_error()
 void as::configure()
 {
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
 	//wglSwapIntervalEXT(1); figure out a way to include this
 }
 
@@ -91,6 +92,17 @@ bool get_vec3(const json& json_data, const char* json_field_name, glm::vec3& out
 		out_vector.x = json_data[json_field_name][0];
 		out_vector.y = json_data[json_field_name][1];
 		out_vector.z = json_data[json_field_name][2];
+		return true;
+	}
+	return false;
+}
+
+bool get_vec2(const json& json_data, const char* json_field_name, glm::vec2& out_vector)
+{
+	if (json_data.contains(json_field_name) && json_data[json_field_name].size() >= 2)
+	{
+		out_vector.x = json_data[json_field_name][0];
+		out_vector.y = json_data[json_field_name][1];
 		return true;
 	}
 	return false;
@@ -369,11 +381,13 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 
 	if (out_entity)
 	{
-		AS_LOG(LV_LOG, "_______________PRE-FREE_______________");
+		AS_LOG(LV_LOG, "_______________PRE-FREE-START_______________");
 		AS_LOG_MEMORY();
+		AS_LOG(LV_LOG, "_______________PRE-FREE-END_______________");
 		as::delete_entity_data(out_entity);
-		AS_LOG(LV_LOG, "_______________POST-FREE_______________");
+		AS_LOG(LV_LOG, "_______________POST-FREE-START_______________");
 		AS_LOG_MEMORY();
+		AS_LOG(LV_LOG, "_______________POST-FREE-END_______________");
 	}
 
 	out_entity = (as::entity*)AS_MALLOC(sizeof(as::entity));
@@ -425,9 +439,55 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				std::vector<as::texture> out_textures;
 				as::load_model(model_path.c_str(), out_model, out_textures);
 			}
+			else if (json_data.contains("meshes"))
+			{
+				json meshes_json = json_data["meshes"];
+				if (meshes_json.size() > 0)
+				{
+					out_model = (as::model*)AS_MALLOC(sizeof(as::model));
+				}
+				else
+				{
+					as::delete_entity_data(out_entity);
+					return false;
+				}
+
+				out_model->meshes = (as::mesh**)AS_MALLOC(sizeof(as::mesh*) * meshes_json.size());
+				out_model->mesh_count = meshes_json.size();
+				for (u16 i = 0 ; i < meshes_json.size() ; i++)
+				{
+					out_model->meshes[i] = (as::mesh*)AS_MALLOC(sizeof(as::mesh));
+					json mesh_json = meshes_json[i];
+					if (mesh_json.contains("vertices"))
+					{
+						json vertices_json = mesh_json["vertices"];
+						out_model->meshes[i]->vertices = (as::vertex*)AS_MALLOC(sizeof(as::vertex) * vertices_json.size());
+						out_model->meshes[i]->vertex_count = vertices_json.size();
+						for (u32 j = 0; j < vertices_json.size(); j++)
+						{
+							get_vec3(vertices_json[j], "position", out_model->meshes[i]->vertices[j].position);
+							get_vec3(vertices_json[j], "normal", out_model->meshes[i]->vertices[j].normal);
+							get_vec2(vertices_json[j], "tex_coords", out_model->meshes[i]->vertices[j].tex_coords);
+						}
+					}
+					if (mesh_json.contains("indices"))
+					{
+						json indices_json = mesh_json["indices"];
+						out_model->meshes[i]->indices = (u32*)AS_MALLOC(sizeof(u32) * indices_json.size());
+						out_model->meshes[i]->index_count = indices_json.size();
+						for (u32 j = 0 ; j < indices_json.size() ; j++)
+						{
+							out_model->meshes[i]->indices[j] = indices_json[j];
+						}
+					}
+					create_mesh(out_model->meshes[i]->vertices, out_model->meshes[i]->vertex_count, // vertices
+								out_model->meshes[i]->indices, out_model->meshes[i]->index_count, // indices
+								out_model->meshes[i]);
+				}
+			}
 			else
 			{
-				AS_LOG(LV_WARNING, "Model json file does not have path");
+				AS_LOG(LV_WARNING, "Model json file does not have path or vertices array");
 				as::delete_entity_data(out_entity);
 				return false;
 			}
@@ -1142,31 +1202,36 @@ void as::delete_texture_data(as::texture*& texture)
 	}
 }
 
-bool as::create_mesh(const std::vector<as::vertex>& vertices, const std::vector<u32>& indices, as::mesh*& out_mesh)
+bool as::create_mesh(const as::vertex* vertices, const size_t& vertices_count, const u32* indices, const size_t& indices_count, as::mesh*& out_mesh)
 {
-	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices.size())+ "] vertices, and [" + std::to_string(indices.size())+ "] indices");
+	AS_LOG(LV_LOG, "Creating mesh with [" + std::to_string(vertices_count)+ "] vertices, and [" + std::to_string(indices_count)+ "] indices");
 
-	if (vertices.empty() || indices.empty())
+	if (vertices_count == 0 || indices_count == 0)
 	{
 		AS_LOG(LV_WARNING, "Cannot create mesh, both vertices and indices have to be > 0");
 		return false;
 	}
 
-	i64 vertices_size = sizeof(as::vertex) * vertices.size();
-	i64 indices_size = sizeof(u32) * indices.size();
+	i64 vertices_size = sizeof(as::vertex) * vertices_count;
+	i64 indices_size = sizeof(u32) * indices_count;
 
-	if (out_mesh)
+	if (!out_mesh)
 	{
-		AS_FREE(out_mesh);
+		out_mesh = (as::mesh*)AS_MALLOC(sizeof(as::mesh));
+		*out_mesh = as::mesh();
 	}
-	out_mesh = (as::mesh*)AS_MALLOC(sizeof(as::mesh));
-	*out_mesh = as::mesh();
-	out_mesh->vertex_count = vertices.size();
-	out_mesh->index_count = indices.size();
-	out_mesh->vertices = (as::vertex*)AS_MALLOC(vertices_size);
-	out_mesh->indices = (u32*)AS_MALLOC(indices_size);
-	memcpy(out_mesh->vertices, vertices.data(), vertices_size);
-	memcpy(out_mesh->indices, indices.data(), indices_size);
+	out_mesh->vertex_count = vertices_count;
+	out_mesh->index_count = indices_count;
+	if (!out_mesh->vertices)
+	{
+		out_mesh->vertices = (as::vertex*)AS_MALLOC(vertices_size);
+		memcpy(out_mesh->vertices, vertices, vertices_size);
+	}
+	if (!out_mesh->indices)
+	{
+		out_mesh->indices = (u32*)AS_MALLOC(indices_size);
+		memcpy(out_mesh->indices, indices, indices_size);
+	}
 
 	// create buffers/arrays
 	glGenVertexArrays(1, &out_mesh->VAO);
@@ -1407,7 +1472,7 @@ bool process_mesh(aiMesh* mesh, const aiScene* scene, as::mesh*& out_mesh, std::
 	// 4. height maps
 	//load_material_textures(material, aiTextureType_AMBIENT, "texture_height", out_textures);
 
-	return as::create_mesh(vertices, indices, out_mesh);
+	return as::create_mesh(vertices.data(), vertices.size(), indices.data(), indices.size(), out_mesh);
 }
 
 bool process_node(const aiScene* scene, aiNode* node, std::vector<as::mesh*>& out_meshes, std::vector<as::texture>& out_textures)
@@ -1461,6 +1526,15 @@ void as::load_model(const char* path, as::model*& out_model, std::vector<as::tex
 	{
 		out_model->meshes = (as::mesh**)AS_MALLOC(sizeof(as::mesh*) * meshes.size());
 		memcpy(out_model->meshes, meshes.data(), sizeof(as::mesh*) * meshes.size());
+	}
+}
+
+void as::load_model(const void* model_json_data, as::model*& out_model)
+{
+	const json* found_json_data = static_cast<const json*>(model_json_data);
+	if (model_json_data)
+	{
+
 	}
 }
 

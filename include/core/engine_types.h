@@ -29,12 +29,11 @@ namespace as
 			NONE = 0,
 			WORLD = 1,
 			MODEL = 2,
-			SHAPE = 3,
-			SHADER = 4,
-			TEXTURE = 5,
-			CAMERA = 6,
-			LIGHT = 7,
-			MAX = 8
+			SHADER = 3,
+			TEXTURE = 4,
+			CAMERA = 5,
+			LIGHT = 6,
+			MAX = 7
 		};
 	};
 
@@ -44,12 +43,11 @@ namespace as
 		"none",		// 0
 		"world",	// 1
 		"model",	// 2
-		"shape",	// 3
-		"shader",	// 4
-		"texture",	// 5
-		"camera",	// 6
-		"light",	// 7
-		"max"	// 8
+		"shader",	// 3
+		"texture",	// 4
+		"camera",	// 5
+		"light",	// 6
+		"max"		// 7
 	};
 
 	struct entity
