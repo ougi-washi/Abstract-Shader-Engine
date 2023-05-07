@@ -74,6 +74,16 @@ bool get_bool(const json& json_data, const char* json_field_name, bool& out_bool
 	return false;
 }
 
+bool get_float(const json& json_data, const char* json_field_name, f32& out_float)
+{
+	if (json_data.contains(json_field_name))
+	{
+		out_float = json_data[json_field_name].get<f32>();
+		return true;
+	}
+	return false;
+}
+
 bool get_vec3(const json& json_data, const char* json_field_name, glm::vec3& out_vector)
 {
 	if (json_data.contains(json_field_name) && json_data[json_field_name].size() >= 3)
@@ -607,11 +617,11 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			as::light* out_light = (as::light*)AS_MALLOC(sizeof(as::light));
 			*out_light = as::light();
 
-			get_transform(json_data, out_light->transform_mat);
-			if (json_data.contains("intensity"))
-			{
-				out_light->intensity = json_data["intensity"].get<f32>();
-			}
+			get_vec3(json_data, "location", out_light->location);
+			get_float(json_data, "intensity", out_light->intensity);
+			get_float(json_data, "attenuation", out_light->intensity);
+			get_vec3(json_data, "color", out_light->color);
+
 			delete_entity_data(out_entity->data_ptr);
 			out_entity->data_ptr = out_light;
 		}
@@ -1601,8 +1611,38 @@ void as::update_draw_uniforms(const u32& shader_program, const as::world* world,
 	{
 		AS_LOG(LV_WARNING, "No active camera");
 	}
+	
+	// lights
+	as::light** lights = nullptr;
+	u32 light_count = as::get_all_lights(world, lights);
+	set_uniform_integer(shader_program, "light_count", light_count);
+	for ( u32 i = 0 ; i < light_count ; i++)
+	{
+		if (lights[i])
+		{
+			char buffer[64];
+
+			sprintf(buffer, "lights[%i].location", i);
+			set_uniform_vec3(shader_program, buffer, lights[i]->location);
+
+			sprintf(buffer, "lights[%i].intensity", i);
+			set_uniform_f32(shader_program, buffer, lights[i]->intensity);
+
+			sprintf(buffer, "lights[%i].attenuation", i);
+			set_uniform_f32(shader_program, buffer, lights[i]->attenuation);
+
+			sprintf(buffer, "lights[%i].color", i);
+			set_uniform_vec3(shader_program, buffer, lights[i]->color);
+		}
+	}
+	if (lights)
+	{
+		AS_FREE(lights);
+		lights = nullptr;
+	}
 
 	as::set_uniform_mat4(shader_program, "model", model_transform);
+
 }
 
 as::camera* as::find_active_camera(const as::world* world)
@@ -1665,6 +1705,30 @@ std::string as::to_string(const as::camera* camera)
 			"\n}";
 	}
 	return final_string;
+}
+
+u32 as::get_all_lights(const as::world* world, as::light**& out_lights)
+{
+	u32 light_count = 0;
+	out_lights = (as::light**)AS_MALLOC(sizeof(as::light*) * MAX_LIGHTS_PER_WORLD);
+	for (u32 i = 0; i < world->entities_count; i++)
+	{
+		if (world->entities[i] && world->entities[i]->type == as::ent::LIGHT)
+		{
+			as::light* found_light = static_cast<as::light*>(world->entities[i]->data_ptr);
+			if (found_light)
+			{
+				out_lights[light_count] = found_light;
+				light_count++;
+			}
+		}
+	}
+	if (light_count == 0)
+	{
+		AS_FREE(out_lights);
+		out_lights = nullptr;
+	}
+	return light_count;
 }
 
 bool as::draw(const as::world* world, const f32& aspect_ratio)

@@ -106,8 +106,10 @@ namespace as
 	size_t get_camera_size(const as::camera& camera);
 	std::string to_string(const as::camera* camera);
 
+	// light
+	u32 get_all_lights(const as::world* world, as::light**& out_lights);
+
 	// world
-	bool draw(const as::world& world, const f32& aspect_ratio);
 	bool draw(const as::world* world, const f32& aspect_ratio);
 	size_t get_world_size(const as::world& world);
 	std::string to_string(const as::world* world);

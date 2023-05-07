@@ -9,6 +9,7 @@
 
 #define MAX_BONE_INFLUENCE 4
 #define MAX_TEXTURE_COUNT_PER_SHADER 256
+#define MAX_LIGHTS_PER_WORLD 64
 
 namespace as
 {
@@ -164,8 +165,9 @@ namespace as
 
 	struct light
 	{
-		as::transform transform_mat;
+		glm::vec3 location = glm::vec3(0.f);
 		f32 intensity = 1.f;
+		f32 attenuation = 3.f;
 		glm::vec3 color = glm::vec3(1.f);
 	};
 

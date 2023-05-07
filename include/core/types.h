@@ -66,8 +66,8 @@ if (!result) { std::cout << "ERROR: " << text << std::endl; assert(result); }\
 #if defined(_DEBUG) || defined(NDEBUG) || defined(DEBUG)
 #define AS_LOG(level, text) \
 	if (level == log_level::LV_LOG) { std::cout << "LOG: " << text << std::endl; }\
-	else if(level == log_level::LV_WARNING) { std::cout << "WARNING: " << text << std::endl; }\
-	else if(level == log_level::LV_ERROR) { std::cout << "ERROR: " << text << std::endl;\
+	else if(level == log_level::LV_WARNING) { std::cout << "[" << __FILE__ << "|" << __LINE__ << "]" << "WARNING: " << text << std::endl; }\
+	else if(level == log_level::LV_ERROR) { std::cout << "[" << __FILE__ << "|" << __LINE__ << "]" << "ERROR: " << text << std::endl;\
 	if (CRASH_ON_ERROR) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); } }
 #else
 #define AS_LOG(level, text) {};
