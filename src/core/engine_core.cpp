@@ -40,7 +40,11 @@ bool check_gl_error()
 
 void as::configure()
 {
+	// depth
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	// multi-sampling
 	glEnable(GL_MULTISAMPLE);
 	//wglSwapIntervalEXT(1); figure out a way to include this
 }
@@ -892,6 +896,9 @@ bool as::create_shader_from_files(const char* vert_shader_path, const char* frag
 		std::string frag_shader = util::read_file(frag_shader_path_string.c_str());
 		if (!vert_shader.empty() && !frag_shader.empty())
 		{
+			/*if (frag_shader.)
+			{ TODO: ADD PREPROCESSORS
+			}*/
 			return create_shader(vert_shader.c_str(), frag_shader.c_str(), out_shader);
 		}
 	}

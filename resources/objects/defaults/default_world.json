@@ -4,6 +4,9 @@
     "resources/objects/defaults/default_camera.json",
     "resources/objects/defaults/default_light.json",
     "resources/objects/defaults/default_ground.json",
+    "resources/objects/defaults/default_box.json",
+    "resources/objects/defaults/default_box1.json",
+    "resources/objects/defaults/default_box2.json",
     "resources/objects/dragon_model.json"
   ],
   "is_active": true

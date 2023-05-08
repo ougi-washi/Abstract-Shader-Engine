@@ -6,6 +6,9 @@
     "resources/objects/dragon_light1.json",
     "resources/objects/dragon_light2.json",
     "resources/objects/dragon_light3.json",
+    "resources/objects/defaults/default_box.json",
+    "resources/objects/defaults/default_box1.json",
+    "resources/objects/defaults/default_box2.json",
     "resources/objects/dragon_model.json"
   ],
   "is_active": true
