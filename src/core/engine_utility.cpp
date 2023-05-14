@@ -1,12 +1,16 @@
 #include "engine_utility.h"
+#include "engine_memory.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
+
+#define MAX_INCLUDE_DEPTH 10
 
 FILE* as::util::try_open_file(const char* file_path, const char* mode)
 {
@@ -217,6 +221,113 @@ void as::util::write_file_str(const char* filename, const char* data)
 	{
 		fprintf(fptr, "%s", data);
 		fclose(fptr);
+	}
+}
+
+char* expand_file(const char* path, int depth) {
+	if (depth > MAX_INCLUDE_DEPTH) {
+		printf("Maximum depth reached. Aborting.\n");
+		return nullptr;
+	}
+
+	
+
+	FILE* file = fopen(path, "r");
+	if (!file) {
+		printf("Failed to open file %s.\n", path);
+		return nullptr;
+	}
+
+	char line[1024];
+	char* expanded_contents = (char*)AS_MALLOC(1);  // allocate initial memory for empty string
+	expanded_contents[0] = '\0';  // initialize string as empty
+	while (fgets(line, sizeof(line), file)) {
+		if (strncmp(line, "#include", 8) == 0) {
+			char included_file[1024];
+			sscanf(line, "#include \"%[^\"]\"", included_file);
+			char* included_contents = expand_file(included_file, depth - 1);
+			size_t old_size = strlen(expanded_contents);
+			size_t included_size = strlen(included_contents);
+			expanded_contents = (char*)AS_REALLOC(expanded_contents, old_size + included_size + 1);
+			if (!expanded_contents) {
+				printf("Failed to allocate memory for expanded file.\n");
+				return nullptr;
+			}
+			strcat(expanded_contents, included_contents);
+			free(included_contents);
+		}
+		else {
+			size_t old_size = strlen(expanded_contents);
+			size_t line_size = strlen(line);
+			expanded_contents = (char*)AS_REALLOC(expanded_contents, old_size + line_size + 1);
+			if (!expanded_contents) {
+				printf("Failed to allocate memory for expanded file.\n");
+				return nullptr;
+			}
+			strcat(expanded_contents, line);
+		}
+	}
+
+	fclose(file);
+	return expanded_contents;
+}
+
+std::string as::util::read_file_expanded_includes(const std::string& file_path)
+{
+	std::string full_file_path = util::get_current_path() + "/../" + file_path;
+
+	std::string test_str(expand_file(full_file_path.c_str(), 10));
+
+	std::cout << test_str;
+
+	std::string include_string = file_path;
+	i64 found_index = file_path.find_last_of("/");
+	std::string file_content = util::read_file(full_file_path.c_str());
+
+	found_index = file_content.find("#version 330 core");
+	if (found_index > -1)
+	{
+		file_content.erase(found_index, 18);
+	}
+	found_index = file_content.find("#include");
+	if (found_index > -1)
+	{
+		include_string.erase(found_index, 10); // removes #include" (#include size + 1 for the ")
+		found_index = include_string.find(L'"');
+		if (found_index > -1)
+		{
+			include_string.erase(found_index, include_string.size() - 1);
+		}
+		std::string temp_string;
+		for (i32 i = 0 ; i < include_string.size(); i++)
+		{
+			if (!isspace(include_string[i]))
+			{
+				temp_string.push_back(include_string[i]);
+			}
+		}
+		include_string = temp_string;
+		return read_file_expanded_includes(include_string) + file_content;
+	}
+	else
+	{
+		return file_content;
+	}
+}
+
+void as::util::split_path(const char* path, char* directory, char* filename)
+{
+	const char* separator = strrchr(path, '/');
+	if (!separator) {
+		// No directory separator found, assume path is just a file name
+		strcpy(filename, path);
+		directory[0] = '\0';
+	}
+	else {
+		size_t path_length = separator - path + 1;
+		strncpy(directory, path, path_length);
+		directory[path_length] = '\0';
+		strcpy(filename, separator + 1);
 	}
 }
 

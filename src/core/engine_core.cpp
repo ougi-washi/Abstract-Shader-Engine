@@ -894,11 +894,12 @@ bool as::create_shader_from_files(const char* vert_shader_path, const char* frag
 
 		std::string vert_shader = util::read_file(vert_shader_path_string.c_str());
 		std::string frag_shader = util::read_file(frag_shader_path_string.c_str());
+
+		//std::string vert_shader = util::read_file_expanded_includes(vert_shader_path);
+		//std::string frag_shader = util::read_file_expanded_includes(frag_shader_path);
+
 		if (!vert_shader.empty() && !frag_shader.empty())
 		{
-			/*if (frag_shader.)
-			{ TODO: ADD PREPROCESSORS
-			}*/
 			return create_shader(vert_shader.c_str(), frag_shader.c_str(), out_shader);
 		}
 	}

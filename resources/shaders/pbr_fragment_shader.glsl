@@ -1,9 +1,7 @@
 #version 330 core
-
 #define MAX_LIGHTS_PER_WORLD 64
 #define NEAR_PLANE 0.1
 #define FAR_PLANE 100.0
-
 struct light
 {
 	vec3 location;

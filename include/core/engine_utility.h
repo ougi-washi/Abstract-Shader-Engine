@@ -29,6 +29,8 @@ namespace as
 		json read_json_file(const std::string& path);
 		std::string read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
+		std::string read_file_expanded_includes(const std::string& file_path);
+		void split_path(const char* path, char* directory, char* filename);
 
 		/** string */
 		std::string vec3_to_string(const glm::vec3& vec);
