@@ -27,37 +27,32 @@ macro(setup_library arg_lib_name arg_source_path arg_include_path)
 endmacro()
 
 # GLFW
-message(STATUS "Adding GLFW library")
-add_subdirectory(${LIB_DIR}/glfw)
+#message(STATUS "Adding GLFW library")
+#add_subdirectory(${LIB_DIR}/glfw)
 
 # GLM
-message(STATUS "Adding GLM library")
-add_subdirectory(${LIB_DIR}/glm)
+#message(STATUS "Adding GLM library")
+#add_subdirectory(${LIB_DIR}/glm)
 
 # ASSIMP
-message(STATUS "Adding ASSIMP library")
-add_subdirectory(${LIB_DIR}/assimp)
+#message(STATUS "Adding ASSIMP library")
+#add_subdirectory(${LIB_DIR}/assimp)
 
 # GLAD
-setup_library(glad ${LIB_DIR}/glad/src ${PROJECT_SOURCE_DIR}/${LIB_DIR}/glad/include)
+#setup_library(glad ${LIB_DIR}/glad/src ${PROJECT_SOURCE_DIR}/${LIB_DIR}/glad/include)
+
+# RAYLIB
+message(STATUS "Adding Raylib library")
+add_subdirectory(${LIB_DIR}/raylib)
 
 # CORE
 set(CORE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR}/core ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(core ${SRC_DIR}/core "${CORE_INCLUDES}")
-target_link_libraries(core PUBLIC glad glfw glm assimp)
-
-# RENDER
-setup_library(render ${SRC_DIR}/render ${PROJECT_SOURCE_DIR}/${INC_DIR}/render)
-target_link_libraries(render PUBLIC	core)
-
-# RAY_TRACER
-setup_library(ray_tracer ${SRC_DIR}/ray_tracer ${PROJECT_SOURCE_DIR}/${INC_DIR}/ray_tracer)
-target_link_libraries(ray_tracer PUBLIC core)
+target_link_libraries(core PUBLIC raylib)
 
 # Executable
 add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC	render 
-												ray_tracer)
+target_link_libraries(${PROJECT_NAME} PUBLIC core)
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})
 

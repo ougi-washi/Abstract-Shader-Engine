@@ -1,9 +1,14 @@
 #pragma once
 
 #include "types.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "raylib.h"
+#include "raymath.h"
+#if defined(PLATFORM_DESKTOP)
+#define GLSL_VERSION            330
+#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
+#define GLSL_VERSION            100
+#endif
+
 #include <vector>
 #include <chrono>
 
@@ -94,80 +99,80 @@ namespace as
 		u32 shader_program = 0;
 	};
 
-	struct vertex 
-	{
-		glm::vec3 position;
-		glm::vec3 normal;
-		glm::vec2 tex_coords;
-		glm::vec3 tangent;
-		glm::vec3 bitangent;
-		i32 bone_ids[MAX_BONE_INFLUENCE];
-		float weights[MAX_BONE_INFLUENCE];
-	};
+	//struct vertex 
+	//{
+	//	glm::vec3 position;
+	//	glm::vec3 normal;
+	//	glm::vec2 tex_coords;
+	//	glm::vec3 tangent;
+	//	glm::vec3 bitangent;
+	//	i32 bone_ids[MAX_BONE_INFLUENCE];
+	//	float weights[MAX_BONE_INFLUENCE];
+	//};
 
-	struct transform
-	{
-		glm::vec3 location = glm::vec3(0.f);
-		glm::vec3 rotation = glm::vec3(0.f);// X : roll // Y : pitch // Z : yaw
-		glm::vec3 scale = glm::vec3(1.f);
-	};
+	//struct transform
+	//{
+	//	glm::vec3 location = glm::vec3(0.f);
+	//	glm::vec3 rotation = glm::vec3(0.f);// X : roll // Y : pitch // Z : yaw
+	//	glm::vec3 scale = glm::vec3(1.f);
+	//};
 
-	struct mesh
-	{
-		// model
-		vertex* vertices = nullptr;
-		u32 vertex_count = 0;
-		u32* indices = nullptr;
-		u32 index_count = 0;
+	//struct mesh
+	//{
+	//	// model
+	//	vertex* vertices = nullptr;
+	//	u32 vertex_count = 0;
+	//	u32* indices = nullptr;
+	//	u32 index_count = 0;
 
-		// shader
-		as::shader* shader_ptr = nullptr;
+	//	// shader
+	//	as::shader* shader_ptr = nullptr;
 
-		// rendering
-		u32 VBO = 0; // Vertex Buffer Object
-		u32 EBO = 0; // Element Buffer Object
-		u32 VAO = 0; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
-	};
+	//	// rendering
+	//	u32 VBO = 0; // Vertex Buffer Object
+	//	u32 EBO = 0; // Element Buffer Object
+	//	u32 VAO = 0; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
+	//};
 
-	struct model
-	{
-		char path[500] = "";
-		as::mesh** meshes = nullptr;
-		u16 mesh_count = 0;
-		glm::mat4 transform_matrix = glm::mat4(1.f);
-	};
-	
-	struct camera
-	{
-		// camera Attributes
-		glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
-		glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
-		glm::vec3 right = glm::vec3(1.f, 0.f, 0.f);;
-		glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
+	//struct model
+	//{
+	//	char path[500] = "";
+	//	as::mesh** meshes = nullptr;
+	//	u16 mesh_count = 0;
+	//	glm::mat4 transform_matrix = glm::mat4(1.f);
+	//};
+	//
+	//struct camera
+	//{
+	//	// camera Attributes
+	//	glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
+	//	glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
+	//	glm::vec3 right = glm::vec3(1.f, 0.f, 0.f);;
+	//	glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
 
-		// transform
-		as::transform transform_mat;
+	//	// transform
+	//	as::transform transform_mat;
 
-		// camera options
-		f32 movement_speed = 1.f;
-		f32 mouse_sensitivity = 1.f;
-		f32 zoom;
-		f32 zoom_speed = 1.f;
-		f32 fov = glm::radians(45.f);
-		f32 near_plane = .1f;
-		f32 far_plane = 100.f;
-		f32 aspect_ratio = 1.3f;
+	//	// camera options
+	//	f32 movement_speed = 1.f;
+	//	f32 mouse_sensitivity = 1.f;
+	//	f32 zoom;
+	//	f32 zoom_speed = 1.f;
+	//	f32 fov = glm::radians(45.f);
+	//	f32 near_plane = .1f;
+	//	f32 far_plane = 100.f;
+	//	f32 aspect_ratio = 1.3f;
 
-		u8 is_active : 1;
-	};
+	//	u8 is_active : 1;
+	//};
 
-	struct light
-	{
-		glm::vec3 location = glm::vec3(0.f);
-		f32 intensity = 1.f;
-		f32 attenuation = 3.f;
-		glm::vec3 color = glm::vec3(1.f);
-	};
+	//struct light
+	//{
+	//	glm::vec3 location = glm::vec3(0.f);
+	//	f32 intensity = 1.f;
+	//	f32 attenuation = 3.f;
+	//	glm::vec3 color = glm::vec3(1.f);
+	//};
 
 	struct world
 	{

@@ -1,6 +1,9 @@
+#ifdef AS_USE_OPENGL
+
 // internal dependencies (engine)
 #include "engine_utility.h"
 #include "engine_core.h"
+
 
 bool check_compilation_status(const u32& shader_to_check)
 {
@@ -37,7 +40,6 @@ void as::configure()
 	glEnable(GL_MULTISAMPLE);
 	//wglSwapIntervalEXT(1); figure out a way to include this
 }
-
 
 std::string get_path(const json& json_data, const char* path_json_type)
 {
@@ -1896,3 +1898,5 @@ void as::delete_world_data(as::world*& world)
 	}
 }
 
+
+#endif // AS_USE_OPENGL
