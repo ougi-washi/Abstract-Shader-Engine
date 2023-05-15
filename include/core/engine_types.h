@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+
 #include "raylib.h"
 #include "raymath.h"
 #if defined(PLATFORM_DESKTOP)
@@ -35,10 +36,11 @@ namespace as
 			WORLD = 1,
 			MODEL = 2,
 			SHADER = 3,
-			TEXTURE = 4,
-			CAMERA = 5,
-			LIGHT = 6,
-			MAX = 7
+			MATERIAL = 4,
+			TEXTURE = 5,
+			CAMERA = 6,
+			LIGHT = 7,
+			MAX = 8
 		};
 	};
 
@@ -49,10 +51,11 @@ namespace as
 		"world",	// 1
 		"model",	// 2
 		"shader",	// 3
-		"texture",	// 4
-		"camera",	// 5
-		"light",	// 6
-		"max"		// 7
+		"material",	// 4
+		"texture",	// 5
+		"camera",	// 6
+		"light",	// 7
+		"max"		// 8
 	};
 
 	struct entity
@@ -63,122 +66,55 @@ namespace as
 
 		void* data_ptr = nullptr;
 		void* fn_ptr = nullptr; // currently not in use
-		size_t size = 0;
 		char path[256] = "";
 	};
 
 	struct texture
 	{
-		u32 id;
-		char uniform_name[256] = "";
-		char path[256] = "";
-		i32 width;
-		i32 height;
-		i32 number_of_channels;
-	};
-
-	struct uniform
-	{
-		u32 id;
-		i32 size;
-		variable_type type;
-		u8 normalized : 1;
-		i32 stride;
-		u64 position = 0;
+		Texture data;
+		as::entity* owner_entity = nullptr;
 	};
 
 	struct shader
 	{
-		// external
-		i32 vertex_shader = -1;
-		i32 fragment_shader = -1;
-		std::vector<as::uniform> uniforms; // to change from vector
-		as::texture* textures[MAX_TEXTURE_COUNT_PER_SHADER]; // 256 possible texture per shader
-		u16 texture_count = 0;
-		// internal
-		u32 shader_program = 0;
+		Shader data;
+		as::entity* owner_entity = nullptr;
 	};
 
-	//struct vertex 
-	//{
-	//	glm::vec3 position;
-	//	glm::vec3 normal;
-	//	glm::vec2 tex_coords;
-	//	glm::vec3 tangent;
-	//	glm::vec3 bitangent;
-	//	i32 bone_ids[MAX_BONE_INFLUENCE];
-	//	float weights[MAX_BONE_INFLUENCE];
-	//};
+	struct material
+	{
+		Material data;
+		as::entity* owner_entity = nullptr;
+	};
 
-	//struct transform
-	//{
-	//	glm::vec3 location = glm::vec3(0.f);
-	//	glm::vec3 rotation = glm::vec3(0.f);// X : roll // Y : pitch // Z : yaw
-	//	glm::vec3 scale = glm::vec3(1.f);
-	//};
+	struct model
+	{
+		Model data;
+		as::entity* owner_entity = nullptr;
+	};
+	
+	struct camera
+	{
+		Camera data;
+		u8 is_active : 1;
+		as::entity* owner_entity = nullptr;
+	};
 
-	//struct mesh
-	//{
-	//	// model
-	//	vertex* vertices = nullptr;
-	//	u32 vertex_count = 0;
-	//	u32* indices = nullptr;
-	//	u32 index_count = 0;
-
-	//	// shader
-	//	as::shader* shader_ptr = nullptr;
-
-	//	// rendering
-	//	u32 VBO = 0; // Vertex Buffer Object
-	//	u32 EBO = 0; // Element Buffer Object
-	//	u32 VAO = 0; // Vertex array Object (currently we're using 1 VAO per mesh, we should maybe combine the buffers for bulk rendering)
-	//};
-
-	//struct model
-	//{
-	//	char path[500] = "";
-	//	as::mesh** meshes = nullptr;
-	//	u16 mesh_count = 0;
-	//	glm::mat4 transform_matrix = glm::mat4(1.f);
-	//};
-	//
-	//struct camera
-	//{
-	//	// camera Attributes
-	//	glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
-	//	glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
-	//	glm::vec3 right = glm::vec3(1.f, 0.f, 0.f);;
-	//	glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
-
-	//	// transform
-	//	as::transform transform_mat;
-
-	//	// camera options
-	//	f32 movement_speed = 1.f;
-	//	f32 mouse_sensitivity = 1.f;
-	//	f32 zoom;
-	//	f32 zoom_speed = 1.f;
-	//	f32 fov = glm::radians(45.f);
-	//	f32 near_plane = .1f;
-	//	f32 far_plane = 100.f;
-	//	f32 aspect_ratio = 1.3f;
-
-	//	u8 is_active : 1;
-	//};
-
-	//struct light
-	//{
-	//	glm::vec3 location = glm::vec3(0.f);
-	//	f32 intensity = 1.f;
-	//	f32 attenuation = 3.f;
-	//	glm::vec3 color = glm::vec3(1.f);
-	//};
+	struct light
+	{
+		Transform transform = Transform();
+		Vector3 color = Vector3(1.f);
+		f32 intensity = 1.f;
+		f32 attenuation = 3.f;
+		as::entity* owner_entity = nullptr;
+	};
 
 	struct world
 	{
 		as::entity** entities = nullptr;
 		u16 entities_count = 0;
 		u8 is_active : 1;
+		as::entity* owner_entity = nullptr;
 	};
 
 	namespace timer

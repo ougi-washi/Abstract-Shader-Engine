@@ -6,9 +6,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if defined(_WIN32)
-#include <windows.h>
-#endif
 
 #define MAX_INCLUDE_DEPTH 10
 
@@ -49,15 +46,15 @@ FILE* as::util::try_open_file(const char* file_path, const char* mode)
 		{
 			if (does_dir_exist(folder_to_create.c_str()) == 0)
 			{
-#if defined(_WIN32)
-				bool mkdir_result = CreateDirectory(folder_to_create.c_str(), NULL);
-#else 
-				i32 mkdir_result = mkdir(folder_to_create.c_str(), 0700);
-#endif
-				if (!mkdir_result)
-				{
-					AS_LOG(LV_WARNING, "Folder [" + folder_to_create + "] could not be created, a crash may occur");
-				}
+//#if defined(_WIN32)
+//				bool mkdir_result = CreateDirectory(folder_to_create.c_str(), NULL);
+//#else 
+//				i32 mkdir_result = mkdir(folder_to_create.c_str(), 0700);
+//#endif
+//				if (!mkdir_result)
+//				{
+//					AS_LOG(LV_WARNING, "Folder [" + folder_to_create + "] could not be created, a crash may occur");
+//				}
 			}
 		}
 		fptr = fopen(file_path, mode);
@@ -331,16 +328,9 @@ void as::util::split_path(const char* path, char* directory, char* filename)
 	}
 }
 
-std::string as::util::vec3_to_string(const glm::vec3& vec)
+std::string as::util::vec3_to_string(const Vector3& vec)
 {
 	return std::to_string(vec.x) + ";" + std::to_string(vec.y) + ";" + std::to_string(vec.z);
-}
-
-std::string as::util::transform_to_string(const as::transform& transform)
-{
-	return	"L:" + vec3_to_string(transform.location) +
-			"|R:" + vec3_to_string(transform.rotation) +
-			"|S:" + vec3_to_string(transform.scale);
 }
 
 std::string as::util::bool_to_string(const bool& boolean)
