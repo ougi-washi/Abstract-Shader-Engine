@@ -4,6 +4,9 @@
 
 void as::init_window(const u16& width, const u16& height, const char* title)
 {
+	SetConfigFlags(FLAG_VSYNC_HINT);
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(width, height, title);
 }
 
@@ -429,8 +432,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 							{
 								out_model->data.materials[i].shader = shader_found->data;
 							}
+							as::add_sub_entity(out_entity, defaullt_shader_entity);
 						}
-						as::add_sub_entity(out_entity, defaullt_shader_entity);
 					}
 				}
 			}
@@ -440,10 +443,19 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 				as::delete_entity_data(out_entity);
 				return false;
 			}
-			Transform out_transform;
-			if (get_transform(json_data, out_transform))
+			out_model->data.transform = MatrixIdentity();
+			Vector3 out_vector = Vector3();
+			if (get_vec3(json_data, "scale", out_vector))
 			{
-				as::apply_transform(out_transform, out_model->data.transform);
+				as::apply_scale(out_vector, out_model->data.transform);
+			};
+			if (get_vec3(json_data, "rotation", out_vector))
+			{
+				as::apply_rotation(out_vector, out_model->data.transform);
+			};
+			if (get_vec3(json_data, "location", out_vector))
+			{
+				as::apply_location(out_vector, out_model->data.transform);
 			};
 			as::delete_entity_data(out_entity->data_ptr);
 			out_entity->data_ptr = out_model;
@@ -589,10 +601,8 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			}
 			delete_entity_data(out_entity->data_ptr);
 			Camera camera = { 0 };
-			out_camera->data.position = Vector3( 50.0f, 50.0f, 50.0f ); // Camera position
-			out_camera->data.target = Vector3 (0.0f, 10.0f, 0.0f );     // Camera looking at point
 			out_camera->data.up = Vector3(0.0f, 1.0f, 0.0f );          // Camera up vector (rotation towards target)
-			out_camera->data.fovy = 45.0f;                                // Camera field-of-view Y
+			out_camera->data.fovy = 75.f;                                // Camera field-of-view Y
 			out_camera->data.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
 
 			out_entity->data_ptr = out_camera;
@@ -678,17 +688,24 @@ void as::delete_entity_data(void*& data_ptr)
 
 void as::apply_location(const Vector3& location, Matrix& transform_matrix)
 {
-	transform_matrix = MatrixTranslate(location.x, location.y, location.z);
+	Matrix translation = MatrixTranslate(location.x, location.y, location.z);
+	transform_matrix = MatrixMultiply(transform_matrix, translation);
 }
 
 void as::apply_rotation(const Vector3& rotation, Matrix& transform_matrix)
 {
-	transform_matrix = MatrixRotateXYZ(rotation);
+	Matrix rotationX = MatrixRotateX(DEG2RAD * rotation.x);
+	Matrix rotationY = MatrixRotateY(DEG2RAD * rotation.y);
+	Matrix rotationZ = MatrixRotateZ(DEG2RAD * rotation.z);
+	transform_matrix = MatrixMultiply(transform_matrix, rotationX);
+	transform_matrix = MatrixMultiply(transform_matrix, rotationY);
+	transform_matrix = MatrixMultiply(transform_matrix, rotationZ);
 }
 
 void as::apply_scale(const Vector3& scale, Matrix& transform_matrix)
 {
-	transform_matrix = MatrixScale(scale.x, scale.y, scale.z);
+	Matrix scale_matrix = MatrixScale(scale.x, scale.y, scale.z);
+	transform_matrix = MatrixMultiply(transform_matrix, scale_matrix);
 }
 
 void as::apply_transform(const Transform& transform, Matrix& transform_matrix)
@@ -814,9 +831,8 @@ bool as::draw(const std::vector<const as::model*>& models, const as::camera* cam
 	for (const as::model* model : models)
 	{
 		Vector3 position = Vector3(model->data.transform.m12, model->data.transform.m13, model->data.transform.m14);
-		DrawModel(model->data, Vector3(0.f), 10.f, Color(1.f));
+		DrawModel(model->data, position, 1.0, WHITE);
 	}
-
 	DrawGrid(30, 10.f);
 	EndMode3D();
 	EndDrawing();

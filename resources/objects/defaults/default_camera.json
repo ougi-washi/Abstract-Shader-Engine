@@ -1,9 +1,6 @@
 {
   "type": "camera",
-  "transform": {
-    "location": [ -30.0, 5.0, 0.0 ],
-    "rotation": [ 0.0, 0.0, 0.0 ],
-    "scale": [ 1.0, 1.0, 1.0 ]
-  },
+  "position": [ 0.0, 30.0, 150.0 ],
+  "target": [ 0.0, 0.0, 0.0 ],
   "is_active": true
 }

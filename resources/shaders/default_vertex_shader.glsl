@@ -1,25 +1,26 @@
-#version 330 core
+#version 330
 
-layout (location = 0) in vec3 in_pos;
-layout (location = 1) in vec3 in_normal;
-layout (location = 2) in vec2 in_tex_coord;
-layout (location = 3) in vec3 in_tangent;
-layout (location = 4) in vec3 in_bitangent;
-layout (location = 5) in float[] in_ids;
-layout (location = 6) in int[] in_weights;
+// Input vertex attributes
+in vec3 vertexPosition;
+in vec2 vertexTexCoord;
+in vec3 vertexNormal;
+in vec4 vertexColor;
 
-out vec3 position;
-out vec2 tex_coord;
-out vec3 normal;
+// Input uniform values
+uniform mat4 mvp;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+// Output vertex attributes (to fragment shader)
+out vec2 fragTexCoord;
+out vec4 fragColor;
+out vec3 fragNormal;
+// NOTE: Add here your custom variables
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(in_pos, 1.0);
-    position = in_pos;
-    tex_coord = in_tex_coord;
-    normal = in_normal;
+    // Send vertex attributes to fragment shader
+    fragTexCoord = vertexTexCoord;
+    fragColor = vertexColor;
+    fragNormal = vertexNormal;
+    // Calculate final vertex position
+    gl_Position = mvp*vec4(vertexPosition, 1.0);
 }

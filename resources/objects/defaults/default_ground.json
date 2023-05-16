@@ -4,10 +4,8 @@
   "shaders": [
     "resources/objects/defaults/default_shader.json"
   ],
-  "transform": {
-    "location": [ 0.0, -0.5, 0.0 ],
-    "rotation": [ 0.0, 0.0, 0.0 ],
-    "scale": [ 100.0, 0.001, 100.0 ]
-  },
+  "location": [ 0.0, 0.0, 0.0 ],
+  "rotation": [ 0.0, 0.0, 0.0 ],
+  "scale": [ 100.0, 0.1, 100.0 ],
   "absolute_path": false
 }
