@@ -612,7 +612,7 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 			as::light* out_light = (as::light*)AS_MALLOC(sizeof(as::light));
 			*out_light = as::light();
 
-			get_transform(json_data, out_light->transform);
+			get_vec3(json_data, "location", out_light->location);
 			get_float(json_data, "intensity", out_light->intensity);
 			get_float(json_data, "attenuation", out_light->intensity);
 			get_vec3(json_data, "color", out_light->color);
@@ -756,6 +756,43 @@ u32 as::get_all_lights(const as::world* world, as::light**& out_lights)
 	return light_count;
 }
 
+
+void as::update_lights_uniforms(const Shader& shader, light** lights, const u32& lights_count)
+{
+	if (lights_count > 0)
+	{
+		{
+			const i32 light_count_loc = GetShaderLocation(shader, "lights_count");
+			SetShaderValue(shader, light_count_loc, &lights_count, SHADER_UNIFORM_INT);
+		}
+
+		for (u32 i = 0; i < lights_count; i++)
+		{
+			if (lights[i])
+			{
+				char buffer[64];
+				i32 light_data_loc = -1;
+
+				sprintf(buffer, "lights[%i].location", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValue(shader, light_data_loc, &lights[i]->location, SHADER_UNIFORM_VEC3);
+
+				sprintf(buffer, "lights[%i].color", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValue(shader, light_data_loc, &lights[i]->color, SHADER_UNIFORM_VEC3);
+
+				sprintf(buffer, "lights[%i].intensity", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValue(shader, light_data_loc, &lights[i]->intensity, SHADER_UNIFORM_FLOAT);
+
+				sprintf(buffer, "lights[%i].attenuation", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValue(shader, light_data_loc, &lights[i]->attenuation, SHADER_UNIFORM_FLOAT);
+			}
+		}
+	}
+}
+
 bool as::draw(const as::world* world)
 {
 	if (world)
@@ -782,20 +819,33 @@ bool as::draw(const as::world* world)
 			}
 		}
 
-		if (models_to_draw.empty())
+		AS_ASSERT(!models_to_draw.empty(), "Cannot draw 0 models, check the world content");
+		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
+
+		// get all lights
+		as::light** lights = nullptr;
+		const u32 lights_count = get_all_lights(world, lights);
+
+		BeginDrawing();
+		clear_background();
+		BeginMode3D(camera_to_use->data);
+		for (const as::model* model : models_to_draw)
 		{
-			//AS_LOG(LV_WARNING, "Cannot draw 0 models, check the world content");
-			return false;
+			if (model)
+			{
+				for (u32 j = 0; j < model->data.materialCount; j++)
+				{
+					update_lights_uniforms(model->data.materials[j].shader, lights, lights_count);
+				}
+				Vector3 position = Vector3(model->data.transform.m12, model->data.transform.m13, model->data.transform.m14);
+				DrawModel(model->data, position, 1.0, WHITE);
+			}
 		}
-		else if (!camera_to_use)
-		{
-			AS_LOG(LV_WARNING, "Cannot draw with no active camera, check the world content");
-			return false;
-		}
-		else
-		{
-			return draw(models_to_draw, camera_to_use);
-		}
+		DrawGrid(30, 10.f);
+		EndMode3D();
+		EndDrawing();
+
+		AS_FREE(lights);
 	}
 	return false;
 }
@@ -817,24 +867,4 @@ void as::delete_world_data(as::world*& world)
 void as::clear_background()
 {
 	ClearBackground(Color(0.f, 0.f, 0.f));
-}
-
-bool as::draw(const std::vector<const as::model*>& models, const as::camera* camera)
-{
-	if (!camera)
-	{
-		return false;
-	}
-	BeginDrawing();
-	clear_background();
-	BeginMode3D(camera->data);
-	for (const as::model* model : models)
-	{
-		Vector3 position = Vector3(model->data.transform.m12, model->data.transform.m13, model->data.transform.m14);
-		DrawModel(model->data, position, 1.0, WHITE);
-	}
-	DrawGrid(30, 10.f);
-	EndMode3D();
-	EndDrawing();
-	return true;
 }

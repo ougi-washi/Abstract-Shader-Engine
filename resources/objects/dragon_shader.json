@@ -1,7 +1,7 @@
 {
   "type": "shader",
   "vertex_path": "resources/shaders/default_vertex_shader.glsl",
-  "fragment_path": "resources/shaders/pbr_fragment_shader.glsl",
+  "fragment_path": "resources/shaders/default_fragment_shader.glsl",
   "textures": [
     "resources/objects/dragon_texture.json"
   ],

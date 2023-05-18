@@ -102,7 +102,7 @@ namespace as
 
 	struct light
 	{
-		Transform transform = Transform();
+		Vector3 location = Vector3(0.f);
 		Vector3 color = Vector3(1.f);
 		f32 intensity = 1.f;
 		f32 attenuation = 3.f;

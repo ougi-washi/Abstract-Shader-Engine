@@ -37,10 +37,10 @@ namespace as
 
 	// camera
 	as::camera* find_active_camera(const as::world* world);
-	std::string to_string(const as::camera* camera);
 
 	// light
 	u32 get_all_lights(const as::world* world, as::light**& out_lights);
+	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
 
 	// world
 	bool draw(const as::world* world);
@@ -48,5 +48,4 @@ namespace as
 
 	// render
 	void clear_background();
-	bool draw(const std::vector<const as::model*>& models, const as::camera* camera);
 };
