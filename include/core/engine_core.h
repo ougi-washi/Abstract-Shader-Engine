@@ -4,7 +4,6 @@
 namespace as
 {
 	// general
-	void configure();
 	void init_window(const u16& width, const u16& height, const char* title);
 
 	// entities
