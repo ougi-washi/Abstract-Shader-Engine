@@ -1,6 +1,6 @@
 {
   "type": "light",
-  "location": [ 30.0, -10, 0 ],
+  "location": [ 3.0, -10, 0 ],
   "intensity": 1.0,
   "attenuation": 5.5,
   "color": [ 0.5, 1.0, 0.5]

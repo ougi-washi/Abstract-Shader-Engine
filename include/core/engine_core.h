@@ -5,6 +5,7 @@ namespace as
 {
 	// general
 	void init_window(const u16& width, const u16& height, const char* title);
+	void init_gl();
 
 	// entities
 	std::string variable_enum_to_string(const as::ent::entity_type& in_type);

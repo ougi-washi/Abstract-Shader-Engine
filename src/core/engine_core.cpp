@@ -1,6 +1,14 @@
 // internal dependencies (engine)
 #include "engine_utility.h"
 #include "engine_core.h"
+#include "rlgl.h"
+
+void as::init_gl()
+{
+	rlEnableDepthTest();
+	rlEnableColorBlend();
+	rlEnableBackfaceCulling();
+}
 
 void as::init_window(const u16& width, const u16& height, const char* title)
 {
