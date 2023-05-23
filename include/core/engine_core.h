@@ -29,6 +29,11 @@ namespace as
 	void delete_entity_data(as::entity*& entity);
 	void delete_entity_data(void*& data_ptr);
 
+
+	void set_path(const std::string& path, const bool& absolute_path, as::entity_data& out_entity_data);
+	bool get_world_from_file(const std::string& path, const bool& absolute_path, as::world& out_world);
+	bool get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model);
+
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
 	void apply_rotation(const Vector3& rotation, Matrix& transform_matrix);

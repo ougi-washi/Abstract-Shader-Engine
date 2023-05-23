@@ -15,6 +15,10 @@
 
 #define MAX_BONE_INFLUENCE 4
 #define MAX_TEXTURE_COUNT_PER_SHADER 256
+
+#define MAX_MODELS_PER_WORLD 8192
+#define MAX_CAMERAS_PER_WORLD 256
+#define MAX_SUB_WORLDS_PER_WORLD 256
 #define MAX_LIGHTS_PER_WORLD 64
 
 namespace as
@@ -58,46 +62,54 @@ namespace as
 		"max"		// 8
 	};
 
-	struct entity
+	struct entity_data
 	{
-		ent::entity_type type = ent::NONE;
-		as::entity** sub_entities = nullptr;
-		u32 sub_entities_count = 0;
-
-		void* data_ptr = nullptr;
-		void* fn_ptr = nullptr; // currently not in use
+		void* start_fn = nullptr;
+		void* tick_fn = nullptr;
+		void* end_fn = nullptr;
 		char path[256] = "";
 	};
+
+	//struct entity
+	//{
+	//	ent::entity_type type = ent::NONE;
+	//	as::entity** sub_entities = nullptr;
+	//	u32 sub_entities_count = 0;
+
+	//	void* data_ptr = nullptr;
+	//	void* fn_ptr = nullptr;
+	//	char path[256] = "";
+	//};
 
 	struct texture
 	{
 		Texture data;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	struct shader
 	{
 		Shader data;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	struct material
 	{
 		Material data;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	struct model
 	{
 		Model data;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 	
 	struct camera
 	{
 		Camera data;
 		u8 is_active : 1;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	struct light
@@ -106,15 +118,25 @@ namespace as
 		Vector3 color = Vector3(1.f);
 		f32 intensity = 1.f;
 		f32 attenuation = 3.f;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	struct world
 	{
-		as::entity** entities = nullptr;
-		u16 entities_count = 0;
+		as::model models[MAX_MODELS_PER_WORLD];
+		u16 models_count = 0;
+
+		as::light lights[MAX_LIGHTS_PER_WORLD];
+		u16 lights_count = 0;
+
+		as::camera cameras[MAX_CAMERAS_PER_WORLD];
+		u16 cameras_count = 0;
+
+		as::world sub_worlds[MAX_SUB_WORLDS_PER_WORLD];
+		u16 sub_worlds_count = 0;
+
 		u8 is_active : 1;
-		as::entity* owner_entity = nullptr;
+		as::entity_data entity_data;
 	};
 
 	namespace timer
@@ -125,7 +147,6 @@ namespace as
 		};
 	};
 };
-
 
 #define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"
 #define DEFAULT_CAMERA_PATH "resources/objects/defaults/default_camera.json"

@@ -6,7 +6,7 @@ i32 main()
 	as::init_window(800, 450, "Abstract Shader Engine");
 	as::init_gl();
 
-	as::entity* out_entity = nullptr;
+	//as::entity* out_entity = nullptr;
 	parse_file("resources/objects/dragon_world.json", false, out_entity);
 	as::world* out_world = nullptr;
 	get_world_from_entity(out_entity, out_world);

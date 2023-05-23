@@ -1,4 +1,5 @@
 #include "engine_memory.h"
+#include <string>
 
 u32 allocations_count = 0;
 u64 allocated_memory = 0;
@@ -7,9 +8,6 @@ as::allocation allocations[MAX_ALLOCATIONS_COUNT] = {};
 void* as_malloc_fn(const size_t& _size, const char* _file, const u32& _line, const char* _type)
 {
 	void* _ptr = nullptr;
-	//allocations = (as::allocation**)realloc(allocations, sizeof(as::allocation*) * (allocations_count + 1));
-	//allocations[allocations_count] = (as::allocation*)malloc(sizeof(as::allocation));
-	//memset(allocations[allocations_count], 0, sizeof(as::allocation));
 	memcpy(allocations[allocations_count].file, _file, 256);
 	memcpy(allocations[allocations_count].type, _type, 128);
 	allocations[allocations_count].line = _line;

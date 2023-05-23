@@ -7,6 +7,7 @@ void as::init_gl()
 {
 	rlEnableDepthTest();
 	rlEnableColorBlend();
+	rlSetBlendMode(RL_BLEND_ALPHA);
 	rlEnableBackfaceCulling();
 }
 
@@ -681,6 +682,302 @@ void as::delete_entity_data(as::entity*& entity)
 			entity = nullptr;
 		}
 	}
+}
+
+as::ent::entity_type get_type(const json& json_data)
+{
+	if (json_data.contains("type"))
+	{
+		std::string entity_type = json_data["type"].get<std::string>();
+		return as::variable_string_to_enum(entity_type);
+	}
+	return as::ent::NONE;
+}
+
+void as::set_path(const std::string& path, const bool& absolute_path, entity_data& out_entity_data)
+{
+	std::string new_path;
+	if (absolute_path)
+	{
+		new_path = path;
+	}
+	else
+	{
+		new_path = as::util::get_current_path() + "/../" + path;
+	}
+	memcpy(entity_data.path, new_path.c_str(), 256);
+}
+
+bool as::get_world_from_file(const std::string& path, const bool& absolute_path, as::world& out_world)
+{
+	AS_LOG(LV_LOG, "Parse file [" + path + "]");
+	set_path(path, absolute_path, out_world.entity_data);
+	json json_data = as::util::read_json_file(new_path);
+
+	if (get_type(json_data) == as::ent::entity_type::WORLD)
+	{
+		if (json_data.contains("models"))
+		{
+			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
+			out_world->models_count = models_file_paths.size();
+			for (u16 i = 0; i < out_world->models_count; i++)
+			{
+				get_model_from_file(models_file_paths[i], absolute_path, out_world.models[i])
+			}
+		}
+		if (json_data.contains("is_active"))
+		{
+			bool is_active = false;
+			if (get_bool(json_data, "is_active", is_active))
+			{
+				out_world->is_active = is_active;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+bool as::get_model_from_file(const std::string& path, const bool& absolute_path, model& out_model)
+{
+	AS_LOG(LV_LOG, "Parse file [" + path + "]");
+	set_path(path, absolute_path, out_world.entity_data);
+	json json_data = as::util::read_json_file(new_path);
+
+	if (get_type(json_data) == as::ent::entity_type::WORLD)
+	{
+		as::model* out_model = nullptr;
+
+		if (json_data.contains("path"))
+		{
+			std::string model_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
+			out_model = (as::model*)AS_MALLOC(sizeof(as::model));
+			*out_model = as::model();
+			out_model->data = LoadModel(model_path.c_str());
+			out_model->owner_entity = out_entity;
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Model json file does not have path or vertices array");
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		if (json_data.contains("shaders"))
+		{
+			std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
+			for (u16 i = 0; i < shaders.size(); i++)
+			{
+				as::entity* shader_entity = nullptr;
+				if (parse_file(shaders[i], absolute_path, shader_entity) && out_model->data.materialCount > i)
+				{
+					as::shader* shader_found = nullptr;
+					if (as::get_shader_from_entity(shader_entity, shader_found))
+					{
+						out_model->data.materials[i].shader = shader_found->data;
+					}
+					as::add_sub_entity(out_entity, shader_entity);
+				}
+			}
+			if (out_model->data.materialCount > shaders.size())
+			{
+				as::entity* defaullt_shader_entity = nullptr;
+				if (parse_file(DEFAULT_SHADER_PATH, absolute_path, defaullt_shader_entity))
+				{
+					as::shader* shader_found = nullptr;
+					if (as::get_shader_from_entity(defaullt_shader_entity, shader_found))
+					{
+						for (u16 i = 0; i < out_model->data.materialCount; i++)
+						{
+							out_model->data.materials[i].shader = shader_found->data;
+						}
+						as::add_sub_entity(out_entity, defaullt_shader_entity);
+					}
+				}
+			}
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Model json file does not have shaders");
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		out_model->data.transform = MatrixIdentity();
+		Vector3 out_vector = Vector3();
+		if (get_vec3(json_data, "scale", out_vector))
+		{
+			as::apply_scale(out_vector, out_model->data.transform);
+		};
+		if (get_vec3(json_data, "rotation", out_vector))
+		{
+			as::apply_rotation(out_vector, out_model->data.transform);
+		};
+		if (get_vec3(json_data, "location", out_vector))
+		{
+			as::apply_location(out_vector, out_model->data.transform);
+		};
+		as::delete_entity_data(out_entity->data_ptr);
+		out_entity->data_ptr = out_model;
+		}
+	else if (out_entity->type == as::ent::entity_type::MATERIAL)
+	{
+		as::material* out_material = (as::material*)AS_MALLOC(sizeof(as::material));
+		*out_material = as::material();
+		out_material->owner_entity = out_entity;
+		if (json_data.contains("shader"))
+		{
+			as::entity* out_shader_entity = nullptr;
+			if (parse_file(json_data["shader"], absolute_path, out_shader_entity))
+			{
+				as::shader* found_shader = nullptr;
+				if (get_shader_from_entity(out_shader_entity, found_shader))
+				{
+					out_material->data.shader = found_shader->data;
+				}
+			}
+			if (json_data.contains("textures"))
+			{
+				// TODO: Add uniform name for each texture
+				std::vector<std::string> textures = json_data["textures"].get<std::vector<std::string>>();
+				for (u16 i = 0; i < textures.size(); i++)
+				{
+					as::entity* texture_entity = nullptr;
+					if (parse_file(textures[i], absolute_path, texture_entity))
+					{
+						as::texture* found_texture = nullptr;
+						if (get_texture_from_entity(texture_entity, found_texture))
+						{
+							out_material->data.maps[i].texture = found_texture->data;
+						}
+						as::add_sub_entity(out_entity, texture_entity);
+					}
+				}
+			}
+		}
+		}
+	else if (out_entity->type == as::ent::entity_type::SHADER)
+	{
+		as::shader* out_shader = (as::shader*)AS_MALLOC(sizeof(as::shader));
+		*out_shader = as::shader();
+		std::string vertex_path;
+		std::string fragment_path;
+		if (json_data.contains("vertex_path"))
+		{
+			vertex_path = as::util::get_current_path() + "/../" + json_data["vertex_path"].get<std::string>();
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Shader json file does not have vertex shader");
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		if (json_data.contains("fragment_path"))
+		{
+			fragment_path = as::util::get_current_path() + "/../" + json_data["fragment_path"].get<std::string>();
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+		if (out_shader->data.id > 0)
+		{
+			out_shader->owner_entity = out_entity;
+			out_entity->data_ptr = out_shader;
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Could not create the shader");
+			AS_FREE(out_shader);
+			out_shader = nullptr;
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		}
+	else if (out_entity->type == as::ent::entity_type::TEXTURE)
+	{
+		if (json_data.contains("path"))
+		{
+			std::string texture_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
+
+			bool found_texture = false;
+			// TODO: caching
+			//for (size_t i = 0; i < allocations_count; i++)
+			//{
+			//	as::entity* found_entity_ptr = static_cast<as::entity*>(allocations[i]->ptr);
+			//	if (found_entity_ptr && found_entity_ptr->type == as::ent::TEXTURE)
+			//	{
+			//		as::texture* found_texture_ptr = static_cast<as::texture*>(found_entity_ptr->data_ptr);
+			//		std::string path_string = util::get_current_path() + "/../" + std::string(texture_path);
+			//		if (found_texture_ptr && strcmp(found_texture_ptr->path, path_string.c_str()) == 0)
+			//		{
+			//			AS_LOG(LV_LOG, "Texture " + texture_path + "already defined, using the found pointer.");
+			//			out_entity = found_entity_ptr;
+			//			found_texture = true;
+			//		}
+			//	}
+			//}
+			if (!found_texture)
+			{
+				as::texture* out_texture = (as::texture*)AS_MALLOC(sizeof(as::texture));
+				*out_texture = as::texture();
+				out_texture->data = LoadTexture(texture_path.c_str());
+				out_texture->owner_entity = out_entity;
+				if (out_texture->data.id > 0)
+				{
+					delete_entity_data(out_entity->data_ptr);
+					out_entity->data_ptr = out_texture;
+				}
+				else
+				{
+					AS_LOG(LV_WARNING, "Could not load the texture");
+					AS_FREE(out_texture);
+					out_texture = nullptr;
+					as::delete_entity_data(out_entity);
+					return false;
+				}
+			}
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Texture json file does not have path");
+			as::delete_entity_data(out_entity);
+			return false;
+		}
+		}
+	else if (out_entity->type == as::ent::entity_type::CAMERA)
+	{
+		as::camera* out_camera = (as::camera*)AS_MALLOC(sizeof(as::camera));
+		*out_camera = as::camera();
+		out_camera->owner_entity = out_entity;
+		get_vec3(json_data, "position", out_camera->data.position);
+		get_vec3(json_data, "target", out_camera->data.target);
+		if (json_data.contains("is_active"))
+		{
+			out_camera->is_active = json_data["is_active"].get<bool>();
+		}
+		delete_entity_data(out_entity->data_ptr);
+		Camera camera = { 0 };
+		out_camera->data.up = Vector3(0.0f, 1.0f, 0.0f);          // Camera up vector (rotation towards target)
+		out_camera->data.fovy = 75.f;                                // Camera field-of-view Y
+		out_camera->data.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
+
+		out_entity->data_ptr = out_camera;
+		}
+	else if (out_entity->type == as::ent::entity_type::LIGHT)
+	{
+		as::light* out_light = (as::light*)AS_MALLOC(sizeof(as::light));
+		*out_light = as::light();
+
+		get_vec3(json_data, "location", out_light->location);
+		get_float(json_data, "intensity", out_light->intensity);
+		get_float(json_data, "attenuation", out_light->intensity);
+		get_vec3(json_data, "color", out_light->color);
+		out_light->owner_entity = out_entity;
+		delete_entity_data(out_entity->data_ptr);
+		out_entity->data_ptr = out_light;
+		}
 }
 
 void as::delete_entity_data(void*& data_ptr)
