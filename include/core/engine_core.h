@@ -7,32 +7,14 @@ namespace as
 	void init_window(const u16& width, const u16& height, const char* title);
 	void init_gl();
 
-	// entities
+	// files / entities
 	std::string variable_enum_to_string(const as::ent::entity_type& in_type);
 	as::ent::entity_type variable_string_to_enum(const std::string& in_type_str);
-	bool get_model_from_entity(const as::entity& entity, as::model& out_model);
-	bool get_model_from_entity(const as::entity* entity, as::model*& out_model);
-	bool get_camera_from_entity(const as::entity& entity, as::camera& out_camera);
-	bool get_camera_from_entity(const as::entity& entity, as::camera*& out_camera);
-	bool get_camera_from_entity(const as::entity* entity, as::camera*& out_camera);
-	bool get_world_from_entity(const as::entity& entity, as::world& out_world);
-	bool get_world_from_entity(const as::entity* entity, as::world*& out_world);
-	bool get_shader_from_entity(const as::entity& entity, as::shader& out_shader);
-	bool get_shader_from_entity(const as::entity* entity, as::shader*& out_shader);
-	bool get_material_from_entity(const as::entity* entity, as::material*& out_material);
-	bool get_texture_from_entity(const as::entity& entity, as::texture& out_texture);
-	bool get_texture_from_entity(const as::entity* entity, as::texture*& out_texture);
-	std::string to_string(const as::entity* entity);
-	bool parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity);
-	void add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity);
-
-	void delete_entity_data(as::entity*& entity);
-	void delete_entity_data(void*& data_ptr);
-
-
 	void set_path(const std::string& path, const bool& absolute_path, as::entity_data& out_entity_data);
 	bool get_world_from_file(const std::string& path, const bool& absolute_path, as::world& out_world);
 	bool get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model);
+	bool get_shader_from_file(const std::string& path, const bool& absolute_path, as::shader& out_shader);
+
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);

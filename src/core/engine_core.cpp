@@ -117,220 +117,6 @@ as::ent::entity_type as::variable_string_to_enum(const std::string& in_type_str)
 	return as::ent::entity_type::NONE;
 }
 
-bool as::get_model_from_entity(const as::entity& entity, as::model& out_model)
-{
-	if (entity.type == as::ent::entity_type::MODEL && entity.data_ptr)
-	{
-		as::model* found_model = static_cast<as::model*>(entity.data_ptr);
-		if (found_model)
-		{
-			out_model = *found_model;
-			return true;
-		}
-	}
-	return false;
-}
-
-bool as::get_model_from_entity(const as::entity* entity, as::model*& out_model)
-{
-	if (entity)
-	{
-		if (entity->type == as::ent::entity_type::MODEL && entity->data_ptr)
-		{
-			out_model = static_cast<as::model*>(entity->data_ptr);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool as::get_camera_from_entity(const as::entity& entity, as::camera& out_camera)
-{
-	if (entity.type == as::ent::entity_type::CAMERA)
-	{
-		if (entity.data_ptr)
-		{
-			out_camera = *static_cast<as::camera*>(entity.data_ptr);
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-bool as::get_camera_from_entity(const as::entity& entity, as::camera*& out_camera)
-{
-	if (entity.type == as::ent::entity_type::CAMERA)
-	{
-		if (entity.data_ptr)
-		{
-			out_camera = (as::camera*)entity.data_ptr;
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-bool as::get_camera_from_entity(const as::entity* entity, as::camera*& out_camera)
-{
-	if (entity)
-	{
-		if (entity->type == as::ent::entity_type::CAMERA)
-		{
-			if (entity->data_ptr)
-			{
-				out_camera = (as::camera*)entity->data_ptr;
-				return true;
-			}
-			else
-			{
-				AS_LOG(LV_ERROR, "Cannot get camera from entity, data is nullptr")
-			}
-		}
-	}
-	else
-	{
-		AS_LOG(LV_ERROR, "Cannot get camera from entity, entity is nullptr")
-	}
-	return false;
-}
-
-bool as::get_world_from_entity(const as::entity& entity, as::world& out_world)
-{
-	if (entity.type == as::ent::entity_type::WORLD)
-	{
-		if (entity.data_ptr)
-		{
-			out_world = *static_cast<as::world*>(entity.data_ptr);
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get world from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-bool as::get_world_from_entity(const as::entity* entity, as::world*& out_world)
-{
-	if (entity)
-	{
-		if (entity->type == as::ent::entity_type::WORLD)
-		{
-			if (entity->data_ptr)
-			{
-				out_world = static_cast<as::world*>(entity->data_ptr);
-				return true;
-			}
-			else
-			{
-				AS_LOG(LV_ERROR, "Cannot get world from entity, data is nullptr")
-			}
-		}
-	}
-	return false;
-}
-
-bool as::get_shader_from_entity(const as::entity& entity, as::shader& out_shader)
-{
-	if (entity.type == as::ent::entity_type::SHADER)
-	{
-		if (entity.data_ptr)
-		{
-			out_shader = *static_cast<as::shader*>(entity.data_ptr);
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-
-bool as::get_material_from_entity(const as::entity* entity, as::material*& out_material)
-{
-	if (entity->type == as::ent::entity_type::MATERIAL)
-	{
-		if (entity->data_ptr)
-		{
-			out_material = static_cast<as::material*>(entity->data_ptr);
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get material from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-bool as::get_shader_from_entity(const as::entity* entity, as::shader*& out_shader)
-{
-	if (entity)
-	{
-		if (entity->type == as::ent::entity_type::SHADER)
-		{
-			if (entity->data_ptr)
-			{
-				out_shader = static_cast<as::shader*>(entity->data_ptr);
-				return true;
-			}
-			else
-			{
-				AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
-			}
-		}
-	}
-	return false;
-}
-
-bool as::get_texture_from_entity(const as::entity& entity, as::texture& out_texture)
-{
-	if (entity.type == as::ent::entity_type::TEXTURE)
-	{
-		if (entity.data_ptr)
-		{
-			out_texture = *static_cast<as::texture*>(entity.data_ptr);
-			return true;
-		}
-		else
-		{
-			AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
-		}
-	}
-	return false;
-}
-
-bool as::get_texture_from_entity(const as::entity* entity, as::texture*& out_texture)
-{
-	if (entity)
-	{
-		if (entity->type == as::ent::entity_type::TEXTURE)
-		{
-			if (entity->data_ptr)
-			{
-				out_texture = static_cast<as::texture*>(entity->data_ptr);
-				return true;
-			}
-			else
-			{
-				AS_LOG(LV_ERROR, "Cannot get shader from entity, data is nullptr")
-			}
-		}
-	}
-	return false;
-}
-
 bool as::parse_file(const std::string& path, const bool& absolute_path, as::entity*& out_entity)
 {
 	AS_LOG(LV_LOG, "Parse file [" + path + "]");
@@ -633,56 +419,6 @@ bool as::parse_file(const std::string& path, const bool& absolute_path, as::enti
 	return true;
 }
 
-void as::add_sub_entity(as::entity*& parent_entity, as::entity* sub_entity)
-{
-
-	parent_entity->sub_entities_count++;
-	if (parent_entity->sub_entities)
-	{
-		parent_entity->sub_entities = (as::entity**)AS_REALLOC(parent_entity->sub_entities, sizeof(as::entity*) * parent_entity->sub_entities_count);
-	}
-	else
-	{
-		parent_entity->sub_entities = (as::entity**)AS_MALLOC(sizeof(as::entity*) * parent_entity->sub_entities_count);
-	}
-	parent_entity->sub_entities[parent_entity->sub_entities_count - 1] = sub_entity;
-}
-
-void as::delete_entity_data(as::entity*& entity)
-{
-	if (entity && entity->type < as::ent::MAX)
-	{
-		//as::world* world = nullptr;
-		//if (as::get_world_from_entity(entity, world))
-		//{
-		//	as::delete_world_data(world);
-		//}
-
-		for (u32 i = 0; i < entity->sub_entities_count; i++)
-		{
-			as::delete_entity_data(entity->sub_entities[i]);
-		}
-		AS_FREE(entity->sub_entities);
-		entity->sub_entities = nullptr;
-		entity->sub_entities_count = 0;
-
-		if (entity->data_ptr)
-		{
-			AS_FREE(entity->data_ptr);
-			entity->data_ptr = nullptr;
-		}
-		if (entity->fn_ptr)
-		{
-			AS_FREE(entity->fn_ptr);
-			entity->fn_ptr = nullptr;
-		}
-		if (entity)
-		{
-			AS_FREE(entity);
-			entity = nullptr;
-		}
-	}
-}
 
 as::ent::entity_type get_type(const json& json_data)
 {
@@ -712,17 +448,17 @@ bool as::get_world_from_file(const std::string& path, const bool& absolute_path,
 {
 	AS_LOG(LV_LOG, "Parse file [" + path + "]");
 	set_path(path, absolute_path, out_world.entity_data);
-	json json_data = as::util::read_json_file(new_path);
+	json json_data = as::util::read_json_file(out_world.entity_data.path);
 
 	if (get_type(json_data) == as::ent::entity_type::WORLD)
 	{
 		if (json_data.contains("models"))
 		{
 			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
-			out_world->models_count = models_file_paths.size();
-			for (u16 i = 0; i < out_world->models_count; i++)
+			out_world.models_count = models_file_paths.size();
+			for (u16 i = 0; i < out_world.models_count; i++)
 			{
-				get_model_from_file(models_file_paths[i], absolute_path, out_world.models[i])
+				get_model_from_file(models_file_paths[i], absolute_path, out_world.models[i]);
 			}
 		}
 		if (json_data.contains("is_active"))
@@ -730,7 +466,7 @@ bool as::get_world_from_file(const std::string& path, const bool& absolute_path,
 			bool is_active = false;
 			if (get_bool(json_data, "is_active", is_active))
 			{
-				out_world->is_active = is_active;
+				out_world.is_active = is_active;
 			}
 		}
 		return true;
@@ -738,59 +474,38 @@ bool as::get_world_from_file(const std::string& path, const bool& absolute_path,
 	return false;
 }
 
-bool as::get_model_from_file(const std::string& path, const bool& absolute_path, model& out_model)
+bool as::get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model)
 {
 	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_world.entity_data);
-	json json_data = as::util::read_json_file(new_path);
+	set_path(path, absolute_path, out_model.entity_data);
+	json json_data = as::util::read_json_file(out_model.entity_data.path);
 
-	if (get_type(json_data) == as::ent::entity_type::WORLD)
+	if (get_type(json_data) == as::ent::entity_type::MODEL)
 	{
-		as::model* out_model = nullptr;
-
 		if (json_data.contains("path"))
 		{
 			std::string model_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
-			out_model = (as::model*)AS_MALLOC(sizeof(as::model));
-			*out_model = as::model();
-			out_model->data = LoadModel(model_path.c_str());
-			out_model->owner_entity = out_entity;
-		}
-		else
-		{
-			AS_LOG(LV_WARNING, "Model json file does not have path or vertices array");
-			as::delete_entity_data(out_entity);
-			return false;
+			out_model.data = LoadModel(model_path.c_str());
 		}
 		if (json_data.contains("shaders"))
 		{
 			std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
 			for (u16 i = 0; i < shaders.size(); i++)
 			{
-				as::entity* shader_entity = nullptr;
-				if (parse_file(shaders[i], absolute_path, shader_entity) && out_model->data.materialCount > i)
+				as::shader found_shader;
+				if (get_shader_from_file(shaders[i], absolute_path, found_shader) && out_model.data.materialCount > i)
 				{
-					as::shader* shader_found = nullptr;
-					if (as::get_shader_from_entity(shader_entity, shader_found))
-					{
-						out_model->data.materials[i].shader = shader_found->data;
-					}
-					as::add_sub_entity(out_entity, shader_entity);
+					out_model.data.materials[i].shader = found_shader.data;
 				}
 			}
-			if (out_model->data.materialCount > shaders.size())
+			if (out_model.data.materialCount > shaders.size())
 			{
-				as::entity* defaullt_shader_entity = nullptr;
-				if (parse_file(DEFAULT_SHADER_PATH, absolute_path, defaullt_shader_entity))
+				as::shader found_shader;
+				if (get_shader_from_file(DEFAULT_SHADER_PATH, absolute_path, found_shader))
 				{
-					as::shader* shader_found = nullptr;
-					if (as::get_shader_from_entity(defaullt_shader_entity, shader_found))
+					for (u16 i = 0; i < out_model.data.materialCount; i++)
 					{
-						for (u16 i = 0; i < out_model->data.materialCount; i++)
-						{
-							out_model->data.materials[i].shader = shader_found->data;
-						}
-						as::add_sub_entity(out_entity, defaullt_shader_entity);
+						out_model.data.materials[i].shader = found_shader.data;
 					}
 				}
 			}
@@ -798,66 +513,36 @@ bool as::get_model_from_file(const std::string& path, const bool& absolute_path,
 		else
 		{
 			AS_LOG(LV_WARNING, "Model json file does not have shaders");
-			as::delete_entity_data(out_entity);
 			return false;
 		}
-		out_model->data.transform = MatrixIdentity();
+		out_model.data.transform = MatrixIdentity();
 		Vector3 out_vector = Vector3();
 		if (get_vec3(json_data, "scale", out_vector))
 		{
-			as::apply_scale(out_vector, out_model->data.transform);
+			as::apply_scale(out_vector, out_model.data.transform);
 		};
 		if (get_vec3(json_data, "rotation", out_vector))
 		{
-			as::apply_rotation(out_vector, out_model->data.transform);
+			as::apply_rotation(out_vector, out_model.data.transform);
 		};
 		if (get_vec3(json_data, "location", out_vector))
 		{
-			as::apply_location(out_vector, out_model->data.transform);
+			as::apply_location(out_vector, out_model.data.transform);
 		};
-		as::delete_entity_data(out_entity->data_ptr);
-		out_entity->data_ptr = out_model;
-		}
-	else if (out_entity->type == as::ent::entity_type::MATERIAL)
+		return true;
+	}
+	return false;
+}
+
+
+bool as::get_shader_from_file(const std::string& path, const bool& absolute_path, as::shader& out_shader)
+{
+	AS_LOG(LV_LOG, "Parse file [" + path + "]");
+	set_path(path, absolute_path, out_shader.entity_data);
+	json json_data = as::util::read_json_file(out_shader.entity_data.path);
+
+	if (get_type(json_data) == as::ent::entity_type::SHADER)
 	{
-		as::material* out_material = (as::material*)AS_MALLOC(sizeof(as::material));
-		*out_material = as::material();
-		out_material->owner_entity = out_entity;
-		if (json_data.contains("shader"))
-		{
-			as::entity* out_shader_entity = nullptr;
-			if (parse_file(json_data["shader"], absolute_path, out_shader_entity))
-			{
-				as::shader* found_shader = nullptr;
-				if (get_shader_from_entity(out_shader_entity, found_shader))
-				{
-					out_material->data.shader = found_shader->data;
-				}
-			}
-			if (json_data.contains("textures"))
-			{
-				// TODO: Add uniform name for each texture
-				std::vector<std::string> textures = json_data["textures"].get<std::vector<std::string>>();
-				for (u16 i = 0; i < textures.size(); i++)
-				{
-					as::entity* texture_entity = nullptr;
-					if (parse_file(textures[i], absolute_path, texture_entity))
-					{
-						as::texture* found_texture = nullptr;
-						if (get_texture_from_entity(texture_entity, found_texture))
-						{
-							out_material->data.maps[i].texture = found_texture->data;
-						}
-						as::add_sub_entity(out_entity, texture_entity);
-					}
-				}
-			}
-		}
-		}
-	else if (out_entity->type == as::ent::entity_type::SHADER)
-	{
-		as::shader* out_shader = (as::shader*)AS_MALLOC(sizeof(as::shader));
-		*out_shader = as::shader();
 		std::string vertex_path;
 		std::string fragment_path;
 		if (json_data.contains("vertex_path"))
@@ -867,7 +552,6 @@ bool as::get_model_from_file(const std::string& path, const bool& absolute_path,
 		else
 		{
 			AS_LOG(LV_WARNING, "Shader json file does not have vertex shader");
-			as::delete_entity_data(out_entity);
 			return false;
 		}
 		if (json_data.contains("fragment_path"))
@@ -877,24 +561,21 @@ bool as::get_model_from_file(const std::string& path, const bool& absolute_path,
 		else
 		{
 			AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
-			as::delete_entity_data(out_entity);
 			return false;
 		}
-		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
-		if (out_shader->data.id > 0)
+		out_shader.data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+		if (out_shader.data.id > 0)
 		{
-			out_shader->owner_entity = out_entity;
-			out_entity->data_ptr = out_shader;
+			return true;
 		}
 		else
 		{
 			AS_LOG(LV_WARNING, "Could not create the shader");
-			AS_FREE(out_shader);
-			out_shader = nullptr;
-			as::delete_entity_data(out_entity);
-			return false;
 		}
-		}
+	}
+	return false;
+
+
 	else if (out_entity->type == as::ent::entity_type::TEXTURE)
 	{
 		if (json_data.contains("path"))

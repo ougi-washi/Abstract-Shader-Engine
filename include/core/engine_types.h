@@ -121,6 +121,7 @@ namespace as
 		as::entity_data entity_data;
 	};
 
+	struct world;
 	struct world
 	{
 		as::model models[MAX_MODELS_PER_WORLD];
