@@ -16,10 +16,14 @@
 #define MAX_BONE_INFLUENCE 4
 #define MAX_TEXTURE_COUNT_PER_SHADER 256
 
+#define MAX_LOADED_ENTITY_COUNT 16384
+
 #define MAX_MODELS_PER_WORLD 8192
 #define MAX_CAMERAS_PER_WORLD 256
 #define MAX_SUB_WORLDS_PER_WORLD 256
 #define MAX_LIGHTS_PER_WORLD 64
+
+#define MAX_UNIFORMS_PER_SHADER 256
 
 namespace as
 {
@@ -32,20 +36,17 @@ namespace as
 		VECTOR // ??
 	};
 	
-	namespace ent
+	enum entity_type : u8
 	{
-		enum entity_type : u8
-		{
-			NONE = 0,
-			WORLD = 1,
-			MODEL = 2,
-			SHADER = 3,
-			MATERIAL = 4,
-			TEXTURE = 5,
-			CAMERA = 6,
-			LIGHT = 7,
-			MAX = 8
-		};
+		NONE = 0,
+		WORLD = 1,
+		MODEL = 2,
+		SHADER = 3,
+		MATERIAL = 4,
+		TEXTURE = 5,
+		CAMERA = 6,
+		LIGHT = 7,
+		MAX = 8
 	};
 
 	// move to .cpp due to translation unit issue
@@ -61,7 +62,7 @@ namespace as
 		"light",	// 7
 		"max"		// 8
 	};
-
+	
 	struct entity_data
 	{
 		void* start_fn = nullptr;
@@ -87,9 +88,18 @@ namespace as
 		as::entity_data entity_data;
 	};
 
+	struct uniform
+	{
+		entity_type type = entity_type::NONE;
+		void* value = nullptr;
+		as::entity_data entity_data;
+	};
+
 	struct shader
 	{
 		Shader data;
+		uniform uniforms[MAX_UNIFORMS_PER_SHADER];
+		u16 uniforms_count = 0;
 		as::entity_data entity_data;
 	};
 
@@ -124,16 +134,16 @@ namespace as
 	struct world;
 	struct world
 	{
-		as::model models[MAX_MODELS_PER_WORLD];
+		as::model* models[MAX_MODELS_PER_WORLD];
 		u16 models_count = 0;
 
-		as::light lights[MAX_LIGHTS_PER_WORLD];
+		as::light* lights[MAX_LIGHTS_PER_WORLD];
 		u16 lights_count = 0;
 
-		as::camera cameras[MAX_CAMERAS_PER_WORLD];
+		as::camera* cameras[MAX_CAMERAS_PER_WORLD];
 		u16 cameras_count = 0;
 
-		as::world sub_worlds[MAX_SUB_WORLDS_PER_WORLD];
+		as::world* sub_worlds[MAX_SUB_WORLDS_PER_WORLD];
 		u16 sub_worlds_count = 0;
 
 		u8 is_active : 1;
@@ -147,6 +157,29 @@ namespace as
 			std::chrono::system_clock::time_point start;
 		};
 	};
+
+	struct engine_entity_pool
+	{
+		as::world worlds[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 worlds_count = 0;
+
+		as::model models[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 models_count = 0;
+
+		as::shader shaders[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 shaders_count = 0;
+
+		as::texture textures[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 textures_count = 0;
+
+		as::light lights[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 lights_count = 0;
+
+		as::world cameras[MAX_LOADED_ENTITY_COUNT] = {};
+		u32 cameras_count = 0;
+	};
+
+	extern as::engine_entity_pool engine_memory_pool;
 };
 
 #define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"

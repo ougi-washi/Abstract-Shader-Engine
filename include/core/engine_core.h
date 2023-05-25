@@ -8,13 +8,15 @@ namespace as
 	void init_gl();
 
 	// files / entities
-	std::string variable_enum_to_string(const as::ent::entity_type& in_type);
-	as::ent::entity_type variable_string_to_enum(const std::string& in_type_str);
+	std::string variable_enum_to_string(const as::entity_type& in_type);
+	as::entity_type variable_string_to_enum(const std::string& in_type_str);
 	void set_path(const std::string& path, const bool& absolute_path, as::entity_data& out_entity_data);
 	bool get_world_from_file(const std::string& path, const bool& absolute_path, as::world& out_world);
 	bool get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model);
 	bool get_shader_from_file(const std::string& path, const bool& absolute_path, as::shader& out_shader);
-
+	bool get_texture_from_file(const std::string& path, const bool& absolute_path, as::texture& out_texture);
+	bool get_camera_from_file(const std::string& path, const bool& absolute_path, as::camera& out_camera);
+	bool get_light_from_file(const std::string& path, const bool& absolute_path, as::light& out_light);
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
