@@ -141,21 +141,25 @@ void as::set_path(const std::string& path, const bool& absolute_path, entity_dat
 	memcpy(out_entity_data.path, new_path.c_str(), 256);
 }
 
-bool as::get_world_from_file(const std::string& path, const bool& absolute_path, as::world& out_world)
+as::world* as::get_world_from_file(const std::string& path, const bool& absolute_path)
 {
 	AS_LOG(LV_LOG, "Parse file [" + path + "]");
+
 	set_path(path, absolute_path, out_world.entity_data);
 	json json_data = as::util::read_json_file(out_world.entity_data.path);
 
 	if (get_type(json_data) == as::entity_type::WORLD)
 	{
+		as::world out_world = get_incremental_world_from_pool();
+
 		if (json_data.contains("models"))
 		{
 			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
 			out_world.models_count = models_file_paths.size();
 			for (u16 i = 0; i < out_world.models_count; i++)
 			{
-				get_model_from_file(models_file_paths[i], absolute_path, out_world.models[i]);
+				out_world.models[i];
+				get_model_from_file(models_file_paths[i], absolute_path, engine_memory_pool.models[engine_memory_pool.models_count++]);
 			}
 		}
 		if (json_data.contains("is_active"))
@@ -166,9 +170,9 @@ bool as::get_world_from_file(const std::string& path, const bool& absolute_path,
 				out_world.is_active = is_active;
 			}
 		}
-		return true;
+		return &out_world;
 	}
-	return false;
+	return nullptr;
 }
 
 bool as::get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model)
@@ -396,46 +400,23 @@ void as::apply_transform(const Transform& transform, Matrix& transform_matrix)
 	apply_scale(transform.scale, transform_matrix);
 }
 
-as::camera* as::find_active_camera(const as::world* world)
+
+bool as::is_valid(const as::entity_data& entity_data)
 {
-	for (u32 i = 0 ; i < world->entities_count ; i++)
+	return entity_data.is_valid;
+}
+
+as::camera* as::find_active_camera(const as::world& world)
+{
+	for (u32 i = 0 ; i < world.cameras_count ; i++)
 	{
-		if (world->entities[i] && world->entities[i]->type == as::CAMERA)
+		if (world.cameras[i] && world.cameras[i]->is_active)
 		{
-			as::camera* found_camera = static_cast<as::camera*>(world->entities[i]->data_ptr);
-			if (found_camera && found_camera->is_active)
-			{
-				return found_camera;
-			}
+			return world.cameras[i];
 		}
 	}
 	return nullptr;
 }
-
-u32 as::get_all_lights(const as::world* world, as::light**& out_lights)
-{
-	u32 light_count = 0;
-	out_lights = (as::light**)AS_MALLOC(sizeof(as::light*) * MAX_LIGHTS_PER_WORLD);
-	for (u32 i = 0; i < world->entities_count; i++)
-	{
-		if (world->entities[i] && world->entities[i]->type == as::LIGHT)
-		{
-			as::light* found_light = static_cast<as::light*>(world->entities[i]->data_ptr);
-			if (found_light)
-			{
-				out_lights[light_count] = found_light;
-				light_count++;
-			}
-		}
-	}
-	if (light_count == 0)
-	{
-		AS_FREE(out_lights);
-		out_lights = nullptr;
-	}
-	return light_count;
-}
-
 
 void as::update_lights_uniforms(const Shader& shader, light** lights, const u32& lights_count)
 {
@@ -530,21 +511,43 @@ bool as::draw(const as::world* world)
 	return false;
 }
 
-void as::delete_world_data(as::world*& world)
-{
-	if (world)
-	{
-		for (u16 i = 0; i < world->entities_count; i++)
-		{
-			delete_entity_data(world->entities[i]);
-		}
-		AS_FREE(world->entities);
-		world->entities = nullptr;
-		world->entities_count = 0;
-	}
-}
-
 void as::clear_background()
 {
 	ClearBackground(Color(0.f, 0.f, 0.f));
+}
+
+as::world& as::get_incremental_world_from_pool()
+{
+	engine_memory_pool.worlds_count++;
+	return engine_memory_pool.worlds[engine_memory_pool.worlds_count - 1];
+}
+
+as::model& as::get_incremental_model_from_pool()
+{
+	engine_memory_pool.models_count++;
+	return engine_memory_pool.models[engine_memory_pool.models_count - 1];
+}
+
+as::shader& as::get_incremental_shader_from_pool()
+{
+	engine_memory_pool.shaders_count++;
+	return engine_memory_pool.shaders[engine_memory_pool.shaders_count - 1];
+}
+
+as::texture& as::get_incremental_texture_from_pool()
+{
+	engine_memory_pool.textures_count++;
+	return engine_memory_pool.textures[engine_memory_pool.textures_count - 1];
+}
+
+as::light& as::get_incremental_light_from_pool()
+{
+	engine_memory_pool.lights_count++;
+	return engine_memory_pool.lights[engine_memory_pool.lights_count - 1];
+}
+
+as::camera& as::get_incremental_camera_from_pool()
+{
+	engine_memory_pool.cameras_count++;
+	return engine_memory_pool.cameras[engine_memory_pool.cameras_count - 1];
 }

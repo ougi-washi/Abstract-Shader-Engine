@@ -13,29 +13,38 @@
 #include <vector>
 #include <chrono>
 
+// POOL SIZES
+#define MAX_WORLD_POOL_SIZE 8
+#define MAX_MODEL_POOL_SIZE 128
+#define MAX_SHADER_POOL_SIZE 128
+#define MAX_TEXTURE_POOL_SIZE 128
+#define MAX_LIGHT_POOL_SIZE 64
+#define MAX_CAMERA_POOL_SIZE 16
+
 #define MAX_BONE_INFLUENCE 4
 #define MAX_TEXTURE_COUNT_PER_SHADER 256
 
-#define MAX_LOADED_ENTITY_COUNT 16384
-
-#define MAX_MODELS_PER_WORLD 8192
-#define MAX_CAMERAS_PER_WORLD 256
-#define MAX_SUB_WORLDS_PER_WORLD 256
+#define MAX_MODELS_PER_WORLD 256
+#define MAX_CAMERAS_PER_WORLD 16
+#define MAX_SUB_WORLDS_PER_WORLD 4
 #define MAX_LIGHTS_PER_WORLD 64
 
 #define MAX_UNIFORMS_PER_SHADER 256
 
 namespace as
 {
-	enum variable_type
+	namespace var
 	{
-		FLOAT = 0x1406,
-		INT = 0x1404,
-		BOOL = 0x8B56,
-		TEXTURE = 0x1702,
-		VECTOR // ??
+		enum variable_type : u16
+		{
+			FLOAT = 0x1406,
+			INT = 0x1404,
+			BOOL = 0x8B56,
+			TEXTURE = 0x1702,
+			VECTOR // ??
+		};
 	};
-	
+
 	enum entity_type : u8
 	{
 		NONE = 0,
@@ -69,6 +78,10 @@ namespace as
 		void* tick_fn = nullptr;
 		void* end_fn = nullptr;
 		char path[256] = "";
+		u8 is_valid : 1;
+
+		// inits
+		entity_data() : is_valid(false) {};
 	};
 
 	//struct entity
@@ -160,22 +173,22 @@ namespace as
 
 	struct engine_entity_pool
 	{
-		as::world worlds[MAX_LOADED_ENTITY_COUNT] = {};
+		as::world worlds[MAX_WORLD_POOL_SIZE] = {};
 		u32 worlds_count = 0;
 
-		as::model models[MAX_LOADED_ENTITY_COUNT] = {};
+		as::model models[MAX_MODEL_POOL_SIZE] = {};
 		u32 models_count = 0;
 
-		as::shader shaders[MAX_LOADED_ENTITY_COUNT] = {};
+		as::shader shaders[MAX_SHADER_POOL_SIZE] = {};
 		u32 shaders_count = 0;
 
-		as::texture textures[MAX_LOADED_ENTITY_COUNT] = {};
+		as::texture textures[MAX_TEXTURE_POOL_SIZE] = {};
 		u32 textures_count = 0;
 
-		as::light lights[MAX_LOADED_ENTITY_COUNT] = {};
+		as::light lights[MAX_LIGHT_POOL_SIZE] = {};
 		u32 lights_count = 0;
 
-		as::world cameras[MAX_LOADED_ENTITY_COUNT] = {};
+		as::camera cameras[MAX_CAMERA_POOL_SIZE] = {};
 		u32 cameras_count = 0;
 	};
 
