@@ -56,8 +56,6 @@ void as_free_fn(void* _ptr)
 			free(_ptr);
 			_ptr = nullptr;
 			allocated_memory -= allocations[i].size;
-			//free(allocations[i]);
-			//allocations[i] = nullptr;
 			removed_index = i;
 		}
 		else if (removed_index >= 0 && i > 0)
@@ -69,15 +67,6 @@ void as_free_fn(void* _ptr)
 	{
 		allocations_count--;
 	}
-	/*if (allocations_count == 0)
-	{
-		free(allocations);
-		allocations = nullptr;
-	}
-	else
-	{
-		allocations = (as::allocation**)realloc(allocations, sizeof(as::allocation*) * allocations_count);
-	}*/
 }
 
 char* as_allocation_to_string(as::allocation* _allocation)

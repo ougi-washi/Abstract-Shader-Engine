@@ -31,6 +31,8 @@
 
 #define MAX_UNIFORMS_PER_SHADER 256
 
+#define MAX_PATH_SIZE 256
+
 namespace as
 {
 	namespace var
@@ -77,23 +79,12 @@ namespace as
 		void* start_fn = nullptr;
 		void* tick_fn = nullptr;
 		void* end_fn = nullptr;
-		char path[256] = "";
+		char path[MAX_PATH_SIZE] = "";
 		u8 is_valid : 1;
 
 		// inits
 		entity_data() : is_valid(false) {};
 	};
-
-	//struct entity
-	//{
-	//	ent::entity_type type = ent::NONE;
-	//	as::entity** sub_entities = nullptr;
-	//	u32 sub_entities_count = 0;
-
-	//	void* data_ptr = nullptr;
-	//	void* fn_ptr = nullptr;
-	//	char path[256] = "";
-	//};
 
 	struct texture
 	{
@@ -174,25 +165,19 @@ namespace as
 	struct engine_entity_pool
 	{
 		as::world worlds[MAX_WORLD_POOL_SIZE] = {};
-		u32 worlds_count = 0;
 
 		as::model models[MAX_MODEL_POOL_SIZE] = {};
-		u32 models_count = 0;
 
 		as::shader shaders[MAX_SHADER_POOL_SIZE] = {};
-		u32 shaders_count = 0;
 
 		as::texture textures[MAX_TEXTURE_POOL_SIZE] = {};
-		u32 textures_count = 0;
 
 		as::light lights[MAX_LIGHT_POOL_SIZE] = {};
-		u32 lights_count = 0;
 
 		as::camera cameras[MAX_CAMERA_POOL_SIZE] = {};
-		u32 cameras_count = 0;
 	};
 
-	extern as::engine_entity_pool engine_memory_pool;
+	extern as::engine_entity_pool* engine_memory_pool = nullptr;
 };
 
 #define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"
