@@ -174,7 +174,6 @@ bool get_parsed_data(const char* path, const bool& absolute_path, char* out_upda
 as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 {
 	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
-
 	char current_path[MAX_PATH_SIZE];
 	json json_data = json();
 	if (!get_parsed_data(path, absolute_path, current_path, json_data))
@@ -187,11 +186,14 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 	if (get_type(json_data) == as::entity_type::WORLD)
 	{
 		out_world = get_empty_world_from_pool();
-		if (!out_world)
+
+		if (out_world)
 		{
 			AS_LOG(LV_WARNING, "Reached max pool size for worlds, cannot create world");
 			return nullptr;
 		}
+
+		AS_SET_VALID_PTR(out_world);
 		if (json_data.contains("models"))
 		{
 			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
@@ -199,7 +201,11 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 			for (u16 i = 0; i < out_world->models_count; i++)
 			{
 				out_world->models[i];
-				get_model_from_file(models_file_paths[i], absolute_path, engine_memory_pool->models[engine_memory_pool->models_count++]);
+				as::model* found_model = get_model_from_file(models_file_paths[i].c_str(), absolute_path);
+				if (found_model)
+				{
+					add_model_to_world(out_world, found_model);
+				}
 			}
 		}
 		if (json_data.contains("is_active"))
@@ -214,38 +220,52 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 	return out_world;
 }
 
-bool as::get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model)
+as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 {
-	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_model.entity_data);
-	json json_data = as::util::read_json_file(out_model.entity_data.path);
+	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
+	char current_path[MAX_PATH_SIZE];
+	json json_data = json();
+	if (!get_parsed_data(path, absolute_path, current_path, json_data))
+	{
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
+		return nullptr;
+	}
 
+	as::model* out_model = nullptr;
 	if (get_type(json_data) == as::entity_type::MODEL)
 	{
+		out_model = get_empty_model_from_pool();
+		if (!out_model)
+		{
+			AS_LOG(LV_WARNING, "Reached max pool size for models, cannot create model");
+			return nullptr;
+		}
+
+		AS_SET_VALID_PTR(out_model);
 		if (json_data.contains("path"))
 		{
 			std::string model_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
-			out_model.data = LoadModel(model_path.c_str());
+			out_model->data = LoadModel(model_path.c_str());
 		}
 		if (json_data.contains("shaders"))
 		{
 			std::vector<std::string> shaders = json_data["shaders"].get<std::vector<std::string>>();
 			for (u16 i = 0; i < shaders.size(); i++)
 			{
-				as::shader found_shader;
-				if (get_shader_from_file(shaders[i], absolute_path, found_shader) && out_model.data.materialCount > i)
+				as::shader* found_shader = get_shader_from_file(shaders[i].c_str(), absolute_path);
+				if (found_shader && out_model->data.materialCount > i)
 				{
-					out_model.data.materials[i].shader = found_shader.data;
+					out_model->data.materials[i].shader = found_shader->data;
 				}
 			}
-			if (out_model.data.materialCount > shaders.size())
+			if (out_model->data.materialCount > shaders.size())
 			{
-				as::shader found_shader;
-				if (get_shader_from_file(DEFAULT_SHADER_PATH, absolute_path, found_shader))
+				as::shader* found_shader = get_shader_from_file(DEFAULT_SHADER_PATH, absolute_path);
+				if (found_shader)
 				{
-					for (u16 i = 0; i < out_model.data.materialCount; i++)
+					for (u16 i = 0; i < out_model->data.materialCount; i++)
 					{
-						out_model.data.materials[i].shader = found_shader.data;
+						out_model->data.materials[i].shader = found_shader->data;
 					}
 				}
 			}
@@ -253,36 +273,49 @@ bool as::get_model_from_file(const std::string& path, const bool& absolute_path,
 		else
 		{
 			AS_LOG(LV_WARNING, "Model json file does not have shaders");
-			return false;
+			return nullptr;
 		}
-		out_model.data.transform = MatrixIdentity();
+		out_model->data.transform = MatrixIdentity();
 		Vector3 out_vector = Vector3();
 		if (get_vec3(json_data, "scale", out_vector))
 		{
-			as::apply_scale(out_vector, out_model.data.transform);
+			as::apply_scale(out_vector, out_model->data.transform);
 		};
 		if (get_vec3(json_data, "rotation", out_vector))
 		{
-			as::apply_rotation(out_vector, out_model.data.transform);
+			as::apply_rotation(out_vector, out_model->data.transform);
 		};
 		if (get_vec3(json_data, "location", out_vector))
 		{
-			as::apply_location(out_vector, out_model.data.transform);
+			as::apply_location(out_vector, out_model->data.transform);
 		};
-		return true;
 	}
-	return false;
+	return out_model;
 }
 
 
-bool as::get_shader_from_file(const std::string& path, const bool& absolute_path, as::shader& out_shader)
+as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path)
 {
-	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_shader.entity_data);
-	json json_data = as::util::read_json_file(out_shader.entity_data.path);
+	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
+	char current_path[MAX_PATH_SIZE];
+	json json_data = json();
+	if (!get_parsed_data(path, absolute_path, current_path, json_data))
+	{
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
+		return nullptr;
+	}
 
+	as::shader* out_shader = nullptr;
 	if (get_type(json_data) == as::entity_type::SHADER)
 	{
+		out_shader = get_empty_shader_from_pool();
+		if (!out_shader)
+		{
+			AS_LOG(LV_WARNING, "Reached max pool size for shaders, cannot create shader");
+			return nullptr;
+		}
+
+		AS_SET_VALID_PTR(out_shader);
 		std::string vertex_path;
 		std::string fragment_path;
 		if (json_data.contains("vertex_path"))
@@ -303,19 +336,14 @@ bool as::get_shader_from_file(const std::string& path, const bool& absolute_path
 			AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
 			return false;
 		}
-		out_shader.data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
-		if (out_shader.data.id > 0)
-		{
-			return true;
-		}
-		else
+		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+		if (out_shader->data.id <= 0)
 		{
 			AS_LOG(LV_WARNING, "Could not create the shader");
+			out_shader = nullptr;
 		}
 	}
-	return false;
-
-
+	return out_shader;
 }
 
 bool as::get_texture_from_file(const std::string& path, const bool& absolute_path, as::texture& out_texture)
@@ -406,6 +434,23 @@ bool as::get_light_from_file(const std::string& path, const bool& absolute_path,
 		get_vec3(json_data, "color", out_light.color);
 		return true;
 	}
+	return false;
+}
+
+bool as::add_model_to_world(as::world* world, as::model* model)
+{
+	if (world && model)
+	{
+		for (u16 i = 0 ; i < world->models_count ; i++)
+		{
+			if (!world->models[i])
+			{
+				world->models[i] = model;
+				return true;
+			}
+		}
+	}
+	AS_LOG(LV_WARNING, "Could not add model to the world, the maximum reached, please increase the max models per world size");
 	return false;
 }
 
@@ -612,6 +657,45 @@ as::world* as::get_empty_world_from_pool()
 		if (AS_IS_INVALID(engine_memory_pool->worlds[i]))
 		{
 			return &engine_memory_pool->worlds[i];
+		}
+	}
+	return nullptr;
+}
+
+as::model* as::get_empty_model_from_pool()
+{
+	// find model pointer
+	for (u16 i = 0; i < MAX_MODEL_POOL_SIZE; i++)
+	{
+		if (AS_IS_INVALID(engine_memory_pool->models[i]))
+		{
+			return &engine_memory_pool->models[i];
+		}
+	}
+	return nullptr;
+}
+
+as::shader* as::get_empty_shader_from_pool()
+{
+	// find shader pointer
+	for (u16 i = 0; i < MAX_SHADER_POOL_SIZE; i++)
+	{
+		if (AS_IS_INVALID(engine_memory_pool->shaders[i]))
+		{
+			return &engine_memory_pool->shaders[i];
+		}
+	}
+	return nullptr;
+}
+
+as::texture* as::get_empty_texture_from_pool()
+{
+	// find model pointer
+	for (u16 i = 0; i < MAX_TEXTURE_POOL_SIZE; i++)
+	{
+		if (AS_IS_INVALID(engine_memory_pool->textures[i]))
+		{
+			return &engine_memory_pool->textures[i];
 		}
 	}
 	return nullptr;

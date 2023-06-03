@@ -14,11 +14,12 @@ namespace as
 	as::entity_type variable_string_to_enum(const std::string& in_type_str);
 	bool get_updated_path(const char* in_path, const bool& absolute_path, char* out_path);
 	as::world* get_world_from_file(const char* path, const bool& absolute_path);
-	bool get_model_from_file(const std::string& path, const bool& absolute_path, as::model& out_model);
-	bool get_shader_from_file(const std::string& path, const bool& absolute_path, as::shader& out_shader);
+	as::model* get_model_from_file(const char* path, const bool& absolute_path);
+	as::shader* get_shader_from_file(const char* path, const bool& absolute_path);
 	bool get_texture_from_file(const std::string& path, const bool& absolute_path, as::texture& out_texture);
 	bool get_camera_from_file(const std::string& path, const bool& absolute_path, as::camera& out_camera);
 	bool get_light_from_file(const std::string& path, const bool& absolute_path, as::light& out_light);
+	bool add_model_to_world(as::world* world, as::model* model);
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
@@ -52,9 +53,17 @@ namespace as
 	as::light& get_incremental_light_from_pool(); // This will increase light count
 	as::camera& get_incremental_camera_from_pool(); // This will increase camera count
 	as::world* get_empty_world_from_pool();
+	as::model* get_empty_model_from_pool();
+	as::shader* get_empty_shader_from_pool();
+	as::texture* get_empty_texture_from_pool();
 };
 
 #define AS_SET_VALID(_entity) as::set_valid(_entity.entity_data)
 #define AS_SET_INVALID(_entity) as::set_invalid(_entity.entity_data)
 #define AS_IS_VALID(_entity) as::is_valid(_entity.entity_data)
 #define AS_IS_INVALID(_entity) as::is_invalid(_entity.entity_data)
+
+#define AS_SET_VALID_PTR(_entity) as::set_valid(_entity->entity_data)
+#define AS_SET_INVALID_PTR(_entity) as::set_invalid(_entity->entity_data)
+#define AS_IS_VALID_PTR(_entity) as::is_valid(_entity->entity_data)
+#define AS_IS_INVALID_PTR(_entity) as::is_invalid(_entity->entity_data)

@@ -138,16 +138,16 @@ namespace as
 	struct world;
 	struct world
 	{
-		as::model* models[MAX_MODELS_PER_WORLD];
+		as::model* models[MAX_MODELS_PER_WORLD] = { nullptr };
 		u16 models_count = 0;
 
-		as::light* lights[MAX_LIGHTS_PER_WORLD];
+		as::light* lights[MAX_LIGHTS_PER_WORLD] = { nullptr };
 		u16 lights_count = 0;
 
-		as::camera* cameras[MAX_CAMERAS_PER_WORLD];
+		as::camera* cameras[MAX_CAMERAS_PER_WORLD] = { nullptr };
 		u16 cameras_count = 0;
 
-		as::world* sub_worlds[MAX_SUB_WORLDS_PER_WORLD];
+		as::world* sub_worlds[MAX_SUB_WORLDS_PER_WORLD] = { nullptr };
 		u16 sub_worlds_count = 0;
 
 		u8 is_active : 1;
