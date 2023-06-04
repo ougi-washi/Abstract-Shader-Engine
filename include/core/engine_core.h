@@ -16,10 +16,12 @@ namespace as
 	as::world* get_world_from_file(const char* path, const bool& absolute_path);
 	as::model* get_model_from_file(const char* path, const bool& absolute_path);
 	as::shader* get_shader_from_file(const char* path, const bool& absolute_path);
-	bool get_texture_from_file(const std::string& path, const bool& absolute_path, as::texture& out_texture);
-	bool get_camera_from_file(const std::string& path, const bool& absolute_path, as::camera& out_camera);
-	bool get_light_from_file(const std::string& path, const bool& absolute_path, as::light& out_light);
+	as::texture* get_texture_from_file(const char* path, const bool& absolute_path);
+	as::camera* get_camera_from_file(const char* path, const bool& absolute_path);
+	as::light* get_light_from_file(const char* path, const bool& absolute_path);
 	bool add_model_to_world(as::world* world, as::model* model);
+	bool add_light_to_world(as::world* world, as::light* light);
+	bool add_camera_to_world(as::world* world, as::camera* camera);
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
@@ -34,7 +36,7 @@ namespace as
 	bool is_invalid(const as::entity_data& entity_data);
 
 	// camera
-	as::camera* find_active_camera(const as::world& world);
+	as::camera* find_active_camera(const as::world* world);
 
 	// light
 	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
@@ -45,17 +47,13 @@ namespace as
 	// render
 	void clear_background();
 
-	// pool
-	as::world& get_incremental_world_from_pool(); // This will increase world count
-	as::model& get_incremental_model_from_pool(); // This will increase model count
-	as::shader& get_incremental_shader_from_pool(); // This will increase shader count
-	as::texture& get_incremental_texture_from_pool(); // This will increase texture count
-	as::light& get_incremental_light_from_pool(); // This will increase light count
-	as::camera& get_incremental_camera_from_pool(); // This will increase camera count
+	// entity pool / memory
 	as::world* get_empty_world_from_pool();
 	as::model* get_empty_model_from_pool();
 	as::shader* get_empty_shader_from_pool();
 	as::texture* get_empty_texture_from_pool();
+	as::camera* get_empty_camera_from_pool();
+	as::light* get_empty_light_from_pool();
 };
 
 #define AS_SET_VALID(_entity) as::set_valid(_entity.entity_data)

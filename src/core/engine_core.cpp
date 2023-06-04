@@ -29,7 +29,16 @@ void as::clear_engine_entity_pool()
 {
 	if (engine_memory_pool)
 	{
+		for (u16 i = 0 ; i < MAX_SHADER_POOL_SIZE ; i++)
+		{
+			UnloadShader(engine_memory_pool->shaders[i].data);
+		}
+		for (u16 i = 0 ; i < MAX_MODEL_POOL_SIZE ; i++)
+		{
+			UnloadModel(engine_memory_pool->models[i].data);
+		}
 		AS_FREE(engine_memory_pool);
+		engine_memory_pool = nullptr;
 	}
 }
 
@@ -152,8 +161,8 @@ bool as::get_updated_path(const char* in_path, const bool& absolute_path, char* 
 		}
 		else
 		{
-			const char* current_path = as::util::get_current_path().c_str();
-			snprintf(out_path, MAX_PATH_SIZE, "%s/../%s", current_path, in_path);
+			std::string current_path = as::util::get_current_path();
+			snprintf(out_path, MAX_PATH_SIZE, "%s/../%s", current_path.c_str(), in_path);
 		}
 		return true;
 	}
@@ -169,6 +178,17 @@ bool get_parsed_data(const char* path, const bool& absolute_path, char* out_upda
 		return true;
 	}
 	return false;
+}
+
+#define PARSE_UPDATE_PATH(_path, _absolute_path,_updated_path, _out_json)\
+{\
+	AS_LOG(LV_LOG, "Parse file [" + std::string(_path) + "]");\
+	char _current_path[MAX_PATH_SIZE];\
+	json _out_json = json();\
+	if (!get_parsed_data(_path, _absolute_path, _current_path, _out_json))\
+	{\
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");\
+	}\
 }
 
 as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
@@ -187,7 +207,7 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 	{
 		out_world = get_empty_world_from_pool();
 
-		if (out_world)
+		if (!out_world)
 		{
 			AS_LOG(LV_WARNING, "Reached max pool size for worlds, cannot create world");
 			return nullptr;
@@ -200,11 +220,36 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 			out_world->models_count = models_file_paths.size();
 			for (u16 i = 0; i < out_world->models_count; i++)
 			{
-				out_world->models[i];
 				as::model* found_model = get_model_from_file(models_file_paths[i].c_str(), absolute_path);
 				if (found_model)
 				{
 					add_model_to_world(out_world, found_model);
+				}
+			}
+		}
+		if (json_data.contains("lights"))
+		{
+			std::vector<std::string> lights_file_paths = json_data["lights"].get<std::vector<std::string>>();
+			out_world->lights_count = lights_file_paths.size();
+			for (u16 i = 0; i < out_world->lights_count; i++)
+			{
+				as::light* found_light = get_light_from_file(lights_file_paths[i].c_str(), absolute_path);
+				if (found_light)
+				{
+					add_light_to_world(out_world, found_light);
+				}
+			}
+		}
+		if (json_data.contains("cameras"))
+		{
+			std::vector<std::string> cameras_file_paths = json_data["cameras"].get<std::vector<std::string>>();
+			out_world->cameras_count = cameras_file_paths.size();
+			for (u16 i = 0; i < out_world->cameras_count; i++)
+			{
+				as::camera* found_camera = get_camera_from_file(cameras_file_paths[i].c_str(), absolute_path);
+				if (found_camera)
+				{
+					add_camera_to_world(out_world, found_camera);
 				}
 			}
 		}
@@ -325,7 +370,7 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 		else
 		{
 			AS_LOG(LV_WARNING, "Shader json file does not have vertex shader");
-			return false;
+			return nullptr;
 		}
 		if (json_data.contains("fragment_path"))
 		{
@@ -334,7 +379,7 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 		else
 		{
 			AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
-			return false;
+			return nullptr;
 		}
 		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
 		if (out_shader->data.id <= 0)
@@ -346,18 +391,30 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 	return out_shader;
 }
 
-bool as::get_texture_from_file(const std::string& path, const bool& absolute_path, as::texture& out_texture)
+as::texture* as::get_texture_from_file(const char* path, const bool& absolute_path)
 {
-	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_texture.entity_data);
-	json json_data = as::util::read_json_file(out_texture.entity_data.path);
+	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
+	char current_path[MAX_PATH_SIZE];
+	json json_data = json();
+	if (!get_parsed_data(path, absolute_path, current_path, json_data))
+	{
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
+		return nullptr;
+	}
 
+	as::texture* out_texture = nullptr;
 	if (get_type(json_data) == as::entity_type::TEXTURE)
 	{
 		if (json_data.contains("path"))
 		{
 			std::string texture_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
 
+			out_texture = get_empty_texture_from_pool();
+			if (!out_texture)
+			{
+				AS_LOG(LV_WARNING, "Reached max pool size for textures, cannot create texture");
+				return nullptr;
+			}
 			bool found_texture = false;
 			// TODO: caching
 			//for (size_t i = 0; i < allocations_count; i++)
@@ -377,64 +434,90 @@ bool as::get_texture_from_file(const std::string& path, const bool& absolute_pat
 			//}
 			if (!found_texture)
 			{
-				out_texture.data = LoadTexture(texture_path.c_str());
-				if (out_texture.data.id <= 0)
+				out_texture->data = LoadTexture(texture_path.c_str());
+				if (out_texture->data.id <= 0)
 				{
-					return true;
+					AS_SET_VALID_PTR(out_texture);
+					return out_texture;
 				}
 				else
 				{
 					AS_LOG(LV_WARNING, "Could not load the texture");
-					return false;
 				}
 			}
 		}
 		else
 		{
 			AS_LOG(LV_WARNING, "Texture json file does not have path");
-			return false;
 		}
 	}
+	return out_texture;
 }
 
-bool as::get_camera_from_file(const std::string& path, const bool& absolute_path, as::camera& out_camera)
+as::camera* as::get_camera_from_file(const char* path, const bool& absolute_path)
 {
-	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_camera.entity_data);
-	json json_data = as::util::read_json_file(out_camera.entity_data.path);
+	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
+	char current_path[MAX_PATH_SIZE];
+	json json_data = json();
+	if (!get_parsed_data(path, absolute_path, current_path, json_data))
+	{
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
+		return nullptr;
+	}
 
+	as::camera* out_camera = nullptr;
 	if (get_type(json_data) == as::entity_type::CAMERA)
 	{
-		get_vec3(json_data, "position", out_camera.data.position);
-		get_vec3(json_data, "target", out_camera.data.target);
+		out_camera = get_empty_camera_from_pool();
+		if (!out_camera)
+		{
+			AS_LOG(LV_WARNING, "Reached max pool size for cameras, cannot create camera");
+			return nullptr;
+		}
+		out_camera->data = { 0 };
+		get_vec3(json_data, "position", out_camera->data.position);
+		get_vec3(json_data, "target", out_camera->data.target);
 		if (json_data.contains("is_active"))
 		{
-			out_camera.is_active = json_data["is_active"].get<bool>();
+			out_camera->is_active = json_data["is_active"].get<bool>();
 		}
-		Camera camera = { 0 };
-		out_camera.data.up = Vector3(0.0f, 1.0f, 0.0f);          // Camera up vector (rotation towards target)
-		out_camera.data.fovy = 75.f;                                // Camera field-of-view Y
-		out_camera.data.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
-		return true;
+		out_camera->data.up = Vector3(0.0f, 1.0f, 0.0f);          // Camera up vector (rotation towards target)
+		out_camera->data.fovy = 75.f;                                // Camera field-of-view Y
+		out_camera->data.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
+		AS_IS_INVALID_PTR(out_camera);
 	}
-	return false;
+	return out_camera;
 }
 
-bool as::get_light_from_file(const std::string& path, const bool& absolute_path, as::light& out_light)
+as::light* as::get_light_from_file(const char* path, const bool& absolute_path)
 {
-	AS_LOG(LV_LOG, "Parse file [" + path + "]");
-	set_path(path, absolute_path, out_light.entity_data);
-	json json_data = as::util::read_json_file(out_light.entity_data.path);
+	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
+	char current_path[MAX_PATH_SIZE];
+	json json_data = json();
+	if (!get_parsed_data(path, absolute_path, current_path, json_data))
+	{
+		AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
+		return nullptr;
+	}
 
+	as::light* out_light = nullptr;
 	if (get_type(json_data) == as::entity_type::LIGHT)
 	{
-		get_vec3(json_data, "location", out_light.location);
-		get_float(json_data, "intensity", out_light.intensity);
-		get_float(json_data, "attenuation", out_light.intensity);
-		get_vec3(json_data, "color", out_light.color);
-		return true;
+		out_light = get_empty_light_from_pool();
+		if (out_light)
+		{
+			AS_SET_VALID_PTR(out_light);
+			get_vec3(json_data, "location", out_light->location);
+			get_float(json_data, "intensity", out_light->intensity);
+			get_float(json_data, "attenuation", out_light->intensity);
+			get_vec3(json_data, "color", out_light->color);
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Reached max pool size for cameras, cannot create camera");
+		}
 	}
-	return false;
+	return out_light;
 }
 
 bool as::add_model_to_world(as::world* world, as::model* model)
@@ -451,6 +534,41 @@ bool as::add_model_to_world(as::world* world, as::model* model)
 		}
 	}
 	AS_LOG(LV_WARNING, "Could not add model to the world, the maximum reached, please increase the max models per world size");
+	return false;
+}
+
+
+bool as::add_light_to_world(as::world* world, as::light* light)
+{
+	if (world && light)
+	{
+		for (u16 i = 0; i < world->lights_count; i++)
+		{
+			if (!world->lights[i])
+			{
+				world->lights[i] = light;
+				return true;
+			}
+		}
+	}
+	AS_LOG(LV_WARNING, "Could not add light to the world, the maximum reached, please increase the max lights per world size");
+	return false;
+}
+
+bool as::add_camera_to_world(as::world* world, as::camera* camera)
+{
+	if (world && camera)
+	{
+		for (u16 i = 0; i < world->cameras_count; i++)
+		{
+			if (!world->cameras[i])
+			{
+				world->cameras[i] = camera;
+				return true;
+			}
+		}
+	}
+	AS_LOG(LV_WARNING, "Could not add camera to the world, the maximum reached, please increase the max cameras per world size");
 	return false;
 }
 
@@ -503,19 +621,19 @@ bool as::is_invalid(const as::entity_data& entity_data)
 	return !entity_data.is_valid;
 }
 
-as::camera* as::find_active_camera(const as::world& world)
+as::camera* as::find_active_camera(const as::world* world)
 {
-	for (u32 i = 0 ; i < world.cameras_count ; i++)
+	for (u32 i = 0 ; i < world->cameras_count ; i++)
 	{
-		if (world.cameras[i] && world.cameras[i]->is_active)
+		if (world->cameras[i] && world->cameras[i]->is_active && AS_IS_INVALID_PTR(world->cameras[i]))
 		{
-			return world.cameras[i];
+			return world->cameras[i];
 		}
 	}
 	return nullptr;
 }
 
-void as::update_lights_uniforms(const Shader& shader, light** lights, const u32& lights_count)
+void as::update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count)
 {
 	if (lights_count > 0)
 	{
@@ -555,48 +673,27 @@ bool as::draw(const as::world* world)
 {
 	if (world)
 	{
-		std::vector<const as::model*> models_to_draw;
-		as::camera* camera_to_use = nullptr;
-		for (u16 i = 0; i < world->entities_count; i++)
-		{	
-			if (world->entities[i])
-			{
-				as::model* out_model = nullptr;
-				as::camera* out_camera = nullptr;
-				if (get_model_from_entity(world->entities[i], out_model))
-				{
-					models_to_draw.push_back(out_model);
-				}
-				else if (get_camera_from_entity(*world->entities[i], out_camera))
-				{
-					if (out_camera && out_camera->is_active)
-					{
-						camera_to_use = out_camera;
-					}
-				}
-			}
-		}
+		as::camera* camera_to_use = find_active_camera(world);
 
-		AS_ASSERT(!models_to_draw.empty(), "Cannot draw 0 models, check the world content");
+		AS_ASSERT(world->models_count>0, "Cannot draw 0 models, check the world content");
 		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
 
-		// get all lights
-		as::light** lights = nullptr;
-		const u32 lights_count = get_all_lights(world, lights);
+		as::light** lights = (as::light**)AS_MALLOC(sizeof(as::light*) * world->lights_count);
+		memcpy(lights, world->lights, sizeof(as::light*) * world->lights_count);
 
 		BeginDrawing();
 		clear_background();
 		BeginMode3D(camera_to_use->data);
-		for (const as::model* model : models_to_draw)
+		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
 		{
-			if (model)
+			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]))
 			{
-				for (u32 j = 0; j < model->data.materialCount; j++)
+				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
-					update_lights_uniforms(model->data.materials[j].shader, lights, lights_count);
+					update_lights_uniforms(world->models[i]->data.materials[j].shader, lights, world->lights_count);
 				}
-				Vector3 position = Vector3(model->data.transform.m12, model->data.transform.m13, model->data.transform.m14);
-				DrawModel(model->data, position, 1.0, WHITE);
+				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
+				DrawModel(world->models[i]->data, position, 1.0, WHITE);
 			}
 		}
 		DrawGrid(30, 10.f);
@@ -604,6 +701,7 @@ bool as::draw(const as::world* world)
 		EndDrawing();
 
 		AS_FREE(lights);
+		lights = nullptr;
 	}
 	return false;
 }
@@ -611,42 +709,6 @@ bool as::draw(const as::world* world)
 void as::clear_background()
 {
 	ClearBackground(Color(0.f, 0.f, 0.f));
-}
-
-as::world& as::get_incremental_world_from_pool()
-{
-	engine_memory_pool->worlds_count++;
-	return engine_memory_pool->worlds[engine_memory_pool->worlds_count - 1];
-}
-
-as::model& as::get_incremental_model_from_pool()
-{
-	engine_memory_pool->models_count++;
-	return engine_memory_pool->models[engine_memory_pool->models_count - 1];
-}
-
-as::shader& as::get_incremental_shader_from_pool()
-{
-	engine_memory_pool->shaders_count++;
-	return engine_memory_pool->shaders[engine_memory_pool->shaders_count - 1];
-}
-
-as::texture& as::get_incremental_texture_from_pool()
-{
-	engine_memory_pool->textures_count++;
-	return engine_memory_pool->textures[engine_memory_pool->textures_count - 1];
-}
-
-as::light& as::get_incremental_light_from_pool()
-{
-	engine_memory_pool->lights_count++;
-	return engine_memory_pool->lights[engine_memory_pool->lights_count - 1];
-}
-
-as::camera& as::get_incremental_camera_from_pool()
-{
-	engine_memory_pool->cameras_count++;
-	return engine_memory_pool->cameras[engine_memory_pool->cameras_count - 1];
 }
 
 as::world* as::get_empty_world_from_pool()
@@ -690,12 +752,38 @@ as::shader* as::get_empty_shader_from_pool()
 
 as::texture* as::get_empty_texture_from_pool()
 {
-	// find model pointer
+	// find texture pointer
 	for (u16 i = 0; i < MAX_TEXTURE_POOL_SIZE; i++)
 	{
 		if (AS_IS_INVALID(engine_memory_pool->textures[i]))
 		{
 			return &engine_memory_pool->textures[i];
+		}
+	}
+	return nullptr;
+}
+
+as::camera* as::get_empty_camera_from_pool()
+{
+	// find camera pointer
+	for (u16 i = 0; i < MAX_CAMERA_POOL_SIZE; i++)
+	{
+		if (AS_IS_INVALID(engine_memory_pool->cameras[i]))
+		{
+			return &engine_memory_pool->cameras[i];
+		}
+	}
+	return nullptr;
+}
+
+as::light* as::get_empty_light_from_pool()
+{
+	// find light pointer
+	for (u16 i = 0; i < MAX_LIGHT_POOL_SIZE; i++)
+	{
+		if (AS_IS_INVALID(engine_memory_pool->lights[i]))
+		{
+			return &engine_memory_pool->lights[i];
 		}
 	}
 	return nullptr;

@@ -177,8 +177,9 @@ namespace as
 		as::camera cameras[MAX_CAMERA_POOL_SIZE] = {};
 	};
 
-	extern as::engine_entity_pool* engine_memory_pool = nullptr;
 };
+
+extern as::engine_entity_pool* engine_memory_pool;
 
 #define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"
 #define DEFAULT_CAMERA_PATH "resources/objects/defaults/default_camera.json"
