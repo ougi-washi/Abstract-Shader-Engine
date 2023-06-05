@@ -1,7 +1,7 @@
 {
   "type": "light",
-  "location": [ 7.0, 7.0, 0.0 ],
+  "location": [ 2.0, 2.0, 0.0 ],
   "intensity": 1.0,
-  "attenuation": 5.0,
+  "attenuation": 4.0,
   "color": [ 1.0, 0.3, 0.5]
 }

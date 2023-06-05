@@ -509,7 +509,7 @@ as::light* as::get_light_from_file(const char* path, const bool& absolute_path)
 			AS_SET_VALID_PTR(out_light);
 			get_vec3(json_data, "location", out_light->location);
 			get_float(json_data, "intensity", out_light->intensity);
-			get_float(json_data, "attenuation", out_light->intensity);
+			get_float(json_data, "attenuation", out_light->attenuation);
 			get_vec3(json_data, "color", out_light->color);
 		}
 		else

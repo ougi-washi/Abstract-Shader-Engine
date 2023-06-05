@@ -1,11 +1,18 @@
 {
   "type": "world",
   "models": [
-    "resources/objects/defaults/default_ground.json",
     "resources/objects/defaults/default_box.json",
     "resources/objects/defaults/default_box1.json",
     "resources/objects/defaults/default_box2.json",
-    "resources/objects/dragon_model.json"
+    "resources/objects/dragon_model1.json",
+    "resources/objects/dragon_model2.json",
+    "resources/objects/dragon_model3.json",
+    "resources/objects/dragon_model4.json",
+    "resources/objects/dragon_model5.json",
+    "resources/objects/dragon_model6.json",
+    "resources/objects/dragon_model7.json",
+    "resources/objects/dragon_model8.json",
+    "resources/objects/dragon_model9.json"
   ],
   "lights": [
     "resources/objects/dragon_light1.json",
