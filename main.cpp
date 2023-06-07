@@ -30,7 +30,7 @@ i32 main()
 				draw(out_world);
 				if (active_camera)
 				{
-					UpdateCamera(&active_camera->data, CAMERA_PERSPECTIVE);
+					UpdateCamera(&active_camera->data, CAMERA_ORBITAL);
 				}
 			}
 		}

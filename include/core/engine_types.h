@@ -30,6 +30,7 @@
 #define MAX_LIGHTS_PER_WORLD 64
 
 #define MAX_UNIFORMS_PER_SHADER 256
+#define MAX_MESHES_PER_MODEL 1024
 
 #define MAX_PATH_SIZE 256
 
@@ -73,7 +74,7 @@ namespace as
 		"light",	// 7
 		"max"		// 8
 	};
-	
+
 	struct entity_data
 	{
 		void* start_fn = nullptr;
@@ -82,7 +83,7 @@ namespace as
 		char path[MAX_PATH_SIZE] = "";
 		u8 is_valid : 1;
 
-		// inits
+		// init
 		entity_data() : is_valid(false) {};
 	};
 
@@ -104,7 +105,11 @@ namespace as
 		Shader data;
 		uniform uniforms[MAX_UNIFORMS_PER_SHADER];
 		u16 uniforms_count = 0;
+		u8 is_translucent : 1;
 		as::entity_data entity_data;
+
+		// init
+		shader() : data(Shader()), is_translucent(false) {};
 	};
 
 	struct material
@@ -115,7 +120,14 @@ namespace as
 
 	struct model
 	{
+		enum flag : u8
+		{
+			NONE = 0x00,
+			TRANSLUCENT = 0x01
+		};
+
 		Model data;
+		model::flag flags; // TODO: Move to raylib for meshes, rather than models
 		as::entity_data entity_data;
 	};
 	

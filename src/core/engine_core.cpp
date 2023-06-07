@@ -301,6 +301,10 @@ as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 				if (found_shader && out_model->data.materialCount > i)
 				{
 					out_model->data.materials[i].shader = found_shader->data;
+					if (found_shader->is_translucent)
+					{
+						out_model->flags = static_cast<as::model::flag>(out_model->flags | model::flag::TRANSLUCENT);
+					}
 				}
 			}
 			if (out_model->data.materialCount > shaders.size())
@@ -308,9 +312,13 @@ as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 				as::shader* found_shader = get_shader_from_file(DEFAULT_SHADER_PATH, absolute_path);
 				if (found_shader)
 				{
-					for (u16 i = 0; i < out_model->data.materialCount; i++)
+					for (u16 i = shaders.size(); i < out_model->data.materialCount; i++)
 					{
 						out_model->data.materials[i].shader = found_shader->data;
+						if (found_shader->is_translucent)
+						{
+							out_model->flags = static_cast<as::model::flag>(out_model->flags | model::flag::TRANSLUCENT);
+						}
 					}
 				}
 			}
@@ -381,10 +389,18 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 			AS_LOG(LV_WARNING, "Shader json file does not have fragment shader");
 			return nullptr;
 		}
+		{
+			bool out_is_translucent = false;
+			if (get_bool(json_data, "is_translucent", out_is_translucent))
+			{
+				out_shader->is_translucent = out_is_translucent;
+			}
+		}
 		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
 		if (out_shader->data.id <= 0)
 		{
 			AS_LOG(LV_WARNING, "Could not create the shader");
+			UnloadShader(out_shader->data);
 			out_shader = nullptr;
 		}
 	}
@@ -675,7 +691,7 @@ bool as::draw(const as::world* world)
 	{
 		as::camera* camera_to_use = find_active_camera(world);
 
-		AS_ASSERT(world->models_count>0, "Cannot draw 0 models, check the world content");
+		AS_ASSERT(world->models_count > 0, "Cannot draw 0 models, check the world content");
 		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
 
 		as::light** lights = (as::light**)AS_MALLOC(sizeof(as::light*) * world->lights_count);
@@ -684,9 +700,24 @@ bool as::draw(const as::world* world)
 		BeginDrawing();
 		clear_background();
 		BeginMode3D(camera_to_use->data);
+
+		// Render opaque meshes
 		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
 		{
-			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]))
+			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && !(world->models[i]->flags & model::flag::TRANSLUCENT))
+			{
+				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
+				{
+					update_lights_uniforms(world->models[i]->data.materials[j].shader, lights, world->lights_count);
+				}
+				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
+				DrawModel(world->models[i]->data, position, 1.0, WHITE);
+			}
+		}
+		// Render translucent meshes
+		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
+		{
+			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && (world->models[i]->flags & model::flag::TRANSLUCENT))
 			{
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
