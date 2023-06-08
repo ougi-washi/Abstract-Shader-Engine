@@ -617,6 +617,90 @@ void as::apply_transform(const Transform& transform, Matrix& transform_matrix)
 	apply_scale(transform.scale, transform_matrix);
 }
 
+Vector3 as::get_location(const Matrix& transform_matrix)
+{
+	return Vector3(transform_matrix.m12, transform_matrix.m13, transform_matrix.m14);
+}
+
+Vector3 as::get_position(const Matrix& transform_matrix)
+{
+	return Vector3(transform_matrix.m12, transform_matrix.m13, transform_matrix.m14);
+}
+
+Quaternion as::get_rotation_quat(const Matrix& transform_matrix)
+{
+	Quaternion rotation;
+	float trace = transform_matrix.m0 + transform_matrix.m5 + transform_matrix.m10;
+	if (trace > 0.0f) {
+		float s = 0.5f / sqrtf(trace + 1.0f);
+		rotation.w = 0.25f / s;
+		rotation.x = (transform_matrix.m6 - transform_matrix.m9) * s;
+		rotation.y = (transform_matrix.m8 - transform_matrix.m2) * s;
+		rotation.z = (transform_matrix.m1 - transform_matrix.m4) * s;
+	}
+	else if (transform_matrix.m0 > transform_matrix.m5 && transform_matrix.m0 > transform_matrix.m10) {
+		float s = 2.0f * sqrtf(1.0f + transform_matrix.m0 - transform_matrix.m5 - transform_matrix.m10);
+		rotation.w = (transform_matrix.m6 - transform_matrix.m9) / s;
+		rotation.x = 0.25f * s;
+		rotation.y = (transform_matrix.m4 + transform_matrix.m1) / s;
+		rotation.z = (transform_matrix.m8 + transform_matrix.m2) / s;
+	}
+	else if (transform_matrix.m5 > transform_matrix.m10) {
+		float s = 2.0f * sqrtf(1.0f + transform_matrix.m5 - transform_matrix.m0 - transform_matrix.m10);
+		rotation.w = (transform_matrix.m8 - transform_matrix.m2) / s;
+		rotation.x = (transform_matrix.m4 + transform_matrix.m1) / s;
+		rotation.y = 0.25f * s;
+		rotation.z = (transform_matrix.m9 + transform_matrix.m6) / s;
+	}
+	else {
+		float s = 2.0f * sqrtf(1.0f + transform_matrix.m10 - transform_matrix.m0 - transform_matrix.m5);
+		rotation.w = (transform_matrix.m1 - transform_matrix.m4) / s;
+		rotation.x = (transform_matrix.m8 + transform_matrix.m2) / s;
+		rotation.y = (transform_matrix.m9 + transform_matrix.m6) / s;
+		rotation.z = 0.25f * s;
+	}
+	return rotation;
+}
+
+Vector3 as::get_rotation_vec(const Matrix& transform_matrix)
+{
+	Vector3 rotation;
+	Quaternion quaternion = get_rotation_quat(transform_matrix);
+	float angle = 2.0f * acosf(quaternion.w);
+	float s = sqrtf(1.0f - quaternion.w * quaternion.w);
+	if (s < 0.001f) {
+		rotation.x = quaternion.x;
+		rotation.y = quaternion.y;
+		rotation.z = quaternion.z;
+	}
+	else {
+		rotation.x = angle * quaternion.x / s;
+		rotation.y = angle * quaternion.y / s;
+		rotation.z = angle * quaternion.z / s;
+	}
+	return rotation;
+}
+
+Vector3 as::get_scale(const Matrix& transform_matrix)
+{
+	return Vector3(transform_matrix.m0, transform_matrix.m5, transform_matrix.m10);
+}
+
+i8 as::compare_distances(const Matrix& matrix_main, const Matrix& matrix_a, const Matrix& matrix_b)
+{
+	f32 distance_a = Vector3Distance(get_location(matrix_a), get_location(matrix_main));
+	f32 distance_b = Vector3Distance(get_location(matrix_b), get_location(matrix_main));
+	if (distance_a > distance_b) 
+	{
+		return -1;
+	}
+	else if (distance_a < distance_b) 
+	{
+		return 1;
+	}
+	return 0;
+}
+
 void as::set_valid(as::entity_data& entity_data)
 {
 	entity_data.is_valid = true;
@@ -701,6 +785,11 @@ bool as::draw(const as::world* world)
 		clear_background();
 		BeginMode3D(camera_to_use->data);
 
+		// Sort translucent objects
+		//qsort(world->models, 3, sizeof(TranslucentObject), compare_distances());
+
+		rlEnableDepthMask();
+
 		// Render opaque meshes
 		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
 		{
@@ -710,11 +799,12 @@ bool as::draw(const as::world* world)
 				{
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, lights, world->lights_count);
 				}
-				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
-				DrawModel(world->models[i]->data, position, 1.0, WHITE);
+				DrawModel(world->models[i]->data, get_location(world->models[i]->data.transform), 1.0, WHITE);
 			}
 		}
+
 		// Render translucent meshes
+		rlDisableDepthMask();
 		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
 		{
 			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && (world->models[i]->flags & model::flag::TRANSLUCENT))
@@ -727,6 +817,7 @@ bool as::draw(const as::world* world)
 				DrawModel(world->models[i]->data, position, 1.0, WHITE);
 			}
 		}
+		
 		DrawGrid(30, 10.f);
 		EndMode3D();
 		EndDrawing();

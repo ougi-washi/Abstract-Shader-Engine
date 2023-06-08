@@ -28,9 +28,9 @@ i32 main()
 			if (out_world)
 			{
 				draw(out_world);
-				if (active_camera)
+				if (active_camera && IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 				{
-					UpdateCamera(&active_camera->data, CAMERA_ORBITAL);
+					UpdateCamera(&active_camera->data, CAMERA_PERSPECTIVE);
 				}
 			}
 		}

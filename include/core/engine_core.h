@@ -28,6 +28,12 @@ namespace as
 	void apply_rotation(const Vector3& rotation, Matrix& transform_matrix);
 	void apply_scale(const Vector3& scale, Matrix& transform_matrix);
 	void apply_transform(const Transform& transform, Matrix& transform_matrix);
+	Vector3 get_location(const Matrix& transform_matrix);
+	Vector3 get_position(const Matrix& transform_matrix);
+	Quaternion get_rotation_quat(const Matrix& transform_matrix);
+	Vector3 get_rotation_vec(const Matrix& transform_matrix);
+	Vector3 get_scale(const Matrix& transform_matrix);
+	i8 compare_distances(const Matrix& matrix_main, const Matrix& matrix_a, const Matrix& matrix_b);
 
 	// entity
 	void set_valid(as::entity_data& entity_data);
