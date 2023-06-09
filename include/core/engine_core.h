@@ -41,14 +41,22 @@ namespace as
 	bool is_valid(const as::entity_data& entity_data);
 	bool is_invalid(const as::entity_data& entity_data);
 
+	// model
+	void swap_models(as::model* model1, as::model* model2);
+	void quick_sort_models(as::model** models, as::camera* camera, const i32& low, const i32& high);
+	bool is_translucent(const as::model* model);
+	bool is_not_translucent(const as::model* model);
+
 	// camera
 	as::camera* find_active_camera(const as::world* world);
 
 	// light
 	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
+	void update_shadow_map(as::light* light);
 
 	// world
-	bool draw(const as::world* world);
+	bool draw(as::world* world);
+	bool draw_light_maps(as::world* world);
 
 	// render
 	void clear_background();
@@ -71,3 +79,5 @@ namespace as
 #define AS_SET_INVALID_PTR(_entity) as::set_invalid(_entity->entity_data)
 #define AS_IS_VALID_PTR(_entity) as::is_valid(_entity->entity_data)
 #define AS_IS_INVALID_PTR(_entity) as::is_invalid(_entity->entity_data)
+
+#define AS_INIT_PTR(_entity, _type) *_entity = _type()

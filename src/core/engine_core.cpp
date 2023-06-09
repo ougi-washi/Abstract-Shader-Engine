@@ -214,6 +214,7 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 		}
 
 		AS_SET_VALID_PTR(out_world);
+		AS_INIT_PTR(out_world, as::world);
 		if (json_data.contains("models"))
 		{
 			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
@@ -285,7 +286,7 @@ as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 			AS_LOG(LV_WARNING, "Reached max pool size for models, cannot create model");
 			return nullptr;
 		}
-
+		AS_INIT_PTR(out_model, as::model);
 		AS_SET_VALID_PTR(out_model);
 		if (json_data.contains("path"))
 		{
@@ -369,6 +370,7 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 		}
 
 		AS_SET_VALID_PTR(out_shader);
+		AS_INIT_PTR(out_shader, as::shader);
 		std::string vertex_path;
 		std::string fragment_path;
 		if (json_data.contains("vertex_path"))
@@ -490,6 +492,7 @@ as::camera* as::get_camera_from_file(const char* path, const bool& absolute_path
 			AS_LOG(LV_WARNING, "Reached max pool size for cameras, cannot create camera");
 			return nullptr;
 		}
+		AS_INIT_PTR(out_camera, as::camera);
 		out_camera->data = { 0 };
 		get_vec3(json_data, "position", out_camera->data.position);
 		get_vec3(json_data, "target", out_camera->data.target);
@@ -523,6 +526,7 @@ as::light* as::get_light_from_file(const char* path, const bool& absolute_path)
 		if (out_light)
 		{
 			AS_SET_VALID_PTR(out_light);
+			AS_INIT_PTR(out_light, as::light);
 			get_vec3(json_data, "location", out_light->location);
 			get_float(json_data, "intensity", out_light->intensity);
 			get_float(json_data, "attenuation", out_light->attenuation);
@@ -540,7 +544,7 @@ bool as::add_model_to_world(as::world* world, as::model* model)
 {
 	if (world && model)
 	{
-		for (u16 i = 0 ; i < world->models_count ; i++)
+		for (u16 i = 0 ; i < MAX_MODELS_PER_WORLD ; i++)
 		{
 			if (!world->models[i])
 			{
@@ -721,6 +725,74 @@ bool as::is_invalid(const as::entity_data& entity_data)
 	return !entity_data.is_valid;
 }
 
+
+void as::swap_models(as::model* model1, as::model* model2)
+{
+	if (model1 && model2)
+	{
+		as::model temp = *model1;
+		*model1 = *model2;
+		*model2 = temp;
+	}
+	else
+	{
+		AS_LOG(LV_WARNING, "Invalid models, cannot swap models (swap_models)");
+	}
+}
+
+i32 partition_models(as::model** models, const as::camera* camera, const i32& low, const i32& high)
+{
+	if (!models || !models[high] || !camera)
+	{
+		AS_LOG(LV_WARNING, "Model or Camera is invalid, cannot sort (partition_models)");
+		return 0;
+	}
+
+	f32 pivot = Vector3Distance(as::get_position(models[high]->data.transform), camera->data.position);
+	i32 i = low - 1;
+
+	for (i32 j = low; j < high; j++)
+	{
+		if (models[j] && Vector3Distance(as::get_position(models[j]->data.transform), camera->data.position) > pivot)
+		{
+			i++;
+			as::swap_models(models[i], models[j]);
+		}
+	}
+
+	as::swap_models(models[i + 1], models[high]);
+	return i + 1;
+}
+
+void as::quick_sort_models(model** models, camera* camera, const i32& low, const i32& high)
+{
+	if (!models || !camera)
+	{
+		AS_LOG(LV_WARNING, "Model or Camera is invalid, cannot sort (quick_sort_models)");
+		return;
+	}
+	if (low < high)
+	{
+		i32 pivot_index = partition_models(models, camera, low, high);
+		quick_sort_models(models, camera, low, pivot_index - 1);
+		quick_sort_models(models, camera, pivot_index + 1, high);
+	}
+}
+
+bool as::is_translucent(const as::model* model)
+{
+	if (model)
+	{
+		return model->flags & model::flag::TRANSLUCENT;
+	}
+	return false;
+}
+
+bool as::is_not_translucent(const as::model* model)
+{
+	return !is_translucent(model);
+}
+
 as::camera* as::find_active_camera(const as::world* world)
 {
 	for (u32 i = 0 ; i < world->cameras_count ; i++)
@@ -748,6 +820,7 @@ void as::update_lights_uniforms(const Shader& shader, as::light** lights, const 
 			{
 				char buffer[64];
 				i32 light_data_loc = -1;
+				//TODO (implement cashing for lights shader uniform location)
 
 				sprintf(buffer, "lights[%i].location", i);
 				light_data_loc = GetShaderLocation(shader, buffer);
@@ -764,12 +837,45 @@ void as::update_lights_uniforms(const Shader& shader, as::light** lights, const 
 				sprintf(buffer, "lights[%i].attenuation", i);
 				light_data_loc = GetShaderLocation(shader, buffer);
 				SetShaderValue(shader, light_data_loc, &lights[i]->attenuation, SHADER_UNIFORM_FLOAT);
+
+				sprintf(buffer, "lights[%i].shadow_map", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValueTexture(shader, light_data_loc, lights[i]->shadow_map.texture.depth);
+
+				sprintf(buffer, "lights_projection_matrix[%i]", i);
+				light_data_loc = GetShaderLocation(shader, buffer);
+				SetShaderValueMatrix(shader, light_data_loc, GetCameraMatrix(lights[i]->shadow_map.camera));
 			}
 		}
 	}
 }
 
-bool as::draw(const as::world* world)
+void as::update_shadow_map(as::light* light)
+{
+	if (light)
+	{
+		if (!IsRenderTextureReady(light->shadow_map.texture))
+		{
+			// Create the shadow map texture
+			light->shadow_map.texture = LoadRenderTexture(light->shadow_map.size, light->shadow_map.size);
+			SetTextureFilter(light->shadow_map.texture.depth, TEXTURE_FILTER_POINT); // Set texture filter to avoid blurring
+		}
+		
+		// Create the camera for the light
+		Camera shadowCamera;
+		light->shadow_map.camera.position = light->location;
+		light->shadow_map.camera.target = Vector3Zero();
+		light->shadow_map.camera.up = Vector3(0.0f, 1.0f, 0.0f);
+		light->shadow_map.camera.fovy = 45.0f;
+		light->shadow_map.camera.projection = CAMERA_PERSPECTIVE;
+	}
+	else
+	{
+		AS_LOG(LV_WARNING, "Cannot update shadow map, light is nullptr");
+	}
+}
+
+bool as::draw(as::world* world)
 {
 	if (world)
 	{
@@ -778,58 +884,109 @@ bool as::draw(const as::world* world)
 		AS_ASSERT(world->models_count > 0, "Cannot draw 0 models, check the world content");
 		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
 
-		as::light** lights = (as::light**)AS_MALLOC(sizeof(as::light*) * world->lights_count);
-		memcpy(lights, world->lights, sizeof(as::light*) * world->lights_count);
+		// lights
+		//for (u32 i = 0; i < world->lights_count; i++)
+		//{
+			//update_shadow_map(world->lights[i]);
+		//}
+		//as::draw_light_maps(world);
+
+		// sort all models by distance to the camera
+		quick_sort_models(world->models, camera_to_use, 0, world->models_count - 1);
 
 		BeginDrawing();
 		clear_background();
 		BeginMode3D(camera_to_use->data);
 
-		// Sort translucent objects
-		//qsort(world->models, 3, sizeof(TranslucentObject), compare_distances());
-
-		rlEnableDepthMask();
-
 		// Render opaque meshes
-		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
+		//rlEnableDepthTest(); (should change depth here)
+		for (u16 i = 0; i < world->models_count; i++)
 		{
-			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && !(world->models[i]->flags & model::flag::TRANSLUCENT))
+			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && is_not_translucent(world->models[i]))
 			{
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
-					update_lights_uniforms(world->models[i]->data.materials[j].shader, lights, world->lights_count);
+					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
 				}
 				DrawModel(world->models[i]->data, get_location(world->models[i]->data.transform), 1.0, WHITE);
 			}
 		}
+		DrawGrid(30, 10.f);
 
-		// Render translucent meshes
-		rlDisableDepthMask();
-		for (u16 i = 0; i < MAX_MODELS_PER_WORLD; i++)
+		// Render translucent meshes 
+		//rlDisableDepthTest(); (should change depth here)
+		for (u16 i = 0; i < world->models_count; i++)
 		{
-			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && (world->models[i]->flags & model::flag::TRANSLUCENT))
+			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && is_translucent(world->models[i]))
 			{
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
-					update_lights_uniforms(world->models[i]->data.materials[j].shader, lights, world->lights_count);
+					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
 				}
 				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
 				DrawModel(world->models[i]->data, position, 1.0, WHITE);
 			}
 		}
 		
-		DrawGrid(30, 10.f);
 		EndMode3D();
 		EndDrawing();
 
-		AS_FREE(lights);
-		lights = nullptr;
+		// Draw the shadow maps
+		//BeginDrawing();
+		//for (u16 i = 0; i < world->lights_count; i++)
+		//{
+		//	DrawTextureEx(world->lights[i]->shadow_map.texture.depth, { 0, 0 }, 0.0f, 1.0f, WHITE);
+		//}
+		//EndDrawing();
+
+
+		//BeginDrawing();
+		//ClearBackground(RAYWHITE);
+
+		//// Draw the shadow map texture on the screen
+		//DrawTexturePro(world->lights[1]->shadow_map.texture.depth, Rectangle( 0, 0, world->lights[0]->shadow_map.texture.depth.width, -world->lights[0]->shadow_map.texture.depth.height ), Rectangle( 0, 0, 500, 500), Vector2( 0, 0 ), 0.0f, WHITE);
+
+		//// End drawing
+		//EndDrawing();
+
 	}
 	return false;
 }
 
+bool as::draw_light_maps(as::world* world)
+{
+	if (!world)
+	{
+		AS_LOG(LV_WARNING, "Cannot draw light maps, invalid world");
+		return false;
+	}
+	for (u16 i = 0; i < world->lights_count; i++)
+	{
+		// Set the shadow map render texture as the target
+		BeginTextureMode(world->lights[i]->shadow_map.texture);
+
+		// Clear the render texture to white
+		ClearBackground(RAYWHITE);
+
+		// Render the scene from the light's perspective
+		BeginMode3D(world->lights[i]->shadow_map.camera);
+		for (u16 j = 0; j < world->models_count; j++)
+		{
+			if (world->models[j] && AS_IS_VALID_PTR(world->models[j]) && is_not_translucent(world->models[j]))
+			{
+				DrawModel(world->models[j]->data, get_location(world->models[j]->data.transform), 1.0, WHITE);
+			}
+		}
+		EndMode3D();
+
+		// Reset the render target
+		EndTextureMode();
+	}
+}
+
 void as::clear_background()
 {
+	rlClearScreenBuffers();
 	ClearBackground(Color(0.f, 0.f, 0.f));
 }
 

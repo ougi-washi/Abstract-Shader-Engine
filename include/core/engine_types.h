@@ -27,7 +27,7 @@
 #define MAX_MODELS_PER_WORLD 256
 #define MAX_CAMERAS_PER_WORLD 16
 #define MAX_SUB_WORLDS_PER_WORLD 4
-#define MAX_LIGHTS_PER_WORLD 64
+#define MAX_LIGHTS_PER_WORLD 12 // NO DEFERRED YET
 
 #define MAX_UNIFORMS_PER_SHADER 256
 #define MAX_MESHES_PER_MODEL 1024
@@ -82,22 +82,23 @@ namespace as
 		void* end_fn = nullptr;
 		char path[MAX_PATH_SIZE] = "";
 		u8 is_valid : 1;
+		u8 is_dirty : 1;
 
 		// init
-		entity_data() : is_valid(false) {};
+		entity_data() : is_valid(false), is_dirty(true) {};
 	};
 
 	struct texture
 	{
-		Texture data;
-		as::entity_data entity_data;
+		Texture data = {};
+		as::entity_data entity_data = {};
 	};
 
 	struct uniform
 	{
 		entity_type type = entity_type::NONE;
 		void* value = nullptr;
-		as::entity_data entity_data;
+		as::entity_data entity_data = {};
 	};
 
 	struct shader
@@ -114,8 +115,8 @@ namespace as
 
 	struct material
 	{
-		Material data;
-		as::entity_data entity_data;
+		Material data = {};
+		as::entity_data entity_data = {};
 	};
 
 	struct model
@@ -126,16 +127,23 @@ namespace as
 			TRANSLUCENT = 0x01
 		};
 
-		Model data;
-		model::flag flags; // TODO: Move to raylib for meshes, rather than models
-		as::entity_data entity_data;
+		Model data = {};
+		model::flag flags = {}; // TODO: Move to raylib for meshes, rather than models
+		as::entity_data entity_data = {};
 	};
 	
 	struct camera
 	{
 		Camera data;
 		u8 is_active : 1;
-		as::entity_data entity_data;
+		as::entity_data entity_data = {};
+	};
+
+	struct shadow_map
+	{
+		u16 size = 1024;
+		RenderTexture texture = {};
+		Camera camera = {};
 	};
 
 	struct light
@@ -144,7 +152,8 @@ namespace as
 		Vector3 color = Vector3(1.f);
 		f32 intensity = 1.f;
 		f32 attenuation = 3.f;
-		as::entity_data entity_data;
+		as::shadow_map shadow_map = {};
+		as::entity_data entity_data = {};
 	};
 
 	struct world;
