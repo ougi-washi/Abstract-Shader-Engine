@@ -5,7 +5,7 @@ i32 main()
 {
 	as::init_window(800, 450, "Abstract Shader Engine");
 	as::init_gl();
-
+	as::set_fps(10);
 	as::init_engine_entity_pool();
 	
 

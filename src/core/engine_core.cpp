@@ -19,6 +19,11 @@ void as::init_gl()
 	rlEnableBackfaceCulling();
 }
 
+void as::set_fps(const u16& fps)
+{
+	SetTargetFPS(fps);
+}
+
 as::engine_entity_pool* as::init_engine_entity_pool()
 {
 	engine_memory_pool = (as::engine_entity_pool*)AS_MALLOC(sizeof(as::engine_entity_pool));
@@ -884,12 +889,12 @@ bool as::draw(as::world* world)
 		AS_ASSERT(world->models_count > 0, "Cannot draw 0 models, check the world content");
 		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
 
-		// lights
-		//for (u32 i = 0; i < world->lights_count; i++)
-		//{
-			//update_shadow_map(world->lights[i]);
-		//}
-		//as::draw_light_maps(world);
+		//lights
+		for (u32 i = 0; i < world->lights_count; i++)
+		{
+			update_shadow_map(world->lights[i]);
+		}
+		as::draw_light_maps(world);
 
 		// sort all models by distance to the camera
 		quick_sort_models(world->models, camera_to_use, 0, world->models_count - 1);
@@ -931,7 +936,7 @@ bool as::draw(as::world* world)
 		EndMode3D();
 		EndDrawing();
 
-		// Draw the shadow maps
+		//// Draw the shadow maps
 		//BeginDrawing();
 		//for (u16 i = 0; i < world->lights_count; i++)
 		//{
@@ -939,14 +944,13 @@ bool as::draw(as::world* world)
 		//}
 		//EndDrawing();
 
-
 		//BeginDrawing();
 		//ClearBackground(RAYWHITE);
 
 		//// Draw the shadow map texture on the screen
 		//DrawTexturePro(world->lights[1]->shadow_map.texture.depth, Rectangle( 0, 0, world->lights[0]->shadow_map.texture.depth.width, -world->lights[0]->shadow_map.texture.depth.height ), Rectangle( 0, 0, 500, 500), Vector2( 0, 0 ), 0.0f, WHITE);
 
-		//// End drawing
+		// End drawing
 		//EndDrawing();
 
 	}
@@ -982,6 +986,7 @@ bool as::draw_light_maps(as::world* world)
 		// Reset the render target
 		EndTextureMode();
 	}
+	return true;
 }
 
 void as::clear_background()
