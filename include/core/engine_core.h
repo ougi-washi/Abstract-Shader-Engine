@@ -6,6 +6,7 @@ namespace as
 	// general
 	void init_window(const u16& width, const u16& height, const char* title);
 	void init_gl();
+	void set_fps(const u16& fps);
 	as::engine_entity_pool* init_engine_entity_pool();
 	void clear_engine_entity_pool();
 

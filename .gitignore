@@ -59,6 +59,12 @@ out/
 
 # visual studio
 .vs/
+*.sln
+*.vcxproj
+*.filters
+*.vcxproj.filters
+*.PACKAGE.vcxproj
+*.PACKAGE.vcxproj.filters
 
 !resources/*
 
