@@ -218,8 +218,8 @@ as::world* as::get_world_from_file(const char* path, const bool& absolute_path)
 			return nullptr;
 		}
 
-		AS_SET_VALID_PTR(out_world);
 		AS_INIT_PTR(out_world, as::world);
+		AS_SET_VALID_PTR(out_world);
 		if (json_data.contains("models"))
 		{
 			std::vector<std::string> models_file_paths = json_data["models"].get<std::vector<std::string>>();
@@ -374,8 +374,8 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 			return nullptr;
 		}
 
-		AS_SET_VALID_PTR(out_shader);
 		AS_INIT_PTR(out_shader, as::shader);
+		AS_SET_VALID_PTR(out_shader);
 		std::string vertex_path;
 		std::string fragment_path;
 		if (json_data.contains("vertex_path"))
@@ -530,8 +530,8 @@ as::light* as::get_light_from_file(const char* path, const bool& absolute_path)
 		out_light = get_empty_light_from_pool();
 		if (out_light)
 		{
-			AS_SET_VALID_PTR(out_light);
 			AS_INIT_PTR(out_light, as::light);
+			AS_SET_VALID_PTR(out_light);
 			get_vec3(json_data, "location", out_light->location);
 			get_float(json_data, "intensity", out_light->intensity);
 			get_float(json_data, "attenuation", out_light->attenuation);
@@ -845,7 +845,7 @@ void as::update_lights_uniforms(const Shader& shader, as::light** lights, const 
 
 				sprintf(buffer, "lights[%i].shadow_map", i);
 				light_data_loc = GetShaderLocation(shader, buffer);
-				SetShaderValueTexture(shader, light_data_loc, lights[i]->shadow_map.texture.depth);
+				SetShaderValueTexture(shader, light_data_loc, lights[i]->shadow_map.texture.texture);
 
 				sprintf(buffer, "lights_projection_matrix[%i]", i);
 				light_data_loc = GetShaderLocation(shader, buffer);
@@ -863,7 +863,7 @@ void as::update_shadow_map(as::light* light)
 		{
 			// Create the shadow map texture
 			light->shadow_map.texture = LoadRenderTexture(light->shadow_map.size, light->shadow_map.size);
-			SetTextureFilter(light->shadow_map.texture.depth, TEXTURE_FILTER_POINT); // Set texture filter to avoid blurring
+			SetTextureFilter(light->shadow_map.texture.texture, TEXTURE_FILTER_POINT); // Set texture filter to avoid blurring
 		}
 		
 		// Create the camera for the light
@@ -889,16 +889,19 @@ bool as::draw(as::world* world)
 		AS_ASSERT(world->models_count > 0, "Cannot draw 0 models, check the world content");
 		AS_ASSERT(camera_to_use, "Cannot draw with no active camera, check the world content");
 
-		//lights
-		for (u32 i = 0; i < world->lights_count; i++)
-		{
-			update_shadow_map(world->lights[i]);
-		}
-		as::draw_light_maps(world);
-
 		// sort all models by distance to the camera
 		quick_sort_models(world->models, camera_to_use, 0, world->models_count - 1);
 
+		//lights
+		//for (u32 i = 0; i < world->lights_count; i++)
+		//{
+		//	if (i == 0)
+		//	{
+		//		update_shadow_map(world->lights[i]);
+		//	}
+		//}
+		//as::draw_light_maps(world);
+		
 		BeginDrawing();
 		clear_background();
 		BeginMode3D(camera_to_use->data);
@@ -936,21 +939,21 @@ bool as::draw(as::world* world)
 		EndMode3D();
 		EndDrawing();
 
-		//// Draw the shadow maps
+		// Draw the shadow maps
 		//BeginDrawing();
 		//for (u16 i = 0; i < world->lights_count; i++)
 		//{
-		//	DrawTextureEx(world->lights[i]->shadow_map.texture.depth, { 0, 0 }, 0.0f, 1.0f, WHITE);
+		//	DrawTextureEx(world->lights[i]->shadow_map.texture.texture, { 0, 0 }, 0.0f, 1.0f, WHITE);
 		//}
 		//EndDrawing();
 
 		//BeginDrawing();
 		//ClearBackground(RAYWHITE);
 
-		//// Draw the shadow map texture on the screen
-		//DrawTexturePro(world->lights[1]->shadow_map.texture.depth, Rectangle( 0, 0, world->lights[0]->shadow_map.texture.depth.width, -world->lights[0]->shadow_map.texture.depth.height ), Rectangle( 0, 0, 500, 500), Vector2( 0, 0 ), 0.0f, WHITE);
+		////// Draw the shadow map texture on the screen
+		//DrawTexturePro(world->lights[1]->shadow_map.texture.texture, Rectangle( 0, 0, world->lights[0]->shadow_map.texture.texture.width, -world->lights[0]->shadow_map.texture.texture.height ), Rectangle( 0, 0, 500, 500), Vector2( 0, 0 ), 0.0f, WHITE);
 
-		// End drawing
+		//// End drawing
 		//EndDrawing();
 
 	}

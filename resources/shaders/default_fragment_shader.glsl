@@ -36,26 +36,14 @@ float calculate_shadows(const sampler2D shadow_map, const vec4 frag_pos_light_sp
 void main()
 {
 	// ambient color
-	vec3 final_color = vec3(.03f);
+	vec3 final_color = vec3(0.03);
 
 	// first ambient pass for lights
 	for(int i = 0 ; i < lights_count ; i++)
 	{
-        float shadow = calculate_shadows(lights[i].shadow_map, fragPosLightSpace[i]);
-//        vec3 point_light_color = calculate_light(lights[i]);
-//		point_light_color *= (1.0 - shadow);
-//		final_color += point_light_color;
-
-        // Apply lighting calculations with the shadow value
         // Ambient lighting
-	    vec3 light_dir = normalize(lights[i].location - fragPosition);
-        vec3 normal_dir = normalize(fragNormal);
-        vec3 ambient = lights[i].intensity * lights[i].color;
-		float distance_to_light = length(lights[i].location - fragPosition);
-		float attenuation = get_light_attenuation(lights[i]);
-		final_color += (dot(normalize(fragNormal), normalize(lights[i].location)) * lights[i].intensity * lights[i].color * attenuation * (1.0 - shadow));
+		final_color += calculate_light(lights[i]);
 	}
-
 	// rim light
 	for(int i = 0 ; i < lights_count ; i++)
 	{
@@ -64,11 +52,8 @@ void main()
 		final_color = mix(final_color, lights[i].color, band_mask);	
 	}
 
-	//fog
-//	final_color += mix(vec3(.01f, .02f, 0.1f), vec3(0.f), gl_FragCoord.a);
-
 	// output
-	gl_FragColor = vec4(final_color,1.f);
+	finalColor = vec4(final_color, 1.f);
 };
 
 float get_light_attenuation(const light in_light)

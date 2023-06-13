@@ -83,3 +83,4 @@ CMakeSettings.json
 
 #ignore resources
 !**/resources/models/*.obj
+*.vim
