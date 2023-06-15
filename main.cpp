@@ -6,7 +6,7 @@ i32 main()
 	as::init_window(800, 450, "Abstract Shader Engine");
 	as::init_gl();
 	as::set_fps(60);
-	as::init_engine_entity_pool();
+		as::init_engine_entity_pool();
 	
 
 	as::world* out_world = as::get_world_from_file("resources/objects/dragon_world.json", false);

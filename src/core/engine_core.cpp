@@ -352,6 +352,73 @@ as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 	return out_model;
 }
 
+#define MAX_INCLUDES 10
+#define MAX_FILE_SIZE 1024
+void process_file(const char* filename, const char* current_path, char* output) 
+{
+    char file_path[MAX_FILE_SIZE];
+    snprintf(file_path, sizeof(file_path), "%s/%s", current_path, filename);
+
+    FILE* file = fopen(file_path, "r");
+    if (!file) 
+    {
+	AS_LOG(LV_WARNING, "Error opening file: " + std::string(file_path));
+    }
+
+    // Read the contents of the file
+    char file_contents[MAX_FILE_SIZE];
+    size_t read_bytes = fread(file_contents, 1, sizeof(file_contents), file);
+    if (read_bytes == 0 && !feof(file)) 
+    {
+        AS_LOG(LV_WARNING, "Error reading file: " + std::string(file_path));
+        fclose(file);
+    }
+    fclose(file);
+
+    char* include_pos = strstr(file_contents, "#include");
+    if (!include_pos) 
+    {
+        strcpy(output, file_contents); // No includes found, copy the entire file content
+        return;
+    }
+
+    // Copy the portion before the first #include
+    strncpy(output, file_contents, include_pos - file_contents);
+
+    // Find and replace all includes
+    while (include_pos) 
+    {
+        char include_file[MAX_FILE_SIZE];
+        char* quote_start = strchr(include_pos, '"');
+        char* quote_end = strchr(quote_start + 1, '"');
+
+        if (!quote_start || !quote_end) 
+	{
+            AS_LOG(LV_WARNING, "Invalid include directive: " + std::string(include_pos));
+        }
+
+        strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
+        include_file[quote_end - quote_start - 1] = '\0';
+
+        char included_file[MAX_FILE_SIZE];
+        process_file(include_file, current_path, included_file);
+
+        // Append the included file content to the output
+        strcat(output, included_file);
+
+        include_pos = strstr(include_pos + 1, "#include");
+        if (!include_pos) 
+	{
+            // Append the remaining file content after the last #include
+            strcat(output, quote_end + 1);
+        } 
+	else 
+	{
+            // Append the portion between the current and next #include
+            strncat(output, quote_end + 1, include_pos - quote_end - 1);
+        }
+    }
+}
 
 as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path)
 {
