@@ -1,4 +1,4 @@
-#include "resources/shaders/common/shader_common.glsl"
+#include "resources/shaders/common/fragment_shader_common.glsl"
 
 void main()
 {
@@ -7,10 +7,11 @@ void main()
 
 	// first ambient pass for lights
 	for(int i = 0 ; i < lights_count ; i++)
-	{
+	{ 
         // Ambient lighting
 		final_color += calculate_light(lights[i]);
 	}
+	
 	// rim light
 	for(int i = 0 ; i < lights_count ; i++)
 	{

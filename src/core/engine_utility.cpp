@@ -296,6 +296,7 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
 	}
 
 	AS_FREE(file_contents);
+	file_contents = nullptr;
 }
 
 char* expand_file(const char* path, int depth) {

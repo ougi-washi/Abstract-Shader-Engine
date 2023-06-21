@@ -7,20 +7,18 @@ as::allocation allocations[MAX_ALLOCATIONS_COUNT] = {};
 
 void* as_malloc_fn(const size_t& _size, const char* _file, const u32& _line, const char* _type)
 {
-	void* _ptr = nullptr;
 	memcpy(allocations[allocations_count].file, _file, 256);
 	memcpy(allocations[allocations_count].type, _type, 128);
 	allocations[allocations_count].line = _line;
 	allocations[allocations_count].size = _size;
-	_ptr = malloc(_size);
-	if (_ptr)
+	allocations[allocations_count].ptr = malloc(_size);
+	if (allocations[allocations_count].ptr)
 	{
-		memset(_ptr, 0, _size);
+		memset(allocations[allocations_count].ptr, 0, _size);
 	}
-	allocations[allocations_count].ptr = _ptr;
 	allocated_memory += _size;
 	allocations_count++;
-	return _ptr;
+	return allocations[allocations_count - 1].ptr;
 }
 
 void* as_realloc_fn(void* _ptr, const size_t& _size, const char* _file, const u32& _line)
