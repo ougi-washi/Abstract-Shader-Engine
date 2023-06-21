@@ -11,6 +11,10 @@
 using json = nlohmann::json;
 #define JSON_NOEXCEPTION 1
 
+#define MAX_FILE_SIZE 30720
+#define MAX_FILE_PATH_SIZE 1024
+#define MAX_INCLUDES 10
+
 namespace as
 {
 	namespace util
@@ -29,8 +33,10 @@ namespace as
 		json read_json_file(const std::string& path);
 		std::string read_file(const char* filename);
 		void write_file_str(const char* filename, const char* data);
+		void expand_file_includes(const char* filename, const char* current_path, char* output);
 		std::string read_file_expanded_includes(const std::string& file_path);
 		void split_path(const char* path, char* directory, char* filename);
+		size_t get_file_size(FILE* file);
 
 		/** string */
 		std::string vec3_to_string(const Vector3& vec);

@@ -221,6 +221,83 @@ void as::util::write_file_str(const char* filename, const char* data)
 	}
 }
 
+void as::util::expand_file_includes(const char* filename, const char* current_path, char* output) 
+{
+	if (!output || !current_path || !filename)
+	{
+		AS_LOG(LV_WARNING, "Cannot expand file includes, nullptr");
+		return;
+	}
+	char* file_path = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_PATH_SIZE);
+    snprintf(file_path, MAX_FILE_PATH_SIZE, "%s/%s", current_path, filename);
+
+    FILE* file = fopen(file_path, "r");
+	AS_FREE(file_path);
+
+    if (!file) 
+    {
+		AS_LOG(LV_WARNING, "Error opening file: " + std::string(file_path));
+		return;
+	}
+
+    char* file_contents = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+    size_t read_bytes = fread(file_contents, 1, get_file_size(file), file);
+    if (read_bytes == 0 && !feof(file)) 
+    {
+        AS_LOG(LV_WARNING, "Error reading file: " + std::string(file_path));
+        fclose(file);
+    }
+    fclose(file);
+
+    char* include_pos = strstr(file_contents, "#include");
+    if (!include_pos) 
+    {
+        strcpy(output, file_contents); // No includes found, copy the entire file content
+        return;
+    }
+
+    // Copy the portion before the first #include
+    strncpy(output, file_contents, include_pos - file_contents);
+    // Find and replace all includes
+    while (include_pos) 
+	{
+		char* include_file = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+        char* quote_start = strchr(include_pos, '"');
+        char* quote_end = strchr(quote_start + 1, '"');
+
+        if (!quote_start || !quote_end) 
+		{
+            AS_LOG(LV_WARNING, "Invalid include directive: " + std::string(include_pos));
+        }
+
+        strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
+        include_file[quote_end - quote_start - 1] = '\0';
+
+		char* included_file = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+        expand_file_includes(include_file, current_path, included_file);
+
+        // Append the included file content to the output
+        strcat(output, included_file);
+
+		AS_FREE(include_file);
+		AS_FREE(included_file);
+
+        include_pos = strstr(include_pos + 1, "#include");
+        if (!include_pos) 
+		{
+            // Append the remaining file content after the last #include
+            strcat(output, quote_end + 1);
+        } 
+		else 
+		{
+            // Append the portion between the current and next #include
+            strncat(output, quote_end + 1, include_pos - quote_end - 1);
+        }
+	}
+
+	AS_FREE(file_contents);
+}
+
 char* expand_file(const char* path, int depth) {
 	if (depth > MAX_INCLUDE_DEPTH) {
 		printf("Maximum depth reached. Aborting.\n");
@@ -326,6 +403,19 @@ void as::util::split_path(const char* path, char* directory, char* filename)
 		directory[path_length] = '\0';
 		strcpy(filename, separator + 1);
 	}
+}
+
+size_t as::util::get_file_size(FILE* file)
+{
+	if (file)
+	{
+		fseek(file, 0, SEEK_END); // seek to end of file
+		size_t file_size = ftell(file); // get current file pointer
+		fseek(file, 0, SEEK_SET); // seek back to beginning of file
+		return file_size;
+	}
+	AS_LOG(LV_WARNING, "File is null, cannot get file size");
+	return 0;
 }
 
 std::string as::util::vec3_to_string(const Vector3& vec)

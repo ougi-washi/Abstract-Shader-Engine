@@ -352,74 +352,6 @@ as::model* as::get_model_from_file(const char* path, const bool& absolute_path)
 	return out_model;
 }
 
-#define MAX_INCLUDES 10
-#define MAX_FILE_SIZE 1024
-void process_file(const char* filename, const char* current_path, char* output) 
-{
-    char file_path[MAX_FILE_SIZE];
-    snprintf(file_path, sizeof(file_path), "%s/%s", current_path, filename);
-
-    FILE* file = fopen(file_path, "r");
-    if (!file) 
-    {
-	AS_LOG(LV_WARNING, "Error opening file: " + std::string(file_path));
-    }
-
-    // Read the contents of the file
-    char file_contents[MAX_FILE_SIZE];
-    size_t read_bytes = fread(file_contents, 1, sizeof(file_contents), file);
-    if (read_bytes == 0 && !feof(file)) 
-    {
-        AS_LOG(LV_WARNING, "Error reading file: " + std::string(file_path));
-        fclose(file);
-    }
-    fclose(file);
-
-    char* include_pos = strstr(file_contents, "#include");
-    if (!include_pos) 
-    {
-        strcpy(output, file_contents); // No includes found, copy the entire file content
-        return;
-    }
-
-    // Copy the portion before the first #include
-    strncpy(output, file_contents, include_pos - file_contents);
-
-    // Find and replace all includes
-    while (include_pos) 
-    {
-        char include_file[MAX_FILE_SIZE];
-        char* quote_start = strchr(include_pos, '"');
-        char* quote_end = strchr(quote_start + 1, '"');
-
-        if (!quote_start || !quote_end) 
-	{
-            AS_LOG(LV_WARNING, "Invalid include directive: " + std::string(include_pos));
-        }
-
-        strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
-        include_file[quote_end - quote_start - 1] = '\0';
-
-        char included_file[MAX_FILE_SIZE];
-        process_file(include_file, current_path, included_file);
-
-        // Append the included file content to the output
-        strcat(output, included_file);
-
-        include_pos = strstr(include_pos + 1, "#include");
-        if (!include_pos) 
-	{
-            // Append the remaining file content after the last #include
-            strcat(output, quote_end + 1);
-        } 
-	else 
-	{
-            // Append the portion between the current and next #include
-            strncat(output, quote_end + 1, include_pos - quote_end - 1);
-        }
-    }
-}
-
 as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path)
 {
 	AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
@@ -447,7 +379,8 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 		std::string fragment_path;
 		if (json_data.contains("vertex_path"))
 		{
-			vertex_path = as::util::get_current_path() + "/../" + json_data["vertex_path"].get<std::string>();
+			//vertex_path = as::util::get_current_path() + "/../" + json_data["vertex_path"].get<std::string>();
+			vertex_path = json_data["vertex_path"].get<std::string>();
 		}
 		else
 		{
@@ -456,7 +389,8 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 		}
 		if (json_data.contains("fragment_path"))
 		{
-			fragment_path = as::util::get_current_path() + "/../" + json_data["fragment_path"].get<std::string>();
+			//fragment_path = as::util::get_current_path() + "/../" + json_data["fragment_path"].get<std::string>();
+			fragment_path = json_data["fragment_path"].get<std::string>();
 		}
 		else
 		{
@@ -470,7 +404,19 @@ as::shader* as::get_shader_from_file(const char* path, const bool& absolute_path
 				out_shader->is_translucent = out_is_translucent;
 			}
 		}
-		out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+		
+		// load shader into data
+
+		std::string current_shader_path = as::util::get_current_path() + "/../";
+		char* vertex_shader_code = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+		char* fragment_shader_code = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+		as::util::expand_file_includes(vertex_path.c_str(), current_shader_path.c_str(), vertex_shader_code);
+		as::util::expand_file_includes(fragment_path.c_str(), current_shader_path.c_str(), fragment_shader_code);
+		//out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
+		out_shader->data = LoadShaderFromMemory(vertex_shader_code, fragment_shader_code);
+		AS_FREE(vertex_shader_code);
+		AS_FREE(fragment_shader_code);
+
 		if (out_shader->data.id <= 0)
 		{
 			AS_LOG(LV_WARNING, "Could not create the shader");
