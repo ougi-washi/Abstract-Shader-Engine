@@ -7,10 +7,6 @@
 #include <filesystem>
 #include <vector>
 
-#include "json/json.hpp"
-using json = nlohmann::json;
-#define JSON_NOEXCEPTION 1
-
 #define MAX_FILE_SIZE 30720
 #define MAX_FILE_PATH_SIZE 1024
 #define MAX_INCLUDES 10
@@ -37,10 +33,12 @@ namespace as
 		std::string read_file_expanded_includes(const std::string& file_path);
 		void split_path(const char* path, char* directory, char* filename);
 		size_t get_file_size(FILE* file);
+		void update_path_to_absolute(char* path);
 
 		/** string */
 		std::string vec3_to_string(const Vector3& vec);
 		std::string bool_to_string(const bool& boolean);
+		bool ends_with(const char* str, const char* suffix);
 	};
 
 	namespace timer

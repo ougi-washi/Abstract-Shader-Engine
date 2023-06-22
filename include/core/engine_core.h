@@ -14,15 +14,24 @@ namespace as
 	std::string variable_enum_to_string(const as::entity_type& in_type);
 	as::entity_type variable_string_to_enum(const std::string& in_type_str);
 	bool get_updated_path(const char* in_path, const bool& absolute_path, char* out_path);
-	as::world* get_world_from_file(const char* path, const bool& absolute_path);
-	as::model* get_model_from_file(const char* path, const bool& absolute_path);
-	as::shader* get_shader_from_file(const char* path, const bool& absolute_path);
-	as::texture* get_texture_from_file(const char* path, const bool& absolute_path);
-	as::camera* get_camera_from_file(const char* path, const bool& absolute_path);
-	as::light* get_light_from_file(const char* path, const bool& absolute_path);
+	json get_parsed_data(const char* path, const bool& absolute_path);
+	as::world* get_world(const char* path, const bool& absolute_path);
+	as::world* get_world(const json& json_data);
+	as::model* get_model(const char* path, const bool& absolute_path);
+	as::model* get_model(const json& json_data);
+	as::model* get_model_instance(const json& json_data);
+	as::shader* get_shader(const char* path, const bool& absolute_path);
+	as::shader* get_shader(const json& json_data);
+	as::texture* get_texture(const char* path, const bool& absolute_path);
+	as::texture* get_texture(const json& json_data);
+	as::camera* get_camera(const char* path, const bool& absolute_path);
+	as::camera* get_camera(const json& json_data);
+	as::light* get_light(const char* path, const bool& absolute_path);
+	as::light* get_light(const json& json_data);
 	bool add_model_to_world(as::world* world, as::model* model);
 	bool add_light_to_world(as::world* world, as::light* light);
 	bool add_camera_to_world(as::world* world, as::camera* camera);
+	void update_model_transform(as::model* model, const json& json_data, const bool& init);
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
@@ -41,6 +50,7 @@ namespace as
 	void set_invalid(as::entity_data& entity_data);
 	bool is_valid(const as::entity_data& entity_data);
 	bool is_invalid(const as::entity_data& entity_data);
+	void set_path(as::entity_data& entity_data, const char* path);
 
 	// model
 	void swap_models(as::model* model1, as::model* model2);
@@ -75,10 +85,12 @@ namespace as
 #define AS_SET_INVALID(_entity) as::set_invalid(_entity.entity_data)
 #define AS_IS_VALID(_entity) as::is_valid(_entity.entity_data)
 #define AS_IS_INVALID(_entity) as::is_invalid(_entity.entity_data)
+#define AS_SET_PATH(_entity, _path) as::set_path(_entity.entity_data, _path)
 
 #define AS_SET_VALID_PTR(_entity) as::set_valid(_entity->entity_data)
 #define AS_SET_INVALID_PTR(_entity) as::set_invalid(_entity->entity_data)
 #define AS_IS_VALID_PTR(_entity) as::is_valid(_entity->entity_data)
 #define AS_IS_INVALID_PTR(_entity) as::is_invalid(_entity->entity_data)
+#define AS_SET_PATH_PTR(_entity, _path) as::set_path(_entity->entity_data, _path)
 
 #define AS_INIT_PTR(_entity, _type) *_entity = _type()

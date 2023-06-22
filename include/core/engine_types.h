@@ -10,6 +10,10 @@
 #define GLSL_VERSION            100
 #endif
 
+#include "json/json.hpp"
+using json = nlohmann::json;
+#define JSON_NOEXCEPTION 1
+
 #include <vector>
 #include <chrono>
 

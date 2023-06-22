@@ -419,6 +419,41 @@ size_t as::util::get_file_size(FILE* file)
 	return 0;
 }
 
+void as::util::update_path_to_absolute(char* path)
+{
+	std::string current_path_string = as::util::get_current_path();
+	const char* current_path = current_path_string.c_str();
+	const char* separator = "/../";
+
+	// Calculate the lengths of strings
+	size_t current_path_len = strlen(current_path);
+	size_t separator_len = strlen(separator);
+	size_t path_len = strlen(path);
+
+	// Calculate the total length of the new path
+	size_t new_path_len = current_path_len + separator_len + path_len + 1; // +1 for the null terminator
+
+	// Check if the provided buffer is large enough
+	if (new_path_len > MAX_FILE_PATH_SIZE)
+	{
+		// Handle the error accordingly
+		return;
+	}
+
+	// Create a temporary buffer to hold the new path
+	char new_path[MAX_FILE_PATH_SIZE];
+
+	// Copy the current path to the new path buffer
+	strcpy(new_path, current_path);
+
+	// Concatenate the separator and the path
+	strcat(new_path, separator);
+	strcat(new_path, path);
+
+	// Copy the updated path back to the provided buffer
+	strcpy(path, new_path);
+}
+
 std::string as::util::vec3_to_string(const Vector3& vec)
 {
 	return std::to_string(vec.x) + ";" + std::to_string(vec.y) + ";" + std::to_string(vec.z);
@@ -427,6 +462,18 @@ std::string as::util::vec3_to_string(const Vector3& vec)
 std::string as::util::bool_to_string(const bool& boolean)
 {
 	return (boolean) ? "true" : "false";
+}
+
+
+bool as::util::ends_with(const char* str, const char* suffix)
+{
+	size_t str_len = strlen(str);
+	size_t suffix_len = strlen(suffix);
+	if (suffix_len > str_len)
+	{
+		return false;
+	}
+	return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 void as::timer::start_timer(timer::handle& handle)
