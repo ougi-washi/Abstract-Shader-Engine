@@ -19,7 +19,8 @@ void main()
 		float band_mask = get_band_mask(lights[i].location, 0.99f - attenuation, 0.01f);
 		final_color = mix(final_color, lights[i].color, band_mask);	
 	}
-
+	
+	final_color = final_color + vec3(abs(sin(time * 3.0)) * 0.1);
 	// output
 	finalColor = vec4(final_color, 1.f);
 };

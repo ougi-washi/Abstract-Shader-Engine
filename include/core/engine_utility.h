@@ -7,10 +7,6 @@
 #include <filesystem>
 #include <vector>
 
-#define MAX_FILE_SIZE 30720
-#define MAX_FILE_PATH_SIZE 1024
-#define MAX_INCLUDES 10
-
 namespace as
 {
 	namespace util

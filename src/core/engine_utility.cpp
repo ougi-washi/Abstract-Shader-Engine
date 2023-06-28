@@ -228,8 +228,8 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
 		AS_LOG(LV_WARNING, "Cannot expand file includes, nullptr");
 		return;
 	}
-	char* file_path = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_PATH_SIZE);
-    snprintf(file_path, MAX_FILE_PATH_SIZE, "%s/%s", current_path, filename);
+	char* file_path = (char*)AS_MALLOC(sizeof(char) * MAX_PATH_SIZE);
+    snprintf(file_path, MAX_PATH_SIZE, "%s/%s", current_path, filename);
 
     FILE* file = fopen(file_path, "r");
 	AS_FREE(file_path);
@@ -434,14 +434,14 @@ void as::util::update_path_to_absolute(char* path)
 	size_t new_path_len = current_path_len + separator_len + path_len + 1; // +1 for the null terminator
 
 	// Check if the provided buffer is large enough
-	if (new_path_len > MAX_FILE_PATH_SIZE)
+	if (new_path_len > MAX_PATH_SIZE)
 	{
 		// Handle the error accordingly
 		return;
 	}
 
 	// Create a temporary buffer to hold the new path
-	char new_path[MAX_FILE_PATH_SIZE];
+	char new_path[MAX_PATH_SIZE];
 
 	// Copy the current path to the new path buffer
 	strcpy(new_path, current_path);

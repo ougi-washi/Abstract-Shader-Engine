@@ -36,7 +36,9 @@ using json = nlohmann::json;
 #define MAX_UNIFORMS_PER_SHADER 256
 #define MAX_MESHES_PER_MODEL 1024
 
-#define MAX_PATH_SIZE 256
+#define MAX_FILE_SIZE 30720
+#define MAX_PATH_SIZE 2048
+#define MAX_INCLUDES 10
 
 namespace as
 {
@@ -205,6 +207,7 @@ namespace as
 };
 
 extern as::engine_entity_pool* engine_memory_pool;
+extern f32 current_time;
 
 #define DEFAULT_WORLD_PATH "resources/objects/defaults/default_world.json"
 #define DEFAULT_CAMERA_PATH "resources/objects/defaults/default_camera.json"

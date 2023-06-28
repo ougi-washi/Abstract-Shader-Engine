@@ -63,6 +63,7 @@ namespace as
 
 	// light
 	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
+	void update_time_uniforms(const Shader& shader);
 	void update_shadow_map(as::light* light);
 
 	// world
@@ -76,7 +77,7 @@ namespace as
 	as::world* get_empty_world_from_pool();
 	as::model* get_empty_model_from_pool();
 	as::shader* get_empty_shader_from_pool();
-	as::texture* get_empty_texture_from_pool();
+	as::texture * get_empty_texture_from_pool();
 	as::camera* get_empty_camera_from_pool();
 	as::light* get_empty_light_from_pool();
 };

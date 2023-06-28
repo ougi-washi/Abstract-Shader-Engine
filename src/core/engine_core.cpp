@@ -36,7 +36,11 @@ void as::clear_engine_entity_pool()
 	{
 		for (u16 i = 0 ; i < MAX_SHADER_POOL_SIZE ; i++)
 		{
-			UnloadShader(engine_memory_pool->shaders[i].data);
+			if (engine_memory_pool->shaders[i].data.id != -1)
+			{
+				UnloadShader(engine_memory_pool->shaders[i].data);
+				engine_memory_pool->shaders[i].data.id = -1;
+			}
 		}
 		for (u16 i = 0 ; i < MAX_MODEL_POOL_SIZE ; i++)
 		{
@@ -197,7 +201,7 @@ json as::get_parsed_data(const char* path, const bool& absolute_path)
 	json out_json_data;
 	if (path)
 	{
-		char out_updated_path[MAX_FILE_PATH_SIZE] = "";
+		char out_updated_path[MAX_PATH_SIZE] = "";
 		as::get_updated_path(path, absolute_path, out_updated_path);
 		AS_LOG(LV_LOG, "Parse file [" + std::string(path) + "]");
 		out_json_data = as::util::read_json_file(out_updated_path);
@@ -210,7 +214,12 @@ as::world* as::get_world(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::WORLD)
 	{
-		return get_world(json_data);
+		as::world* out_world = get_world(json_data);
+		if (out_world)
+		{
+			AS_SET_PATH_PTR(out_world, path);
+		}
+		return out_world;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -284,7 +293,12 @@ as::model* as::get_model(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::MODEL)
 	{
-		return get_model(json_data);
+		as::model* out_model = get_model(json_data);
+		if (out_model)
+		{
+			AS_SET_PATH_PTR(out_model, path);
+		}
+		return out_model;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -298,6 +312,7 @@ as::model* as::get_model_instance(const json& json_data)
 	{
 		std::string model_path = json_data["path"].get<std::string>();
 		out_model = as::get_model(model_path.c_str(), is_absolute_path(json_data));
+		AS_SET_VALID_PTR(out_model);
 	}
 	else
 	{
@@ -311,7 +326,7 @@ as::model* as::get_model_instance(const json& json_data)
 as::model* as::get_model(const json& json_data)
 {
 	// path
-	char model_path[MAX_FILE_PATH_SIZE] = "";
+	char model_path[MAX_PATH_SIZE] = "";
 	if (json_data.contains("path"))
 	{
 		std::string model_path_string = json_data["path"].get<std::string>();
@@ -393,7 +408,12 @@ as::shader* as::get_shader(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::SHADER)
 	{
-		return get_shader(json_data);
+		as::shader* out_shader = get_shader(json_data);
+		if (out_shader)
+		{
+			AS_SET_PATH_PTR(out_shader, path);
+		}
+		return out_shader;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -465,7 +485,12 @@ as::texture* as::get_texture(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::TEXTURE)
 	{
-		return get_texture(json_data);
+		as::texture* out_texture = get_texture(json_data);
+		if (out_texture)
+		{
+			AS_SET_PATH_PTR(out_texture, path);
+		}
+		return out_texture;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -527,7 +552,13 @@ as::camera* as::get_camera(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::CAMERA)
 	{
-		return get_camera(json_data);
+		as::camera* out_camera = get_camera(json_data);
+		if (out_camera)
+		{
+			AS_SET_PATH_PTR(out_camera, path);
+			AS_SET_VALID_PTR(out_camera);
+		}
+		return out_camera;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -542,6 +573,7 @@ as::camera* as::get_camera(const json& json_data)
 		return nullptr;
 	}
 	AS_INIT_PTR(out_camera, as::camera);
+	AS_SET_VALID_PTR(out_camera);
 	out_camera->data = { 0 };
 	get_vec3(json_data, "position", out_camera->data.position);
 	get_vec3(json_data, "target", out_camera->data.target);
@@ -560,7 +592,13 @@ as::light* as::get_light(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::LIGHT)
 	{
-		return get_light(json_data);
+		as::light* out_light = get_light(json_data);
+		if (out_light)
+		{
+			AS_SET_PATH_PTR(out_light, path);
+			AS_SET_VALID_PTR(out_light);
+		}
+		return out_light;
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -799,7 +837,7 @@ bool as::is_invalid(const as::entity_data& entity_data)
 
 void as::set_path(as::entity_data& entity_data, const char* path)
 {
-	memcpy(entity_data.path, path, MAX_FILE_PATH_SIZE);
+	memcpy(entity_data.path, path, MAX_PATH_SIZE);
 }
 
 void as::swap_models(as::model* model1, as::model* model2)
@@ -873,7 +911,7 @@ as::camera* as::find_active_camera(const as::world* world)
 {
 	for (u32 i = 0 ; i < world->cameras_count ; i++)
 	{
-		if (world->cameras[i] && world->cameras[i]->is_active && AS_IS_INVALID_PTR(world->cameras[i]))
+		if (world->cameras[i] && world->cameras[i]->is_active && AS_IS_VALID_PTR(world->cameras[i]))
 		{
 			return world->cameras[i];
 		}
@@ -924,6 +962,12 @@ void as::update_lights_uniforms(const Shader& shader, as::light** lights, const 
 			}
 		}
 	}
+}
+
+void as::update_time_uniforms(const Shader& shader)
+{
+	const i32 time_location = GetShaderLocation(shader, "time");
+	SetShaderValue(shader, time_location, &current_time, SHADER_UNIFORM_FLOAT);
 }
 
 void as::update_shadow_map(as::light* light)
@@ -986,6 +1030,7 @@ bool as::draw(as::world* world)
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
+					update_time_uniforms(world->models[i]->data.materials[j].shader);
 				}
 				DrawModel(world->models[i]->data, get_location(world->models[i]->data.transform), 1.0, WHITE);
 			}
@@ -1001,6 +1046,7 @@ bool as::draw(as::world* world)
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
+					
 				}
 				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
 				DrawModel(world->models[i]->data, position, 1.0, WHITE);
@@ -1027,6 +1073,7 @@ bool as::draw(as::world* world)
 		//// End drawing
 		//EndDrawing();
 
+		current_time += GetFrameTime();
 	}
 	return false;
 }

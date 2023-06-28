@@ -23,8 +23,12 @@ in vec4 fragPosLightSpace[MAX_LIGHTS_PER_WORLD];
 // Output fragment color
 out vec4 finalColor;
 
+// Light data
 uniform int lights_count;
 uniform light lights[MAX_LIGHTS_PER_WORLD];
+
+// time
+uniform float time;
 
 float get_light_attenuation(const light in_light)
 {
