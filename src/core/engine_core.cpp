@@ -103,6 +103,18 @@ bool get_vec3(const json& json_data, const char* json_field_name, Vector3& out_v
 	return false;
 }
 
+Vector3 get_vec3(const json& json_data)
+{
+	Vector3 out_vector = {};
+	if (json_data.size() >= 3)
+	{
+		out_vector.x = json_data[0];
+		out_vector.y = json_data[1];
+		out_vector.z = json_data[2];
+	}
+	return out_vector;
+}
+
 bool get_vec2(const json& json_data, const char* json_field_name, Vector2& out_vector)
 {
 	if (json_data.contains(json_field_name) && json_data[json_field_name].size() >= 2)
@@ -167,6 +179,23 @@ as::entity_type as::variable_string_to_enum(const std::string& in_type_str)
 	return as::entity_type::NONE;
 }
 
+
+std::string as::var_type_enum_to_string(const var::variable_type& in_type)
+{
+	return as::var::variable_type_strings[in_type];
+}
+
+as::var::variable_type as::var_type_string_to_enum(const std::string& in_type_str)
+{
+	for (u8 i = 0; i < as::var::variable_type_strings.size(); i++)
+	{
+		if (as::var::variable_type_strings[i] == in_type_str)
+		{
+			return (as::var::variable_type)i;
+		}
+	}
+	return as::var::variable_type::NONE;
+}
 
 as::entity_type get_type(const json& json_data)
 {
@@ -471,6 +500,16 @@ as::shader* as::get_shader(const json& json_data)
 	AS_FREE(vertex_shader_code);
 	AS_FREE(fragment_shader_code);
 
+	if (json_data.contains("uniforms"))
+	{
+		json uniforms = json_data["uniforms"];
+		for (const json& current_uniform : uniforms)
+		{
+			out_shader->uniforms[out_shader->uniforms_count] = get_uniform(current_uniform);
+			out_shader->uniforms_count++;
+		}
+	}
+
 	if (out_shader->data.id <= 0)
 	{
 		AS_LOG(LV_WARNING, "Could not create the shader");
@@ -494,6 +533,41 @@ as::texture* as::get_texture(const char* path, const bool& absolute_path)
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
+}
+
+as::uniform as::get_uniform(const json& json_data)
+{
+	as::uniform out_uniform = {}; //TODO: maybe it shouldn't copy, so pass pointer in future?
+	if (json_data.contains("type"))
+	{
+		std::string uniform_type = json_data["type"].get<std::string>();
+		out_uniform.type = as::var_type_string_to_enum(uniform_type);
+		switch (out_uniform.type)
+		{
+
+		case var::variable_type::FLOAT:
+			out_uniform.value[0] = json_data["value"].get<float>();
+			break;
+		case var::variable_type::INT:
+			out_uniform.value[0] = json_data["value"].get<i32>();
+			break;
+		case var::variable_type::BOOL:
+			out_uniform.value[0] = json_data["value"].get<bool>();
+			break;
+		case var::variable_type::TEXTURE:
+			out_uniform.value[0] = (u64)get_texture(json_data["value"]);
+			break;
+		case var::variable_type::VECTOR:
+			Vector3 out_vec = get_vec3(json_data["value"]);
+			out_uniform.value[0] = out_vec.x;
+			out_uniform.value[1] = out_vec.y;
+			out_uniform.value[2] = out_vec.z;
+			break;
+		default:
+			break;
+		}
+	}
+	return out_uniform;
 }
 
 as::texture* as::get_texture(const json& json_data)

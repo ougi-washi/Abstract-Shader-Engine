@@ -13,6 +13,8 @@ namespace as
 	// files / entities
 	std::string variable_enum_to_string(const as::entity_type& in_type);
 	as::entity_type variable_string_to_enum(const std::string& in_type_str);
+	std::string var_type_enum_to_string(const var::variable_type& in_type);
+	as::var::variable_type var_type_string_to_enum(const std::string& in_type_str);
 	bool get_updated_path(const char* in_path, const bool& absolute_path, char* out_path);
 	json get_parsed_data(const char* path, const bool& absolute_path);
 	as::world* get_world(const char* path, const bool& absolute_path);
@@ -24,6 +26,7 @@ namespace as
 	as::shader* get_shader(const json& json_data);
 	as::texture* get_texture(const char* path, const bool& absolute_path);
 	as::texture* get_texture(const json& json_data);
+	as::uniform get_uniform(const json& json_data);
 	as::camera* get_camera(const char* path, const bool& absolute_path);
 	as::camera* get_camera(const json& json_data);
 	as::light* get_light(const char* path, const bool& absolute_path);

@@ -34,6 +34,7 @@ using json = nlohmann::json;
 #define MAX_LIGHTS_PER_WORLD 12 // NO DEFERRED YET
 
 #define MAX_UNIFORMS_PER_SHADER 256
+#define MAX_UNIFORM_SIZE 8
 #define MAX_MESHES_PER_MODEL 1024
 
 #define MAX_FILE_SIZE 30720
@@ -46,11 +47,21 @@ namespace as
 	{
 		enum variable_type : u16
 		{
+			NONE = 0x0000,
 			FLOAT = 0x1406,
 			INT = 0x1404,
 			BOOL = 0x8B56,
 			TEXTURE = 0x1702,
 			VECTOR // ??
+		};
+		static std::vector<std::string> variable_type_strings =
+		{
+			"none",		// 0
+			"float",	// 1
+			"int",		// 2
+			"bool",		// 3
+			"texture",	// 4
+			"vector",	// 5
 		};
 	};
 
@@ -102,8 +113,8 @@ namespace as
 
 	struct uniform
 	{
-		entity_type type = entity_type::NONE;
-		void* value = nullptr;
+		var::variable_type type = var::variable_type::NONE;
+		u64 value[MAX_UNIFORM_SIZE] = {};
 		as::entity_data entity_data = {};
 	};
 
