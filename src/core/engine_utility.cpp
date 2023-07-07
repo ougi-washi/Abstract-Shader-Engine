@@ -281,6 +281,8 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
 
 		AS_FREE(include_file);
 		AS_FREE(included_file);
+		include_file = nullptr;
+		included_file = nullptr;
 
         include_pos = strstr(include_pos + 1, "#include");
         if (!include_pos) 

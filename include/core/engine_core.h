@@ -13,8 +13,8 @@ namespace as
 	// files / entities
 	std::string variable_enum_to_string(const as::entity_type& in_type);
 	as::entity_type variable_string_to_enum(const std::string& in_type_str);
-	std::string var_type_enum_to_string(const var::variable_type& in_type);
-	as::var::variable_type var_type_string_to_enum(const std::string& in_type_str);
+	std::string uniform_type_enum_to_string(const ShaderUniformDataType& in_type);
+	ShaderUniformDataType uniform_type_string_to_enum(const std::string& in_type_str);
 	bool get_updated_path(const char* in_path, const bool& absolute_path, char* out_path);
 	json get_parsed_data(const char* path, const bool& absolute_path);
 	as::world* get_world(const char* path, const bool& absolute_path);
@@ -64,9 +64,10 @@ namespace as
 	// camera
 	as::camera* find_active_camera(const as::world* world);
 
-	// light
+	// uniforms
 	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
 	void update_time_uniforms(const Shader& shader);
+	void update_shader_uniforms(const as::shader* shader);
 	void update_shadow_map(as::light* light);
 
 	// world

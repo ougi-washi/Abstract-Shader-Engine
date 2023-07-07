@@ -33,8 +33,9 @@ using json = nlohmann::json;
 #define MAX_SUB_WORLDS_PER_WORLD 4
 #define MAX_LIGHTS_PER_WORLD 12 // NO DEFERRED YET
 
-#define MAX_UNIFORMS_PER_SHADER 256
+#define MAX_UNIFORMS_PER_SHADER 64
 #define MAX_UNIFORM_SIZE 8
+#define MAX_UNIFORM_NAME_SIZE 256
 #define MAX_MESHES_PER_MODEL 1024
 
 #define MAX_FILE_SIZE 30720
@@ -43,26 +44,29 @@ using json = nlohmann::json;
 
 namespace as
 {
-	namespace var
+	//typedef enum {
+	//	SHADER_UNIFORM_FLOAT = 0,       // Shader uniform type: float
+	//	SHADER_UNIFORM_VEC2,            // Shader uniform type: vec2 (2 float)
+	//	SHADER_UNIFORM_VEC3,            // Shader uniform type: vec3 (3 float)
+	//	SHADER_UNIFORM_VEC4,            // Shader uniform type: vec4 (4 float)
+	//	SHADER_UNIFORM_INT,             // Shader uniform type: int
+	//	SHADER_UNIFORM_IVEC2,           // Shader uniform type: ivec2 (2 int)
+	//	SHADER_UNIFORM_IVEC3,           // Shader uniform type: ivec3 (3 int)
+	//	SHADER_UNIFORM_IVEC4,           // Shader uniform type: ivec4 (4 int)
+	//	SHADER_UNIFORM_SAMPLER2D        // Shader uniform type: sampler2d
+	//} ShaderUniformDataType;
+	//ShaderUniformDataType
+	static std::vector<std::string> uniform_type_strings =
 	{
-		enum variable_type : u16
-		{
-			NONE = 0x0000,
-			FLOAT = 0x1406,
-			INT = 0x1404,
-			BOOL = 0x8B56,
-			TEXTURE = 0x1702,
-			VECTOR // ??
-		};
-		static std::vector<std::string> variable_type_strings =
-		{
-			"none",		// 0
-			"float",	// 1
-			"int",		// 2
-			"bool",		// 3
-			"texture",	// 4
-			"vector",	// 5
-		};
+		"float",		// 0
+		"vec2",	// 1
+		"vec3",		// 2
+		"vec4",		// 3
+		"int",	// 4
+		"ivec2",	// 5
+		"ivec3",	// 6
+		"ivec4",	// 7
+		"texture",	// 8
 	};
 
 	enum entity_type : u8
@@ -113,9 +117,9 @@ namespace as
 
 	struct uniform
 	{
-		var::variable_type type = var::variable_type::NONE;
+		char name[MAX_UNIFORM_NAME_SIZE] = "";
+		ShaderUniformDataType type = ShaderUniformDataType::SHADER_UNIFORM_FLOAT;
 		u64 value[MAX_UNIFORM_SIZE] = {};
-		as::entity_data entity_data = {};
 	};
 
 	struct shader
@@ -145,6 +149,8 @@ namespace as
 		};
 
 		Model data = {};
+		as::shader* shaders[MAX_MESHES_PER_MODEL] = {};
+		u16 shader_count = 0;
 		model::flag flags = {}; // TODO: Move to raylib for meshes, rather than models
 		as::entity_data entity_data = {};
 	};

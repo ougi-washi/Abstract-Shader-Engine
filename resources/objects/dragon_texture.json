@@ -1,6 +1,6 @@
 {
   "type": "texture",
-  "path": "resources/textures/marble.jpg",
+  "path": "resources/textures/test.png",
   "uniform_name": "uniform_texture",
   "absolute_path": false
 }

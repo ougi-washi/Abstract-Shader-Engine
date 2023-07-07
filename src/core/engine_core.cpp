@@ -3,6 +3,10 @@
 #include "engine_core.h"
 #include "rlgl.h"
 
+#ifndef MAX_MATERIAL_MAPS
+	#define MAX_MATERIAL_MAPS       12    // Maximum number of maps supported by raylib
+#endif
+
 void as::init_window(const u16& width, const u16& height, const char* title)
 {
 	SetConfigFlags(FLAG_VSYNC_HINT);
@@ -34,6 +38,10 @@ void as::clear_engine_entity_pool()
 {
 	if (engine_memory_pool)
 	{
+		for (u16 i = 0; i < MAX_TEXTURE_POOL_SIZE; i++)
+		{
+			UnloadTexture(engine_memory_pool->textures[i].data);
+		}
 		for (u16 i = 0 ; i < MAX_SHADER_POOL_SIZE ; i++)
 		{
 			if (engine_memory_pool->shaders[i].data.id != -1)
@@ -46,6 +54,7 @@ void as::clear_engine_entity_pool()
 		{
 			UnloadModel(engine_memory_pool->models[i].data);
 		}
+
 		AS_FREE(engine_memory_pool);
 		engine_memory_pool = nullptr;
 	}
@@ -179,22 +188,21 @@ as::entity_type as::variable_string_to_enum(const std::string& in_type_str)
 	return as::entity_type::NONE;
 }
 
-
-std::string as::var_type_enum_to_string(const var::variable_type& in_type)
+std::string as::uniform_type_enum_to_string(const ShaderUniformDataType& in_type)
 {
-	return as::var::variable_type_strings[in_type];
+	return as::uniform_type_strings[in_type];
 }
 
-as::var::variable_type as::var_type_string_to_enum(const std::string& in_type_str)
+ShaderUniformDataType as::uniform_type_string_to_enum(const std::string& in_type_str)
 {
-	for (u8 i = 0; i < as::var::variable_type_strings.size(); i++)
+	for (u8 i = 0; i < as::uniform_type_strings.size(); i++)
 	{
-		if (as::var::variable_type_strings[i] == in_type_str)
+		if (as::uniform_type_strings[i] == in_type_str)
 		{
-			return (as::var::variable_type)i;
+			return (ShaderUniformDataType)i;
 		}
 	}
-	return as::var::variable_type::NONE;
+	return ShaderUniformDataType::SHADER_UNIFORM_FLOAT;
 }
 
 as::entity_type get_type(const json& json_data)
@@ -400,6 +408,8 @@ as::model* as::get_model(const json& json_data)
 			if (found_shader && out_model->data.materialCount > i)
 			{
 				out_model->data.materials[i].shader = found_shader->data;
+				out_model->shaders[out_model->shader_count] = found_shader;
+				out_model->shader_count++;
 				if (found_shader->is_translucent)
 				{
 					out_model->flags = static_cast<as::model::flag>(out_model->flags | model::flag::TRANSLUCENT);
@@ -414,6 +424,8 @@ as::model* as::get_model(const json& json_data)
 				for (u16 i = shaders.size(); i < out_model->data.materialCount; i++)
 				{
 					out_model->data.materials[i].shader = found_shader->data;
+					out_model->shaders[out_model->shader_count] = found_shader;
+					out_model->shader_count++;
 					if (found_shader->is_translucent)
 					{
 						out_model->flags = static_cast<as::model::flag>(out_model->flags | model::flag::TRANSLUCENT);
@@ -498,7 +510,9 @@ as::shader* as::get_shader(const json& json_data)
 	//out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
 	out_shader->data = LoadShaderFromMemory(vertex_shader_code, fragment_shader_code);
 	AS_FREE(vertex_shader_code);
+	vertex_shader_code = nullptr;
 	AS_FREE(fragment_shader_code);
+	vertex_shader_code = nullptr;
 
 	if (json_data.contains("uniforms"))
 	{
@@ -538,33 +552,41 @@ as::texture* as::get_texture(const char* path, const bool& absolute_path)
 as::uniform as::get_uniform(const json& json_data)
 {
 	as::uniform out_uniform = {}; //TODO: maybe it shouldn't copy, so pass pointer in future?
-	if (json_data.contains("type"))
+	if (json_data.contains("type") && json_data.contains("value") && json_data.contains("name"))
 	{
 		std::string uniform_type = json_data["type"].get<std::string>();
-		out_uniform.type = as::var_type_string_to_enum(uniform_type);
-		switch (out_uniform.type)
+		out_uniform.type = as::uniform_type_string_to_enum(uniform_type);
+		if (out_uniform.type == ShaderUniformDataType::SHADER_UNIFORM_FLOAT)
 		{
-
-		case var::variable_type::FLOAT:
 			out_uniform.value[0] = json_data["value"].get<float>();
-			break;
-		case var::variable_type::INT:
+		}
+		else if (out_uniform.type == ShaderUniformDataType::SHADER_UNIFORM_INT)
+		{
 			out_uniform.value[0] = json_data["value"].get<i32>();
-			break;
-		case var::variable_type::BOOL:
+		}
+		else if (out_uniform.type == ShaderUniformDataType::SHADER_UNIFORM_INT)
+		{
 			out_uniform.value[0] = json_data["value"].get<bool>();
-			break;
-		case var::variable_type::TEXTURE:
-			out_uniform.value[0] = (u64)get_texture(json_data["value"]);
-			break;
-		case var::variable_type::VECTOR:
+		}
+		else if (out_uniform.type == ShaderUniformDataType::SHADER_UNIFORM_SAMPLER2D)
+		{
+			if (as::texture* out_texture = get_texture(json_data["value"]))
+			{
+				out_uniform.value[0] = (u64)&out_texture->data;
+			}
+		}
+		else if (out_uniform.type == ShaderUniformDataType::SHADER_UNIFORM_VEC3)
+		{
 			Vector3 out_vec = get_vec3(json_data["value"]);
 			out_uniform.value[0] = out_vec.x;
 			out_uniform.value[1] = out_vec.y;
 			out_uniform.value[2] = out_vec.z;
-			break;
-		default:
-			break;
+		}
+
+		std::string name_str = json_data["name"].get<std::string>();
+		if (name_str.size() <= MAX_UNIFORM_NAME_SIZE)
+		{
+			memcpy(out_uniform.name, name_str.c_str(), name_str.size() * sizeof(char));
 		}
 	}
 	return out_uniform;
@@ -576,7 +598,6 @@ as::texture* as::get_texture(const json& json_data)
 	if (json_data.contains("path"))
 	{
 		std::string texture_path = as::util::get_current_path() + "/../" + json_data["path"].get<std::string>();
-
 		out_texture = get_empty_texture_from_pool();
 		if (!out_texture)
 		{
@@ -603,7 +624,7 @@ as::texture* as::get_texture(const json& json_data)
 		if (!found_texture)
 		{
 			out_texture->data = LoadTexture(texture_path.c_str());
-			if (out_texture->data.id <= 0)
+			if (out_texture->data.id > 0)
 			{
 				AS_SET_VALID_PTR(out_texture);
 				return out_texture;
@@ -616,7 +637,16 @@ as::texture* as::get_texture(const json& json_data)
 	}
 	else
 	{
-		AS_LOG(LV_WARNING, "Texture json file does not have path");
+		std::string path_str = json_data;
+		if (path_str.size() > 0)
+		{
+			out_texture = get_texture(path_str.c_str(), false);
+			AS_SET_VALID_PTR(out_texture);
+		}
+		else
+		{
+			AS_LOG(LV_WARNING, "Texture json file does not have path");
+		}
 	}
 	return out_texture;
 }
@@ -1044,6 +1074,30 @@ void as::update_time_uniforms(const Shader& shader)
 	SetShaderValue(shader, time_location, &current_time, SHADER_UNIFORM_FLOAT);
 }
 
+void as::update_shader_uniforms(const as::shader* shader)
+{
+	for (u16 i = 0 ; i < shader->uniforms_count; i++)
+	{
+		const i32 uniform_location = GetShaderLocation(shader->data, shader->uniforms[i].name);
+		if (shader->uniforms[i].type == ShaderUniformDataType::SHADER_UNIFORM_SAMPLER2D)
+		{
+			Texture* found_texture = (Texture*)shader->uniforms[i].value[0];
+			if (found_texture)
+			{
+				const i32 texture_index = MAX_MATERIAL_MAPS + i; // how the texture is stored in the GPU
+				rlActiveTextureSlot(texture_index);
+				rlEnableTexture(found_texture->id);
+				rlSetUniform(uniform_location, &texture_index, SHADER_UNIFORM_INT, 1);
+				//SetShaderValue(shader->data, uniform_location, &found_texture, SHADER_UNIFORM_VEC4);
+			}
+		}
+		else
+		{
+			SetShaderValue(shader->data, uniform_location, &shader->uniforms[i].value[0], shader->uniforms[i].type);
+		}
+	}
+}
+
 void as::update_shadow_map(as::light* light)
 {
 	if (light)
@@ -1105,11 +1159,14 @@ bool as::draw(as::world* world)
 				{
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
 					update_time_uniforms(world->models[i]->data.materials[j].shader);
+					for (u16 k = 0; k < world->models[i]->shader_count; k++)
+					{
+						update_shader_uniforms(world->models[i]->shaders[k]);
+					}
 				}
 				DrawModel(world->models[i]->data, get_location(world->models[i]->data.transform), 1.0, WHITE);
 			}
 		}
-		DrawGrid(30, 10.f);
 
 		// Render translucent meshes 
 		//rlDisableDepthTest(); (should change depth here)

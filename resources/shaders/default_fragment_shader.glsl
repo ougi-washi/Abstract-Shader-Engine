@@ -1,10 +1,13 @@
 #include "resources/shaders/common/fragment_shader_common.glsl"
 
+uniform sampler2D my_test_sampler;
+
 void main()
 {
+
 	// ambient color
 	vec3 final_color = vec3(0.03);
-
+	vec4 my_test_texture = texture2D(my_test_sampler, fragTexCoord.xy);
 	// first ambient pass for lights
 	for(int i = 0 ; i < lights_count ; i++)
 	{ 
@@ -22,5 +25,5 @@ void main()
 	
 	final_color = final_color + vec3(abs(sin(time * 3.0)) * 0.1);
 	// output
-	finalColor = vec4(final_color, 1.f);
+	finalColor = vec4(my_test_texture.xyz, 1.);
 };

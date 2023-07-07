@@ -3,16 +3,16 @@
   "vertex_path": "resources/shaders/default_vertex_shader.glsl",
   "fragment_path": "resources/shaders/default_fragment_shader.glsl",
   "uniforms": [
-    [
-      "base_color",
-      "texture",
-      "resources/objects/dragon_texture.json"
-    ],
-    [
-      "translucency",
-      "float",
-      "0.50"
-    ]
+    {
+      "name": "my_test_sampler",
+      "type": "texture",
+      "value": "resources/objects/dragon_texture.json"
+    },
+    {
+      "name": "translucency",
+      "type": "float",
+      "value": 0.50
+    }
   ],
   "absolute_path": false
 }
