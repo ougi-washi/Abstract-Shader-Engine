@@ -35,6 +35,7 @@ namespace as
 	bool add_light_to_world(as::world* world, as::light* light);
 	bool add_camera_to_world(as::world* world, as::camera* camera);
 	void update_model_transform(as::model* model, const json& json_data, const bool& init);
+	bool update_uniform_shader_location(const as::shader* shader, as::uniform& uniform);
 
 	// transform
 	void apply_location(const Vector3& location, Matrix& transform_matrix);
@@ -66,7 +67,7 @@ namespace as
 
 	// uniforms
 	void update_lights_uniforms(const Shader& shader, as::light** lights, const u32& lights_count);
-	void update_time_uniforms(const Shader& shader);
+	void update_general_uniforms(const Shader& shader);
 	void update_shader_uniforms(const as::shader* shader);
 	void update_shadow_map(as::light* light);
 

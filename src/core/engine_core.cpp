@@ -44,15 +44,23 @@ void as::clear_engine_entity_pool()
 		}
 		for (u16 i = 0 ; i < MAX_SHADER_POOL_SIZE ; i++)
 		{
-			if (engine_memory_pool->shaders[i].data.id != -1)
+			if (AS_IS_VALID(engine_memory_pool->shaders[i]))
 			{
 				UnloadShader(engine_memory_pool->shaders[i].data);
-				engine_memory_pool->shaders[i].data.id = -1;
+				AS_SET_INVALID(engine_memory_pool->shaders[i]);
 			}
 		}
 		for (u16 i = 0 ; i < MAX_MODEL_POOL_SIZE ; i++)
 		{
-			UnloadModel(engine_memory_pool->models[i].data);
+			if (AS_IS_VALID(engine_memory_pool->models[i]))
+			{
+				if (engine_memory_pool->models[i].data.meshes && &engine_memory_pool->models[i].data.meshes[0] && engine_memory_pool->models[i].data.meshes[0].vertexCount > 0)
+				{
+					UnloadModel(engine_memory_pool->models[i].data);
+					engine_memory_pool->models[i].data.meshes[0].vertexCount = 0;
+				}
+				AS_SET_INVALID(engine_memory_pool->models[i]);
+			}
 		}
 
 		AS_FREE(engine_memory_pool);
@@ -330,12 +338,7 @@ as::model* as::get_model(const char* path, const bool& absolute_path)
 	json json_data = get_parsed_data(path, absolute_path);
 	if (!json_data.is_null() && get_type(json_data) == as::entity_type::MODEL)
 	{
-		as::model* out_model = get_model(json_data);
-		if (out_model)
-		{
-			AS_SET_PATH_PTR(out_model, path);
-		}
-		return out_model;
+		return get_model(json_data);
 	}
 	AS_LOG(LV_WARNING, "Invalid path, cannot parse json file");
 	return nullptr;
@@ -349,7 +352,6 @@ as::model* as::get_model_instance(const json& json_data)
 	{
 		std::string model_path = json_data["path"].get<std::string>();
 		out_model = as::get_model(model_path.c_str(), is_absolute_path(json_data));
-		AS_SET_VALID_PTR(out_model);
 	}
 	else
 	{
@@ -385,7 +387,7 @@ as::model* as::get_model(const json& json_data)
 		return get_model_instance(json_data);
 	}
 	
-	// find in pool
+	// find empty slot in pool
 	as::model* out_model = get_empty_model_from_pool();
 	if (!out_model)
 	{
@@ -395,8 +397,24 @@ as::model* as::get_model(const json& json_data)
 	AS_INIT_PTR(out_model, as::model);
 	AS_SET_VALID_PTR(out_model);
 
+	bool already_loaded = false;
+	for (u32 i = 0; i < MAX_MODEL_POOL_SIZE; i++) // look if the model has been already loaded
+	{
+		if (AS_IS_VALID(engine_memory_pool->models[i]) && strcmp(engine_memory_pool->models[i].entity_data.path, model_path) == 0)
+		{
+			out_model->data = engine_memory_pool->models[i].data;
+			already_loaded = true;
+			break;
+		}
+	}
+
 	const bool absolute_path = is_absolute_path(json_data);
-	out_model->data = LoadModel(model_path);
+
+	if (!already_loaded)
+	{
+		out_model->data = LoadModel(model_path);
+	}
+	AS_SET_PATH_PTR(out_model, model_path);
 
 	if (json_data.contains("shaders"))
 	{
@@ -503,16 +521,11 @@ as::shader* as::get_shader(const json& json_data)
 
 	// load shader into data
 	std::string current_shader_path = as::util::get_current_path() + "/../";
-	char* vertex_shader_code = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
-	char* fragment_shader_code = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+	char vertex_shader_code[MAX_FILE_SIZE] = "";
+	char fragment_shader_code[MAX_FILE_SIZE] = "";
 	as::util::expand_file_includes(vertex_path.c_str(), current_shader_path.c_str(), vertex_shader_code);
 	as::util::expand_file_includes(fragment_path.c_str(), current_shader_path.c_str(), fragment_shader_code);
-	//out_shader->data = LoadShader(vertex_path.c_str(), fragment_path.c_str());
 	out_shader->data = LoadShaderFromMemory(vertex_shader_code, fragment_shader_code);
-	AS_FREE(vertex_shader_code);
-	vertex_shader_code = nullptr;
-	AS_FREE(fragment_shader_code);
-	vertex_shader_code = nullptr;
 
 	if (json_data.contains("uniforms"))
 	{
@@ -520,6 +533,7 @@ as::shader* as::get_shader(const json& json_data)
 		for (const json& current_uniform : uniforms)
 		{
 			out_shader->uniforms[out_shader->uniforms_count] = get_uniform(current_uniform);
+			update_uniform_shader_location(out_shader, out_shader->uniforms[out_shader->uniforms_count]);
 			out_shader->uniforms_count++;
 		}
 	}
@@ -624,6 +638,7 @@ as::texture* as::get_texture(const json& json_data)
 		if (!found_texture)
 		{
 			out_texture->data = LoadTexture(texture_path.c_str());
+			SetTextureFilter(out_texture->data, TEXTURE_FILTER_BILINEAR);
 			if (out_texture->data.id > 0)
 			{
 				AS_SET_VALID_PTR(out_texture);
@@ -784,26 +799,37 @@ void as::update_model_transform(as::model* model, const json& json_data, const b
 	{
 		if (init)
 		{
-			model->data.transform = MatrixIdentity();
+			model->transform = MatrixIdentity();
 		}
 		Vector3 out_vector = Vector3();
 		if (get_vec3(json_data, "scale", out_vector))
 		{
-			as::apply_scale(out_vector, model->data.transform);
+			as::apply_scale(out_vector, model->transform);
 		};
 		if (get_vec3(json_data, "rotation", out_vector))
 		{
-			as::apply_rotation(out_vector, model->data.transform);
+			as::apply_rotation(out_vector, model->transform);
 		};
 		if (get_vec3(json_data, "location", out_vector))
 		{
-			as::apply_location(out_vector, model->data.transform);
+			as::apply_location(out_vector, model->transform);
 		}
 	}
 	else
 	{
 		AS_LOG(LV_WARNING, "Cannot update model transform, model is nullptr");
 	}
+}
+
+bool as::update_uniform_shader_location(const as::shader* shader, as::uniform& uniform)
+{
+	uniform.location = GetShaderLocation(shader->data, uniform.name);
+	if (uniform.location == -1)
+	{
+		AS_LOG(LV_WARNING, std::string("Trying to update the shader uniform, but uniform " + std::string(uniform.name) + " was not found in the shader."));
+		return false;
+	}
+	return true;
 }
 
 void as::apply_location(const Vector3& location, Matrix& transform_matrix)
@@ -941,7 +967,7 @@ bool as::is_invalid(const as::entity_data& entity_data)
 
 void as::set_path(as::entity_data& entity_data, const char* path)
 {
-	memcpy(entity_data.path, path, MAX_PATH_SIZE);
+	strcpy(entity_data.path, path);
 }
 
 void as::swap_models(as::model* model1, as::model* model2)
@@ -966,12 +992,12 @@ i32 partition_models(as::model** models, const as::camera* camera, const i32& lo
 		return 0;
 	}
 
-	f32 pivot = Vector3Distance(as::get_position(models[high]->data.transform), camera->data.position);
+	f32 pivot = Vector3Distance(as::get_position(models[high]->transform), camera->data.position);
 	i32 i = low - 1;
 
 	for (i32 j = low; j < high; j++)
 	{
-		if (models[j] && Vector3Distance(as::get_position(models[j]->data.transform), camera->data.position) > pivot)
+		if (models[j] && Vector3Distance(as::get_position(models[j]->transform), camera->data.position) > pivot)
 		{
 			i++;
 			as::swap_models(models[i], models[j]);
@@ -1068,18 +1094,31 @@ void as::update_lights_uniforms(const Shader& shader, as::light** lights, const 
 	}
 }
 
-void as::update_time_uniforms(const Shader& shader)
+void as::update_general_uniforms(const Shader& shader)
 {
-	const i32 time_location = GetShaderLocation(shader, "time");
-	SetShaderValue(shader, time_location, &current_time, SHADER_UNIFORM_FLOAT);
+	// time
+	{
+		const i32 time_location = GetShaderLocation(shader, "time");
+		SetShaderValue(shader, time_location, &current_time, SHADER_UNIFORM_FLOAT);
+	}
+
+	// resolution
+	{
+		const i32 resolution_location = GetShaderLocation(shader, "resolution");
+		Vector2 current_resolution = { (f32)GetScreenWidth(), (f32)GetScreenHeight() };
+		SetShaderValue(shader, resolution_location, &current_resolution, SHADER_UNIFORM_VEC2);
+	}
 }
 
 void as::update_shader_uniforms(const as::shader* shader)
 {
 	for (u16 i = 0 ; i < shader->uniforms_count; i++)
 	{
-		const i32 uniform_location = GetShaderLocation(shader->data, shader->uniforms[i].name);
-		if (shader->uniforms[i].type == ShaderUniformDataType::SHADER_UNIFORM_SAMPLER2D)
+		if (shader->uniforms[i].location == -1)
+		{
+			continue;
+		}
+		else if (shader->uniforms[i].type == ShaderUniformDataType::SHADER_UNIFORM_SAMPLER2D)
 		{
 			Texture* found_texture = (Texture*)shader->uniforms[i].value[0];
 			if (found_texture)
@@ -1087,13 +1126,12 @@ void as::update_shader_uniforms(const as::shader* shader)
 				const i32 texture_index = MAX_MATERIAL_MAPS + i; // how the texture is stored in the GPU
 				rlActiveTextureSlot(texture_index);
 				rlEnableTexture(found_texture->id);
-				rlSetUniform(uniform_location, &texture_index, SHADER_UNIFORM_INT, 1);
-				//SetShaderValue(shader->data, uniform_location, &found_texture, SHADER_UNIFORM_VEC4);
+				rlSetUniform(shader->uniforms[i].location, &texture_index, SHADER_UNIFORM_INT, 1);
 			}
 		}
 		else
 		{
-			SetShaderValue(shader->data, uniform_location, &shader->uniforms[i].value[0], shader->uniforms[i].type);
+			SetShaderValue(shader->data, shader->uniforms[i].location, &shader->uniforms[i].value[0], shader->uniforms[i].type);
 		}
 	}
 }
@@ -1150,7 +1188,7 @@ bool as::draw(as::world* world)
 		BeginMode3D(camera_to_use->data);
 
 		// Render opaque meshes
-		//rlEnableDepthTest(); (should change depth here)
+		//rlEnableDepthTest(); //(should change depth here)
 		for (u16 i = 0; i < world->models_count; i++)
 		{
 			if (world->models[i] && AS_IS_VALID_PTR(world->models[i]) && is_not_translucent(world->models[i]))
@@ -1158,13 +1196,17 @@ bool as::draw(as::world* world)
 				for (u32 j = 0; j < world->models[i]->data.materialCount; j++)
 				{
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
-					update_time_uniforms(world->models[i]->data.materials[j].shader);
-					for (u16 k = 0; k < world->models[i]->shader_count; k++)
-					{
-						update_shader_uniforms(world->models[i]->shaders[k]);
-					}
+					update_general_uniforms(world->models[i]->data.materials[j].shader);
 				}
-				DrawModel(world->models[i]->data, get_location(world->models[i]->data.transform), 1.0, WHITE);
+				for (u16 k = 0; k < world->models[i]->shader_count; k++)
+				{
+					update_shader_uniforms(world->models[i]->shaders[k]);
+				}
+				Vector3 rotationAxis = { 0.0f, 1.0f, 0.0f };
+				DrawModelEx(
+					world->models[i]->data, 
+					get_location(world->models[i]->transform), rotationAxis, 0.0f,
+					get_scale(world->models[i]->transform), WHITE);
 			}
 		}
 
@@ -1179,7 +1221,7 @@ bool as::draw(as::world* world)
 					update_lights_uniforms(world->models[i]->data.materials[j].shader, world->lights, world->lights_count);
 					
 				}
-				Vector3 position = Vector3(world->models[i]->data.transform.m12, world->models[i]->data.transform.m13, world->models[i]->data.transform.m14);
+				Vector3 position = Vector3(world->models[i]->transform.m12, world->models[i]->transform.m13, world->models[i]->transform.m14);
 				DrawModel(world->models[i]->data, position, 1.0, WHITE);
 			}
 		}
@@ -1230,7 +1272,7 @@ bool as::draw_light_maps(as::world* world)
 		{
 			if (world->models[j] && AS_IS_VALID_PTR(world->models[j]) && is_not_translucent(world->models[j]))
 			{
-				DrawModel(world->models[j]->data, get_location(world->models[j]->data.transform), 1.0, WHITE);
+				DrawModel(world->models[j]->data, get_location(world->models[j]->transform), 1.0, WHITE);
 			}
 		}
 		EndMode3D();

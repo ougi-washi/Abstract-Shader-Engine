@@ -19,9 +19,9 @@ using json = nlohmann::json;
 
 // POOL SIZES
 #define MAX_WORLD_POOL_SIZE 8
-#define MAX_MODEL_POOL_SIZE 128
-#define MAX_SHADER_POOL_SIZE 128
-#define MAX_TEXTURE_POOL_SIZE 128
+#define MAX_MODEL_POOL_SIZE 256
+#define MAX_SHADER_POOL_SIZE 1024
+#define MAX_TEXTURE_POOL_SIZE 1024
 #define MAX_LIGHT_POOL_SIZE 64
 #define MAX_CAMERA_POOL_SIZE 16
 
@@ -58,11 +58,11 @@ namespace as
 	//ShaderUniformDataType
 	static std::vector<std::string> uniform_type_strings =
 	{
-		"float",		// 0
-		"vec2",	// 1
+		"float",	// 0
+		"vec2",		// 1
 		"vec3",		// 2
 		"vec4",		// 3
-		"int",	// 4
+		"int",		// 4
 		"ivec2",	// 5
 		"ivec3",	// 6
 		"ivec4",	// 7
@@ -120,6 +120,9 @@ namespace as
 		char name[MAX_UNIFORM_NAME_SIZE] = "";
 		ShaderUniformDataType type = ShaderUniformDataType::SHADER_UNIFORM_FLOAT;
 		u64 value[MAX_UNIFORM_SIZE] = {};
+		u8 is_dynamic : 1;
+		i32 location = -1;
+		uniform() : is_dynamic(false) {};
 	};
 
 	struct shader
@@ -149,6 +152,7 @@ namespace as
 		};
 
 		Model data = {};
+		Matrix transform = {};
 		as::shader* shaders[MAX_MESHES_PER_MODEL] = {};
 		u16 shader_count = 0;
 		model::flag flags = {}; // TODO: Move to raylib for meshes, rather than models

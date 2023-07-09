@@ -2,42 +2,25 @@
   "type": "world",
   "models": [
     {
-      "path": "resources/objects/defaults/default_box.json"
-    },
-    {
-      "path": "resources/objects/dragon_model.json"
-    },
-    {
       "path": "resources/objects/dragon_model.json",
-      "location": [ 2.0, 0.0, 0.0 ]
+      "location": [
+        0,
+        1.7,
+        0
+      ]
     },
     {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ -2.0, 0.0, 0.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ 0.0, 0.0, 2.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ 0.0, 0.0, -2.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ 2.0, 0.0, 2.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ -2.0, 0.0, 2.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ 2.0, 0.0, -2.0 ]
-    },
-    {
-      "path": "resources/objects/dragon_model.json",
-      "location": [ -2.0, 0.0, -2.0 ]
+      "path": "resources/objects/defaults/default_box.json",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        4,
+        4,
+        4
+      ]
     }
   ],
   "lights": [

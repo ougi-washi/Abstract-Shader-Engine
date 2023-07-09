@@ -228,11 +228,10 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
 		AS_LOG(LV_WARNING, "Cannot expand file includes, nullptr");
 		return;
 	}
-	char* file_path = (char*)AS_MALLOC(sizeof(char) * MAX_PATH_SIZE);
+	char file_path[MAX_PATH_SIZE] = "";
     snprintf(file_path, MAX_PATH_SIZE, "%s/%s", current_path, filename);
 
     FILE* file = fopen(file_path, "r");
-	AS_FREE(file_path);
 
     if (!file) 
     {
@@ -240,7 +239,7 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
 		return;
 	}
 
-    char* file_contents = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+    char file_contents[MAX_FILE_SIZE] = "";
     size_t read_bytes = fread(file_contents, 1, get_file_size(file), file);
     if (read_bytes == 0 && !feof(file)) 
     {
@@ -256,12 +255,12 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
         return;
     }
 
-    // Copy the portion before the first #include
-    strncpy(output, file_contents, include_pos - file_contents);
+	// Copy the portion before the first #include
+	strncpy(output, file_contents, include_pos - file_contents);
     // Find and replace all includes
     while (include_pos) 
 	{
-		char* include_file = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+		char include_file[MAX_FILE_SIZE] = "";
         char* quote_start = strchr(include_pos, '"');
         char* quote_end = strchr(quote_start + 1, '"');
 
@@ -273,16 +272,11 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
         strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
         include_file[quote_end - quote_start - 1] = '\0';
 
-		char* included_file = (char*)AS_MALLOC(sizeof(char) * MAX_FILE_SIZE);
+		char included_file[MAX_FILE_SIZE] = "";
         expand_file_includes(include_file, current_path, included_file);
 
         // Append the included file content to the output
         strcat(output, included_file);
-
-		AS_FREE(include_file);
-		AS_FREE(included_file);
-		include_file = nullptr;
-		included_file = nullptr;
 
         include_pos = strstr(include_pos + 1, "#include");
         if (!include_pos) 
@@ -296,9 +290,6 @@ void as::util::expand_file_includes(const char* filename, const char* current_pa
             strncat(output, quote_end + 1, include_pos - quote_end - 1);
         }
 	}
-
-	AS_FREE(file_contents);
-	file_contents = nullptr;
 }
 
 char* expand_file(const char* path, int depth) {

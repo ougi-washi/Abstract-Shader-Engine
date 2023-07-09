@@ -8,7 +8,6 @@ i32 main()
 	as::set_fps(60);
 	as::init_engine_entity_pool();
 	
-
 	as::world* out_world = as::get_world("resources/objects/dragon_world.json", false);
 	if (!out_world)
 	{

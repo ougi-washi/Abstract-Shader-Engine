@@ -1,0 +1,14 @@
+{
+  "type": "shader",
+  "vertex_path": "resources/shaders/default_vertex_shader.glsl",
+  "fragment_path": "resources/shaders/welcome_fragment_shader.glsl",
+  "uniforms": [
+    {
+      "name": "noise",
+      "type": "texture",
+      "value": "resources/objects/dragon_texture.json"
+    }
+  ],
+  "is_translucent": false,
+  "absolute_path": false
+}
