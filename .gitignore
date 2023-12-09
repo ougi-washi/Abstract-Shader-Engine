@@ -62,3 +62,7 @@ out/
 binaries/
 binaries/*
 !resources/*
+# all libs should be added as submodule (remove this otherwise)
+lib/
+
+
