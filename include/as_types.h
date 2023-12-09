@@ -1,10 +1,12 @@
-// MMO_ECS_SERVER - Jed Fakhfekh - https://github.com/ougi-washi
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #pragma once
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "defines/as_errors.h"
 
 // Base types
 typedef uint8_t u8;
@@ -57,11 +59,11 @@ typedef double f64;
 #endif
 
 // Variables Management
-#define as_INIT(_type, _struct)						\
+#define AS_INIT(_type, _struct)						\
 memset(_struct, 0, sizeof(_type));
-#define as_INIT_ARRAY(_type, _struct, _array_size)		\
+#define AS_INIT_ARRAY(_type, _struct, _array_size)		\
 memset(_struct, 0, sizeof(_type) * _array_size);
-#define as_CHECK_VAL(_value, _min, _max) ((_value > _min) && (_value < _max))
+#define AS_CHECK_VAL(_value, _min, _max) ((_value > _min) && (_value < _max))
 
 // LOG & ERROR handling
 #define CRASH_ON_ERROR 0
@@ -87,14 +89,14 @@ pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 
 #if defined(_DEBUG) || defined(NDEBUG) || defined(DEBUG)
-#define as_LOG(level, text)																				\
+#define AS_LOG(level, text)																				\
 	if (level == LV_LOG)				printf("LOG : %s\n", text);											\
 	else if(level == LV_WARNING)		printf("[%s|%d] WARNING: %s\n", __FILE__, __LINE__, text);			\
 	else if(level == LV_ERROR)			printf("[%s|%d] ERROR: %s\n", __FILE__, __LINE__, text);
 
-#define as_ASSERT(result, text)																			\
-if (!result) { as_LOG(LV_ERROR, text); assert(result); }
+#define AS_ASSERT(result, text)																			\
+if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 
 #else
-#define as_LOG(level, text) {};
+#define AS_LOG(level, text) {};
 #endif

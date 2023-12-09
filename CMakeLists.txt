@@ -32,10 +32,10 @@ endmacro()
 # GLFW
 message(STATUS "Adding GLFW library")
 add_subdirectory(${LIB_DIR}/glfw)
-
 # MAIN MODULE
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${INC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
+target_link_libraries(main_module PUBLIC glfw)
 
 # Executable
 add_executable(${PROJECT_NAME} main.c)

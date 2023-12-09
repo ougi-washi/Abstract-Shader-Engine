@@ -1,4 +1,4 @@
-// MMO_ECS_SERVER - Jed Fakhfekh - https://github.com/ougi-washi
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #pragma once
 #include "as_types.h"

@@ -58,4 +58,7 @@ out/
 # visual studio
 .vs/
 
+# project
+binaries/
+binaries/*
 !resources/*
