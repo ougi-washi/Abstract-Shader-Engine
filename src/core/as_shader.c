@@ -24,7 +24,7 @@ char* process_shader_source_recursive(const char* source, size_t* size, const ch
 
 		// Extract the filename from the include directive
 		size_t filename_len = include_end - (include_start + include_prefix_len);
-		char* filename = strndup(include_start + include_prefix_len, filename_len); //??
+		char* filename = strdup(include_start + include_prefix_len, filename_len); //??
 
 		// Resolve the full path to the included file
 		char* full_path;
