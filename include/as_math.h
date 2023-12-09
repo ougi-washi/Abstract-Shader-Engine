@@ -8,13 +8,14 @@
 typedef struct as_vec3
 {
 	f32 x, y, z;
-
 } as_vec3;
+
+typedef struct as_int_vec2
+{
+	i32 x, y;
+} as_int_vec2;
 
 typedef struct as_transform
 {
-	as_vec3 translation;
-	as_vec3 rotation;
-	as_vec3 scale;
-
+	f32 M[4][4];
 } as_transform;
