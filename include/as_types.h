@@ -64,6 +64,7 @@ memset(_struct, 0, sizeof(_type));
 #define AS_INIT_ARRAY(_type, _struct, _array_size)		\
 memset(_struct, 0, sizeof(_type) * _array_size);
 #define AS_CHECK_VAL(_value, _min, _max) ((_value > _min) && (_value < _max))
+#define AS_ARRAY_SIZE(_array) sizeof(_array) / sizeof(_array[0]) 
 
 // LOG & ERROR handling
 #define CRASH_ON_ERROR 0

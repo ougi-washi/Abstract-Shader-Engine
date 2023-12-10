@@ -67,6 +67,11 @@ void as_free_fn(void* _ptr)
 	{
 		allocations_count--;
 	}
+	if (_ptr)
+	{
+		free(_ptr);
+		_ptr = NULL;
+	}
 }
 
 char* as_allocation_to_string(as_allocation* _allocation)

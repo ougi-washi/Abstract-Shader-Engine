@@ -1,6 +1,7 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_utility.h"
+#include "as_memory.h"
 
 char* read_file(const char* filename, size_t* size)
 {
@@ -14,7 +15,7 @@ char* read_file(const char* filename, size_t* size)
 	*size = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	char* content = (char*)malloc(*size + 1);
+	char* content = (char*)AS_MALLOC(*size + 1);
 	if (content)
 	{
 		fread(content, 1, *size, file);

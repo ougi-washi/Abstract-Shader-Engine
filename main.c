@@ -21,8 +21,8 @@ i32 main()
 		return AS_ERROR_INVALID_DISPLAY_CONTEXT;
 	}
 
-	as_renderer renderer = {0};
-	as_renderer_create(&renderer, display_context);
+	as_render render = {0};
+	as_render_create(&render, display_context);
 
 	while (!as_display_context_should_close(display_context))
 	{
