@@ -7,3 +7,5 @@ inline void as_i32_to_str(const i32 integer, char* out_str)
 {
 	sprintf(out_str, "%d", integer);
 };
+
+char* read_file(const char* filename, size_t* size);

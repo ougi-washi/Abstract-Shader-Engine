@@ -1,6 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "core/as_window.h"
+#include "core/as_render.h"
+#include "core/as_shader.h"
 
 void key_callback(void* window, const i32 key, const i32 scancode, const i32 action, const i32 mods)
 {
@@ -18,9 +20,15 @@ i32 main()
 		AS_LOG(LV_WARNING, "invalid display context");
 		return AS_ERROR_INVALID_DISPLAY_CONTEXT;
 	}
+
+	as_render render = {0};
+	as_render_create(&render, display_context);
+
 	while (!as_display_context_should_close(display_context))
 	{
 		as_display_context_poll_event();
 	}
+	as_display_context_destroy(display_context);
+	as_display_context_terminate();
 	return 0;
 }

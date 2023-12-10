@@ -1,6 +1,7 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "core/as_window.h"
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 void* as_display_context_create(const i32 x, const i32 y, const char* title, void key_callback(void*, i32, i32, i32, i32))
@@ -9,10 +10,15 @@ void* as_display_context_create(const i32 x, const i32 y, const char* title, voi
 	{
 		return NULL;
 	}
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* display_context = glfwCreateWindow(x, y, title, NULL, NULL);
 	if (display_context)
 	{
 		glfwSetKeyCallback(display_context, key_callback);
+	}
+	if (!display_context) {
+		AS_LOG(LV_ERROR, "GLFW window creation failed");
+		glfwTerminate();
 	}
 	return display_context;
 }
