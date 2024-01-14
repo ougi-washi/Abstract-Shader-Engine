@@ -771,8 +771,6 @@ i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags p
 
 void create_vertex_buffer(as_render* render) 
 {
-	const i32 test[] = {5, 6, 5};
-	sizeof(test);
 	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
 
 	VkBuffer staging_buffer;
@@ -1041,7 +1039,6 @@ void recreate_swap_chain(as_render* render, void* display_context)
 	vkDeviceWaitIdle(render->device);
 		
 	cleanup_swap_chain(render);
-
 	create_swap_chain(render, display_context);
 	create_image_views(render);
 	create_framebuffers(render);
@@ -1136,6 +1133,8 @@ void as_render_draw_frame(as_render* render, void* display_context)
 
 void as_render_destroy(as_render* render)
 {
+	vkDeviceWaitIdle(render->device);
+
 	cleanup_swap_chain(render);
 
 	vkDestroyPipeline(render->device, render->graphics_pipeline, NULL);
