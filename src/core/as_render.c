@@ -273,7 +273,7 @@ void create_logical_device(as_render* render)
 	VkResult create_device_result = vkCreateDevice(render->physical_device, &create_info, NULL, &render->device);
 	AS_ASSERT(create_device_result == VK_SUCCESS, "Unable to create device");
 	vkGetDeviceQueue(render->device, indices.graphics_family, 0, &render->graphics_queue);
-	vkGetDeviceQueue(render->device, indices.present_family, 0, &render->graphics_queue);
+	vkGetDeviceQueue(render->device, indices.present_family, 0, &render->present_queue);
 }
 
 swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -307,7 +307,7 @@ swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device, VkS
 
 VkSurfaceFormatKHR choose_swap_surface_format(const VkSurfaceFormatKHR* formats, const u32 formats_count)
 {
-	for (uint32_t i = 0; i < formats_count; ++i) 
+	for (u32 i = 0; i < formats_count; ++i) 
 	{
 		if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) 
 		{
@@ -380,7 +380,7 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	queue_family_indices indices = find_queue_families(render->physical_device, render->surface);
-	uint32_t queue_family_indices[] = { indices.graphics_family, indices.present_family};
+	u32 queue_family_indices[] = { indices.graphics_family, indices.present_family};
 
 	if (indices.graphics_family != indices.present_family) 
 	{
@@ -642,10 +642,282 @@ void create_graphics_pipeline(as_render* render)
 	AS_FREE(attribute_descriptions);
 }
 
+void create_framebuffers(as_render* render)
+{
+	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
+
+	for (size_t i = 0; i < render->swap_chain_image_views_count; i++) {
+		VkImageView attachments[] = 
+		{
+			render->swap_chain_image_views[i]
+		};
+
+		VkFramebufferCreateInfo framebuffer_info = { 0 };
+		framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebuffer_info.renderPass = render->render_pass;
+		framebuffer_info.attachmentCount = 1;
+		framebuffer_info.pAttachments = attachments;
+		framebuffer_info.width = render->swap_chain_extent.width;
+		framebuffer_info.height = render->swap_chain_extent.height;
+		framebuffer_info.layers = 1;
+
+		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers[i]);
+		AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create framebuffer!");
+	}
+}
+
 void create_command_pool(as_render* render) 
 {
-	// Implement command pool creation logic here
+	queue_family_indices indices = find_queue_families(render->physical_device, render->surface);
+
+	VkCommandPoolCreateInfo pool_info = { 0 };
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	pool_info.queueFamilyIndex = indices.graphics_family;
+
+	AS_ASSERT(vkCreateCommandPool(render->device, &pool_info, NULL, &render->command_pool) == VK_SUCCESS, 
+		"Failed to create graphics command pool!");
 }
+
+void create_buffer(as_render* render, VkDeviceSize size, VkBufferUsageFlags usage,
+	VkMemoryPropertyFlags properties, VkBuffer* buffer, VkDeviceMemory* buffer_memory) 
+{
+	VkBufferCreateInfo buffer_info = { 0 };
+	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_info.size = size;
+	buffer_info.usage = usage;
+	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	AS_ASSERT(vkCreateBuffer(render->device, &buffer_info, NULL, buffer) == VK_SUCCESS,
+		"Failed to create buffer!");
+
+	VkMemoryRequirements mem_requirements;
+	vkGetBufferMemoryRequirements(render->device, *buffer, &mem_requirements);
+
+	VkMemoryAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = mem_requirements.size;
+	alloc_info.memoryTypeIndex = find_memory_type(render, mem_requirements.memoryTypeBits, properties);
+
+	AS_ASSERT(vkAllocateMemory(render->device, &alloc_info, NULL, buffer_memory) == VK_SUCCESS,
+		"Failed to allocate buffer memory!");
+
+	vkBindBufferMemory(render->device, *buffer, *buffer_memory, 0);
+}
+
+void copy_buffer(as_render* render, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) 
+{
+	VkCommandBufferAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandPool = render->command_pool;
+	alloc_info.commandBufferCount = 1;
+
+	VkCommandBuffer command_buffer;
+	vkAllocateCommandBuffers(render->device, &alloc_info, &command_buffer);
+
+	VkCommandBufferBeginInfo begin_info = { 0 };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(command_buffer, &begin_info);
+
+	VkBufferCopy copy_region = { 0 };
+	copy_region.size = size;
+	vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+	vkEndCommandBuffer(command_buffer);
+
+	VkSubmitInfo submit_info = { 0 };
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &command_buffer;
+
+	vkQueueSubmit(render->graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(render->graphics_queue);
+
+	vkFreeCommandBuffers(render->device, render->command_pool, 1, &command_buffer);
+}
+
+i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties mem_properties;
+	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &mem_properties);
+
+	for (i32 i = 0; i < mem_properties.memoryTypeCount; i++) 
+	{
+		if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) 
+		{
+			return i;
+		}
+	}
+
+	AS_LOG(LV_ERROR, "Failed to find suitable memory type");
+	return 0; 
+}
+
+void create_vertex_buffer(as_render* render) 
+{
+	const i32 test[] = {5, 6, 5};
+	sizeof(test);
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&staging_buffer, &staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, as_shape_quad_vertices, (size_t)buffer_size);
+	vkUnmapMemory(render->device, staging_buffer_memory);
+
+	create_buffer(render, buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->vertex_buffer, &render->vertex_buffer_memory);
+
+	copy_buffer(render, staging_buffer, render->vertex_buffer, buffer_size);
+
+	vkDestroyBuffer(render->device, staging_buffer, NULL);
+	vkFreeMemory(render->device, staging_buffer_memory, NULL);
+}
+
+void create_index_buffer(as_render* render) 
+{
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&staging_buffer, &staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, as_shape_quad_indices, buffer_size);
+	vkUnmapMemory(render->device, staging_buffer_memory);
+
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->index_buffer, &render->index_buffer_memory);
+
+	copy_buffer(render, staging_buffer, render->index_buffer, buffer_size);
+
+	vkDestroyBuffer(render->device, staging_buffer, NULL);
+	vkFreeMemory(render->device, staging_buffer_memory, NULL);
+}
+
+void create_uniform_buffers(as_render* render) 
+{
+	VkDeviceSize buffer_size = sizeof(as_uniform_buffer_object);
+
+	render->uniform_buffers = (VkBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkBuffer));
+	render->uniform_buffers_memory = (VkDeviceMemory*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDeviceMemory));
+	render->uniform_buffers_mapped = (void**)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(void*));
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		create_buffer(render, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&render->uniform_buffers[i], &render->uniform_buffers_memory[i]);
+
+		vkMapMemory(render->device, render->uniform_buffers_memory[i], 0, buffer_size, 0, &render->uniform_buffers_mapped[i]);
+	}
+}
+
+void create_descriptor_pool(as_render* render) 
+{
+	VkDescriptorPoolSize pool_size = { 0 };
+	pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_size.descriptorCount = (u32)MAX_FRAMES_IN_FLIGHT;
+
+	VkDescriptorPoolCreateInfo pool_info = { 0 };
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.poolSizeCount = 1;
+	pool_info.pPoolSizes = &pool_size;
+	pool_info.maxSets = (u32)MAX_FRAMES_IN_FLIGHT;
+
+	AS_ASSERT(vkCreateDescriptorPool(render->device, &pool_info, NULL, &render->descriptor_pool) == VK_SUCCESS, 
+		"Failed to create descriptor pool");
+}
+
+void create_descriptor_sets(as_render* render) 
+{
+	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDescriptorSetLayout));
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		layouts[i] = render->descriptor_set_layout;
+	}
+
+	VkDescriptorSetAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = render->descriptor_pool;
+	alloc_info.descriptorSetCount = (u32)MAX_FRAMES_IN_FLIGHT;
+	alloc_info.pSetLayouts = layouts;
+
+	render->descriptor_sets = (VkDescriptorSet*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDescriptorSet));
+	AS_ASSERT(vkAllocateDescriptorSets(render->device, &alloc_info, render->descriptor_sets) == VK_SUCCESS, 
+		"Failed to allocate descriptor sets!");
+
+	AS_FREE(layouts);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		VkDescriptorBufferInfo buffer_info = { 0 };
+		buffer_info.buffer = render->uniform_buffers[i];
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(as_uniform_buffer_object);
+
+		VkWriteDescriptorSet descriptor_write = { 0 };
+		descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptor_write.dstSet = render->descriptor_sets[i];
+		descriptor_write.dstBinding = 0;
+		descriptor_write.dstArrayElement = 0;
+		descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptor_write.descriptorCount = 1;
+		descriptor_write.pBufferInfo = &buffer_info;
+
+		vkUpdateDescriptorSets(render->device, 1, &descriptor_write, 0, NULL);
+	}
+}
+
+void create_command_buffers(as_render* render) 
+{
+	render->command_buffers = (VkCommandBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkCommandBuffer));
+
+	VkCommandBufferAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = render->command_pool;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+
+	AS_ASSERT(vkAllocateCommandBuffers(render->device, &alloc_info, render->command_buffers) == VK_SUCCESS, 
+		"Failed to allocate command buffers");
+}
+
+void create_sync_objects(as_render* render) 
+{
+	render->image_available_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+	render->render_finished_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+	render->in_flight_fences = (VkFence*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
+
+	VkSemaphoreCreateInfo semaphore_info = { 0 };
+	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fence_info = { 0 };
+	fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		AS_ASSERT(
+			vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]) == VK_SUCCESS &&
+			vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]) == VK_SUCCESS &&
+			vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]) == VK_SUCCESS,
+			"Failed to create synchronization objects for a frame!");
+	}
+}
+
 
 void as_render_create(as_render* render, void* display_context)
 {
@@ -658,6 +930,13 @@ void as_render_create(as_render* render, void* display_context)
 	create_render_pass(render);
 	create_descriptor_set_layout(render);
 	create_graphics_pipeline(render);
-
+	create_framebuffers(render);
 	create_command_pool(render);
+	create_vertex_buffer(render);
+	create_index_buffer(render);
+	create_uniform_buffers(render);
+	create_descriptor_pool(render);
+	create_descriptor_sets(render);
+	create_command_buffers(render);
+	create_sync_objects(render);
 }
