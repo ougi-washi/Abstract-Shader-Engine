@@ -3,6 +3,7 @@
 #include "core/as_shapes.h"
 #include "as_memory.h"
 #include "as_utility.h"
+#include <time.h>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -91,6 +92,16 @@ VkResult create_debug_utils_messenger_EXT(
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return VK_ERROR_UNKNOWN;
+}
+
+void destroy_debug_utils_messenger_EXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+	PFN_vkDestroyDebugUtilsMessengerEXT func =
+		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != NULL)
+	{
+		func(instance, debugMessenger, pAllocator);
+	}
 }
 
 VkVertexInputBindingDescription as_get_binding_description()
@@ -273,7 +284,7 @@ void create_logical_device(as_render* render)
 	VkResult create_device_result = vkCreateDevice(render->physical_device, &create_info, NULL, &render->device);
 	AS_ASSERT(create_device_result == VK_SUCCESS, "Unable to create device");
 	vkGetDeviceQueue(render->device, indices.graphics_family, 0, &render->graphics_queue);
-	vkGetDeviceQueue(render->device, indices.present_family, 0, &render->graphics_queue);
+	vkGetDeviceQueue(render->device, indices.present_family, 0, &render->present_queue);
 }
 
 swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -307,7 +318,7 @@ swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device, VkS
 
 VkSurfaceFormatKHR choose_swap_surface_format(const VkSurfaceFormatKHR* formats, const u32 formats_count)
 {
-	for (uint32_t i = 0; i < formats_count; ++i) 
+	for (u32 i = 0; i < formats_count; ++i) 
 	{
 		if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) 
 		{
@@ -380,7 +391,7 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	queue_family_indices indices = find_queue_families(render->physical_device, render->surface);
-	uint32_t queue_family_indices[] = { indices.graphics_family, indices.present_family};
+	u32 queue_family_indices[] = { indices.graphics_family, indices.present_family};
 
 	if (indices.graphics_family != indices.present_family) 
 	{
@@ -412,6 +423,7 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 void create_image_views(as_render* render) 
 {
 	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images_count * sizeof(VkImageView));
+	render->swap_chain_image_views_count = render->swap_chain_images_count;
 
 	for (size_t i = 0; i < render->swap_chain_images_count; i++) {
 		VkImageViewCreateInfo create_info = {0};
@@ -642,9 +654,394 @@ void create_graphics_pipeline(as_render* render)
 	AS_FREE(attribute_descriptions);
 }
 
+void create_framebuffers(as_render* render)
+{
+	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
+	render->swap_chain_framebuffers_count = render->swap_chain_image_views_count;
+
+	for (size_t i = 0; i < render->swap_chain_image_views_count; i++) {
+		VkImageView attachments[] = 
+		{
+			render->swap_chain_image_views[i]
+		};
+
+		VkFramebufferCreateInfo framebuffer_info = { 0 };
+		framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebuffer_info.renderPass = render->render_pass;
+		framebuffer_info.attachmentCount = 1;
+		framebuffer_info.pAttachments = attachments;
+		framebuffer_info.width = render->swap_chain_extent.width;
+		framebuffer_info.height = render->swap_chain_extent.height;
+		framebuffer_info.layers = 1;
+
+		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers[i]);
+		AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create framebuffer!");
+	}
+}
+
 void create_command_pool(as_render* render) 
 {
-	// Implement command pool creation logic here
+	queue_family_indices indices = find_queue_families(render->physical_device, render->surface);
+
+	VkCommandPoolCreateInfo pool_info = { 0 };
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	pool_info.queueFamilyIndex = indices.graphics_family;
+
+	AS_ASSERT(vkCreateCommandPool(render->device, &pool_info, NULL, &render->command_pool) == VK_SUCCESS, 
+		"Failed to create graphics command pool!");
+}
+
+void create_buffer(as_render* render, VkDeviceSize size, VkBufferUsageFlags usage,
+	VkMemoryPropertyFlags properties, VkBuffer* buffer, VkDeviceMemory* buffer_memory) 
+{
+	VkBufferCreateInfo buffer_info = { 0 };
+	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_info.size = size;
+	buffer_info.usage = usage;
+	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	AS_ASSERT(vkCreateBuffer(render->device, &buffer_info, NULL, buffer) == VK_SUCCESS,
+		"Failed to create buffer!");
+
+	VkMemoryRequirements mem_requirements;
+	vkGetBufferMemoryRequirements(render->device, *buffer, &mem_requirements);
+
+	VkMemoryAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	alloc_info.allocationSize = mem_requirements.size;
+	alloc_info.memoryTypeIndex = find_memory_type(render, mem_requirements.memoryTypeBits, properties);
+
+	AS_ASSERT(vkAllocateMemory(render->device, &alloc_info, NULL, buffer_memory) == VK_SUCCESS,
+		"Failed to allocate buffer memory!");
+
+	vkBindBufferMemory(render->device, *buffer, *buffer_memory, 0);
+}
+
+void copy_buffer(as_render* render, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) 
+{
+	VkCommandBufferAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandPool = render->command_pool;
+	alloc_info.commandBufferCount = 1;
+
+	VkCommandBuffer command_buffer;
+	vkAllocateCommandBuffers(render->device, &alloc_info, &command_buffer);
+
+	VkCommandBufferBeginInfo begin_info = { 0 };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(command_buffer, &begin_info);
+
+	VkBufferCopy copy_region = { 0 };
+	copy_region.size = size;
+	vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+	vkEndCommandBuffer(command_buffer);
+
+	VkSubmitInfo submit_info = { 0 };
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &command_buffer;
+
+	vkQueueSubmit(render->graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(render->graphics_queue);
+
+	vkFreeCommandBuffers(render->device, render->command_pool, 1, &command_buffer);
+}
+
+i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties mem_properties;
+	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &mem_properties);
+
+	for (i32 i = 0; i < mem_properties.memoryTypeCount; i++) 
+	{
+		if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) 
+		{
+			return i;
+		}
+	}
+
+	AS_LOG(LV_ERROR, "Failed to find suitable memory type");
+	return 0; 
+}
+
+void create_vertex_buffer(as_render* render) 
+{
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&staging_buffer, &staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, as_shape_quad_vertices, (size_t)buffer_size);
+	vkUnmapMemory(render->device, staging_buffer_memory);
+
+	create_buffer(render, buffer_size,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->vertex_buffer, &render->vertex_buffer_memory);
+
+	copy_buffer(render, staging_buffer, render->vertex_buffer, buffer_size);
+
+	vkDestroyBuffer(render->device, staging_buffer, NULL);
+	vkFreeMemory(render->device, staging_buffer_memory, NULL);
+}
+
+void create_index_buffer(as_render* render) 
+{
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
+
+	VkBuffer staging_buffer;
+	VkDeviceMemory staging_buffer_memory;
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&staging_buffer, &staging_buffer_memory);
+
+	void* data;
+	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
+	memcpy(data, as_shape_quad_indices, buffer_size);
+	vkUnmapMemory(render->device, staging_buffer_memory);
+
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->index_buffer, &render->index_buffer_memory);
+
+	copy_buffer(render, staging_buffer, render->index_buffer, buffer_size);
+
+	vkDestroyBuffer(render->device, staging_buffer, NULL);
+	vkFreeMemory(render->device, staging_buffer_memory, NULL);
+}
+
+void create_uniform_buffers(as_render* render) 
+{
+	VkDeviceSize buffer_size = sizeof(as_uniform_buffer_object);
+
+	render->uniform_buffers = (VkBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkBuffer));
+	render->uniform_buffers_memory = (VkDeviceMemory*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDeviceMemory));
+	render->uniform_buffers_mapped = (void**)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(void*));
+	render->uniform_buffers_count = MAX_FRAMES_IN_FLIGHT;
+	render->uniform_buffers_memory_count = MAX_FRAMES_IN_FLIGHT;
+	render->uniform_buffers_mapped_count = MAX_FRAMES_IN_FLIGHT;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		create_buffer(render, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&render->uniform_buffers[i], &render->uniform_buffers_memory[i]);
+
+		vkMapMemory(render->device, render->uniform_buffers_memory[i], 0, buffer_size, 0, &render->uniform_buffers_mapped[i]);
+	}
+}
+
+void create_descriptor_pool(as_render* render) 
+{
+	VkDescriptorPoolSize pool_size = { 0 };
+	pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_size.descriptorCount = (u32)MAX_FRAMES_IN_FLIGHT;
+
+	VkDescriptorPoolCreateInfo pool_info = { 0 };
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.poolSizeCount = 1;
+	pool_info.pPoolSizes = &pool_size;
+	pool_info.maxSets = (u32)MAX_FRAMES_IN_FLIGHT;
+
+	AS_ASSERT(vkCreateDescriptorPool(render->device, &pool_info, NULL, &render->descriptor_pool) == VK_SUCCESS, 
+		"Failed to create descriptor pool");
+}
+
+void create_descriptor_sets(as_render* render) 
+{
+	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDescriptorSetLayout));
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		layouts[i] = render->descriptor_set_layout;
+	}
+
+	VkDescriptorSetAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = render->descriptor_pool;
+	alloc_info.descriptorSetCount = (u32)MAX_FRAMES_IN_FLIGHT;
+	alloc_info.pSetLayouts = layouts;
+
+	render->descriptor_sets = (VkDescriptorSet*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDescriptorSet));
+	AS_ASSERT(vkAllocateDescriptorSets(render->device, &alloc_info, render->descriptor_sets) == VK_SUCCESS, 
+		"Failed to allocate descriptor sets!");
+
+	AS_FREE(layouts);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		VkDescriptorBufferInfo buffer_info = { 0 };
+		buffer_info.buffer = render->uniform_buffers[i];
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(as_uniform_buffer_object);
+
+		VkWriteDescriptorSet descriptor_write = { 0 };
+		descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptor_write.dstSet = render->descriptor_sets[i];
+		descriptor_write.dstBinding = 0;
+		descriptor_write.dstArrayElement = 0;
+		descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptor_write.descriptorCount = 1;
+		descriptor_write.pBufferInfo = &buffer_info;
+
+		vkUpdateDescriptorSets(render->device, 1, &descriptor_write, 0, NULL);
+	}
+}
+
+void create_command_buffers(as_render* render) 
+{
+	render->command_buffers = (VkCommandBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkCommandBuffer));
+	render->command_buffers_count = MAX_FRAMES_IN_FLIGHT;
+
+	VkCommandBufferAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = render->command_pool;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+
+	AS_ASSERT(vkAllocateCommandBuffers(render->device, &alloc_info, render->command_buffers) == VK_SUCCESS, 
+		"Failed to allocate command buffers");
+}
+
+void create_sync_objects(as_render* render) 
+{
+	render->image_available_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+	render->render_finished_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
+	render->in_flight_fences = (VkFence*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
+	render->image_available_semaphores_count = MAX_FRAMES_IN_FLIGHT;
+	render->render_finished_semaphores_count = MAX_FRAMES_IN_FLIGHT;
+	render->in_flight_fences_count = MAX_FRAMES_IN_FLIGHT;
+
+	VkSemaphoreCreateInfo semaphore_info = { 0 };
+	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fence_info = { 0 };
+	fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	{
+		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]);
+		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]);
+		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]);
+		AS_ASSERT(image_available_semaphore_create_res && render_finished_semaphore_create_res && in_flight_fence_create_res, "Failed to create synchronization objects for a frame!");
+	}
+}
+
+
+void update_uniform_buffer(as_render* render, u32 current_image) 
+{
+	static clock_t start_time = 0;
+
+	clock_t current_time = clock();
+	const float time = ((float)(current_time - start_time)) / CLOCKS_PER_SEC;
+
+	as_uniform_buffer_object ubo = { 0 };
+	const as_mat4 identity = as_mat4_identity();
+	const as_vec3 unit_z = as_vec3_unit_z();
+	const f32 angle = as_radians(90.0f);
+	ubo.model = as_rotate(&identity, time * angle, &unit_z);
+	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (float)render->swap_chain_extent.height, 0.1f, 10.0f);
+	ubo.proj.m[1][1] *= -1;
+
+	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
+}
+
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, u32 image_index)
+{
+	VkCommandBufferBeginInfo begin_info = { 0 };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	VkResult begin_command_buffer_result = vkBeginCommandBuffer(command_buffer, &begin_info);
+	AS_ASSERT(begin_command_buffer_result == VK_SUCCESS, "Failed to begin recording command buffer!");
+
+	VkRenderPassBeginInfo render_pass_info = { 0 };
+	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	render_pass_info.renderPass = render->render_pass;
+	render_pass_info.framebuffer = render->swap_chain_framebuffers[image_index];
+	render_pass_info.renderArea.offset.x = 0;
+	render_pass_info.renderArea.offset.y = 0;
+	render_pass_info.renderArea.extent = render->swap_chain_extent;
+
+	VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+	render_pass_info.clearValueCount = 1;
+	render_pass_info.pClearValues = &clear_color;
+
+	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
+
+	VkViewport viewport = { 0 };
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)render->swap_chain_extent.width;
+	viewport.height = (float)render->swap_chain_extent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+	VkRect2D scissor = { 0 };
+	scissor.offset.x = 0;
+	scissor.offset.y = 0;
+	scissor.extent = render->swap_chain_extent;
+	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+	VkBuffer vertex_buffers[] = { render->vertex_buffer };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+	vkCmdBindIndexBuffer(command_buffer, render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
+
+	vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
+
+	vkCmdEndRenderPass(command_buffer);
+
+	VkResult end_command_buffer_result = vkEndCommandBuffer(command_buffer);
+	AS_ASSERT(end_command_buffer_result == VK_SUCCESS, "Failed to record command buffer!");
+}
+
+void cleanup_swap_chain(as_render* render)
+{
+	for (size_t i = 0; i < render->swap_chain_framebuffers_count; i++)
+	{
+		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
+	}
+
+	for (size_t i = 0; i < render->swap_chain_images_count; i++)
+	{
+		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
+	}
+
+	vkDestroySwapchainKHR(render->device, render->swap_chain, NULL);
+}
+
+void recreate_swap_chain(as_render* render, void* display_context)
+{
+	i32 width = 0, height = 0;
+	glfwGetFramebufferSize(display_context, &width, &height);
+
+	while (width == 0 || height == 0) 
+	{
+		glfwGetFramebufferSize(display_context, &width, &height);
+		glfwWaitEvents();
+	}
+
+	vkDeviceWaitIdle(render->device);
+		
+	cleanup_swap_chain(render);
+	create_swap_chain(render, display_context);
+	create_image_views(render);
+	create_framebuffers(render);
 }
 
 void as_render_create(as_render* render, void* display_context)
@@ -658,6 +1055,135 @@ void as_render_create(as_render* render, void* display_context)
 	create_render_pass(render);
 	create_descriptor_set_layout(render);
 	create_graphics_pipeline(render);
-
+	create_framebuffers(render);
 	create_command_pool(render);
+	create_vertex_buffer(render);
+	create_index_buffer(render);
+	create_uniform_buffers(render);
+	create_descriptor_pool(render);
+	create_descriptor_sets(render);
+	create_command_buffers(render);
+	create_sync_objects(render);
+}
+
+void as_render_draw_frame(as_render* render, void* display_context)
+{
+	vkWaitForFences(render->device, 1, &render->in_flight_fences[render->current_frame], VK_TRUE, UINT64_MAX);
+
+	u32 image_index;
+	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores[render->current_frame], VK_NULL_HANDLE, &image_index);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+	{
+		recreate_swap_chain(render, display_context);
+		return;
+	}
+	AS_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swap chain image!");
+
+	update_uniform_buffer(render, render->current_frame);
+
+	vkResetFences(render->device, 1, &render->in_flight_fences[render->current_frame]);
+
+	vkResetCommandBuffer(render->command_buffers[render->current_frame], 0);
+	record_command_buffer(render, render->command_buffers[render->current_frame], image_index);
+
+	VkSubmitInfo submit_info = { 0 };
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore wait_semaphores[] = { render->image_available_semaphores[render->current_frame] };
+	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = wait_semaphores;
+	submit_info.pWaitDstStageMask = wait_stages;
+
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &render->command_buffers[render->current_frame];
+
+	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores[render->current_frame] };
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = signal_semaphores;
+
+	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
+
+	VkPresentInfoKHR present_info = { 0 };
+	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = signal_semaphores;
+
+	VkSwapchainKHR swap_chains[] = { render->swap_chain };
+	present_info.swapchainCount = 1;
+	present_info.pSwapchains = swap_chains;
+
+	present_info.pImageIndices = &image_index;
+
+	result = vkQueuePresentKHR(render->present_queue, &present_info);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || render->framebuffer_resized) 
+	{
+		render->framebuffer_resized = false;
+		recreate_swap_chain(render, display_context);
+	}
+	else if (result != VK_SUCCESS) {
+		AS_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+	}
+
+	render->current_frame = (render->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void as_render_destroy(as_render* render)
+{
+	vkDeviceWaitIdle(render->device);
+
+	cleanup_swap_chain(render);
+
+	vkDestroyPipeline(render->device, render->graphics_pipeline, NULL);
+	vkDestroyPipelineLayout(render->device, render->pipeline_layout, NULL);
+	vkDestroyRenderPass(render->device, render->render_pass, NULL);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroyBuffer(render->device, render->uniform_buffers[i], NULL);
+		vkFreeMemory(render->device, render->uniform_buffers_memory[i], NULL);
+	}
+
+	vkDestroyDescriptorPool(render->device, render->descriptor_pool, NULL);
+
+	vkDestroyDescriptorSetLayout(render->device, render->descriptor_set_layout, NULL);
+
+	vkDestroyBuffer(render->device, render->index_buffer, NULL);
+	vkFreeMemory(render->device, render->index_buffer_memory, NULL);
+
+	vkDestroyBuffer(render->device, render->vertex_buffer, NULL);
+	vkFreeMemory(render->device, render->vertex_buffer_memory, NULL);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroySemaphore(render->device, render->render_finished_semaphores[i], NULL);
+		vkDestroySemaphore(render->device, render->image_available_semaphores[i], NULL);
+		vkDestroyFence(render->device, render->in_flight_fences[i], NULL);
+	}
+
+	vkDestroyCommandPool(render->device, render->command_pool, NULL);
+
+	vkDestroyDevice(render->device, NULL);
+
+	if (AS_USE_VULKAN_VALIDATION_LAYER)
+	{
+		destroy_debug_utils_messenger_EXT(render->instance, render->debug_messenger, NULL);
+	}
+
+	vkDestroySurfaceKHR(render->instance, render->surface, NULL);
+	vkDestroyInstance(render->instance, NULL);
+}
+
+as_object* as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path)
+{
+	AS_LOG(LV_WARNING, "Not as_add_object is implemented");
+	return NULL;
+}
+
+void as_delete_object(as_render* render, as_object* object)
+{
+	AS_LOG(LV_WARNING, "Not as_delete_object is implemented");
 }

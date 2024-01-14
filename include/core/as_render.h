@@ -5,11 +5,13 @@
 #include "as_math.h"
 #include <vulkan/vulkan.h>
 
+#define MAX_FRAMES_IN_FLIGHT 2
+
 typedef struct as_uniform_buffer_object 
 {
-	as_mat4 model;        
-	as_mat4 view;         
-	as_mat4 projection;   
+	as_mat4 model;
+	as_mat4 view;
+	as_mat4 proj;
 } as_uniform_buffer_object;
 
 typedef struct as_vertex
@@ -53,6 +55,7 @@ typedef struct as_render
 	u32 swap_chain_image_views_count;
 	VkFramebuffer* swap_chain_framebuffers;
 	u32 swap_chain_framebuffers_count;
+	bool framebuffer_resized;
 
 	VkRenderPass render_pass;
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -71,6 +74,7 @@ typedef struct as_render
 	VkDeviceMemory* uniform_buffers_memory;
 	u32 uniform_buffers_memory_count;
 	void** uniform_buffers_mapped;
+	u32 uniform_buffers_mapped_count;
 
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorSet* descriptor_sets;
@@ -78,17 +82,16 @@ typedef struct as_render
 
 	VkCommandBuffer* command_buffers;
 	u32 command_buffers_count;
-	
+
 	VkSemaphore* image_available_semaphores;
 	u32 image_available_semaphores_count;
 	VkSemaphore* render_finished_semaphores;
 	u32 render_finished_semaphores_count;
 	VkFence* in_flight_fences;
 	u32 in_flight_fences_count;
-	
+
 	u32 current_frame;
 } as_render;
-
 
 void as_render_create(as_render* render, void* display_context);
 void as_render_draw_frame(as_render* render, void* display_context);
