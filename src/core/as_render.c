@@ -3,6 +3,7 @@
 #include "core/as_shapes.h"
 #include "as_memory.h"
 #include "as_utility.h"
+#include <time.h>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -91,6 +92,16 @@ VkResult create_debug_utils_messenger_EXT(
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 	return VK_ERROR_UNKNOWN;
+}
+
+void destroy_debug_utils_messenger_EXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+	PFN_vkDestroyDebugUtilsMessengerEXT func =
+		(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != NULL)
+	{
+		func(instance, debugMessenger, pAllocator);
+	}
 }
 
 VkVertexInputBindingDescription as_get_binding_description()
@@ -412,6 +423,7 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 void create_image_views(as_render* render) 
 {
 	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images_count * sizeof(VkImageView));
+	render->swap_chain_image_views_count = render->swap_chain_images_count;
 
 	for (size_t i = 0; i < render->swap_chain_images_count; i++) {
 		VkImageViewCreateInfo create_info = {0};
@@ -645,6 +657,7 @@ void create_graphics_pipeline(as_render* render)
 void create_framebuffers(as_render* render)
 {
 	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
+	render->swap_chain_framebuffers_count = render->swap_chain_image_views_count;
 
 	for (size_t i = 0; i < render->swap_chain_image_views_count; i++) {
 		VkImageView attachments[] = 
@@ -814,6 +827,9 @@ void create_uniform_buffers(as_render* render)
 	render->uniform_buffers = (VkBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkBuffer));
 	render->uniform_buffers_memory = (VkDeviceMemory*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDeviceMemory));
 	render->uniform_buffers_mapped = (void**)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(void*));
+	render->uniform_buffers_count = MAX_FRAMES_IN_FLIGHT;
+	render->uniform_buffers_memory_count = MAX_FRAMES_IN_FLIGHT;
+	render->uniform_buffers_mapped_count = MAX_FRAMES_IN_FLIGHT;
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
@@ -884,6 +900,7 @@ void create_descriptor_sets(as_render* render)
 void create_command_buffers(as_render* render) 
 {
 	render->command_buffers = (VkCommandBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkCommandBuffer));
+	render->command_buffers_count = MAX_FRAMES_IN_FLIGHT;
 
 	VkCommandBufferAllocateInfo alloc_info = { 0 };
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -900,6 +917,9 @@ void create_sync_objects(as_render* render)
 	render->image_available_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
 	render->render_finished_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
 	render->in_flight_fences = (VkFence*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
+	render->image_available_semaphores_count = MAX_FRAMES_IN_FLIGHT;
+	render->render_finished_semaphores_count = MAX_FRAMES_IN_FLIGHT;
+	render->in_flight_fences_count = MAX_FRAMES_IN_FLIGHT;
 
 	VkSemaphoreCreateInfo semaphore_info = { 0 };
 	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -910,14 +930,122 @@ void create_sync_objects(as_render* render)
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
-		AS_ASSERT(
-			vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]) == VK_SUCCESS &&
-			vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]) == VK_SUCCESS &&
-			vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]) == VK_SUCCESS,
-			"Failed to create synchronization objects for a frame!");
+		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]);
+		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]);
+		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]);
+		AS_ASSERT(image_available_semaphore_create_res && render_finished_semaphore_create_res && in_flight_fence_create_res, "Failed to create synchronization objects for a frame!");
 	}
 }
 
+
+void update_uniform_buffer(as_render* render, u32 current_image) 
+{
+	static clock_t start_time = 0;
+
+	clock_t current_time = clock();
+	const float time = ((float)(current_time - start_time)) / CLOCKS_PER_SEC;
+
+	as_uniform_buffer_object ubo = { 0 };
+	const as_mat4 identity = as_mat4_identity();
+	const as_vec3 unit_z = as_vec3_unit_z();
+	const f32 angle = as_radians(90.0f);
+	ubo.model = as_rotate(&identity, time * angle, &unit_z);
+	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (float)render->swap_chain_extent.height, 0.1f, 10.0f);
+	ubo.proj.m[1][1] *= -1;
+
+	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
+}
+
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, u32 image_index)
+{
+	VkCommandBufferBeginInfo begin_info = { 0 };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	VkResult begin_command_buffer_result = vkBeginCommandBuffer(command_buffer, &begin_info);
+	AS_ASSERT(begin_command_buffer_result == VK_SUCCESS, "Failed to begin recording command buffer!");
+
+	VkRenderPassBeginInfo render_pass_info = { 0 };
+	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	render_pass_info.renderPass = render->render_pass;
+	render_pass_info.framebuffer = render->swap_chain_framebuffers[image_index];
+	render_pass_info.renderArea.offset.x = 0;
+	render_pass_info.renderArea.offset.y = 0;
+	render_pass_info.renderArea.extent = render->swap_chain_extent;
+
+	VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+	render_pass_info.clearValueCount = 1;
+	render_pass_info.pClearValues = &clear_color;
+
+	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
+
+	VkViewport viewport = { 0 };
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)render->swap_chain_extent.width;
+	viewport.height = (float)render->swap_chain_extent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+	VkRect2D scissor = { 0 };
+	scissor.offset.x = 0;
+	scissor.offset.y = 0;
+	scissor.extent = render->swap_chain_extent;
+	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+	VkBuffer vertex_buffers[] = { render->vertex_buffer };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+	vkCmdBindIndexBuffer(command_buffer, render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
+
+	vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
+
+	vkCmdEndRenderPass(command_buffer);
+
+	VkResult end_command_buffer_result = vkEndCommandBuffer(command_buffer);
+	AS_ASSERT(end_command_buffer_result == VK_SUCCESS, "Failed to record command buffer!");
+}
+
+void cleanup_swap_chain(as_render* render)
+{
+	for (size_t i = 0; i < render->swap_chain_framebuffers_count; i++)
+	{
+		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
+	}
+
+	for (size_t i = 0; i < render->swap_chain_images_count; i++)
+	{
+		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
+	}
+
+	vkDestroySwapchainKHR(render->device, render->swap_chain, NULL);
+}
+
+void recreate_swap_chain(as_render* render, void* display_context)
+{
+	i32 width = 0, height = 0;
+	glfwGetFramebufferSize(display_context, &width, &height);
+
+	while (width == 0 || height == 0) 
+	{
+		glfwGetFramebufferSize(display_context, &width, &height);
+		glfwWaitEvents();
+	}
+
+	vkDeviceWaitIdle(render->device);
+		
+	cleanup_swap_chain(render);
+
+	create_swap_chain(render, display_context);
+	create_image_views(render);
+	create_framebuffers(render);
+}
 
 void as_render_create(as_render* render, void* display_context)
 {
@@ -939,4 +1067,124 @@ void as_render_create(as_render* render, void* display_context)
 	create_descriptor_sets(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
+}
+
+void as_render_draw_frame(as_render* render, void* display_context)
+{
+	vkWaitForFences(render->device, 1, &render->in_flight_fences[render->current_frame], VK_TRUE, UINT64_MAX);
+
+	u32 image_index;
+	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores[render->current_frame], VK_NULL_HANDLE, &image_index);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+	{
+		recreate_swap_chain(render, display_context);
+		return;
+	}
+	AS_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swap chain image!");
+
+	update_uniform_buffer(render, render->current_frame);
+
+	vkResetFences(render->device, 1, &render->in_flight_fences[render->current_frame]);
+
+	vkResetCommandBuffer(render->command_buffers[render->current_frame], 0);
+	record_command_buffer(render, render->command_buffers[render->current_frame], image_index);
+
+	VkSubmitInfo submit_info = { 0 };
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore wait_semaphores[] = { render->image_available_semaphores[render->current_frame] };
+	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = wait_semaphores;
+	submit_info.pWaitDstStageMask = wait_stages;
+
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &render->command_buffers[render->current_frame];
+
+	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores[render->current_frame] };
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = signal_semaphores;
+
+	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
+
+	VkPresentInfoKHR present_info = { 0 };
+	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = signal_semaphores;
+
+	VkSwapchainKHR swap_chains[] = { render->swap_chain };
+	present_info.swapchainCount = 1;
+	present_info.pSwapchains = swap_chains;
+
+	present_info.pImageIndices = &image_index;
+
+	result = vkQueuePresentKHR(render->present_queue, &present_info);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || render->framebuffer_resized) 
+	{
+		render->framebuffer_resized = false;
+		recreate_swap_chain(render, display_context);
+	}
+	else if (result != VK_SUCCESS) {
+		AS_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+	}
+
+	render->current_frame = (render->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void as_render_destroy(as_render* render)
+{
+	cleanup_swap_chain(render);
+
+	vkDestroyPipeline(render->device, render->graphics_pipeline, NULL);
+	vkDestroyPipelineLayout(render->device, render->pipeline_layout, NULL);
+	vkDestroyRenderPass(render->device, render->render_pass, NULL);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroyBuffer(render->device, render->uniform_buffers[i], NULL);
+		vkFreeMemory(render->device, render->uniform_buffers_memory[i], NULL);
+	}
+
+	vkDestroyDescriptorPool(render->device, render->descriptor_pool, NULL);
+
+	vkDestroyDescriptorSetLayout(render->device, render->descriptor_set_layout, NULL);
+
+	vkDestroyBuffer(render->device, render->index_buffer, NULL);
+	vkFreeMemory(render->device, render->index_buffer_memory, NULL);
+
+	vkDestroyBuffer(render->device, render->vertex_buffer, NULL);
+	vkFreeMemory(render->device, render->vertex_buffer_memory, NULL);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroySemaphore(render->device, render->render_finished_semaphores[i], NULL);
+		vkDestroySemaphore(render->device, render->image_available_semaphores[i], NULL);
+		vkDestroyFence(render->device, render->in_flight_fences[i], NULL);
+	}
+
+	vkDestroyCommandPool(render->device, render->command_pool, NULL);
+
+	vkDestroyDevice(render->device, NULL);
+
+	if (AS_USE_VULKAN_VALIDATION_LAYER)
+	{
+		destroy_debug_utils_messenger_EXT(render->instance, render->debug_messenger, NULL);
+	}
+
+	vkDestroySurfaceKHR(render->instance, render->surface, NULL);
+	vkDestroyInstance(render->instance, NULL);
+}
+
+as_object* as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path)
+{
+	AS_LOG(LV_WARNING, "Not as_add_object is implemented");
+	return NULL;
+}
+
+void as_delete_object(as_render* render, as_object* object)
+{
+	AS_LOG(LV_WARNING, "Not as_delete_object is implemented");
 }

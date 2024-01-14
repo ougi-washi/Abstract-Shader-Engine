@@ -27,6 +27,7 @@ i32 main()
 	while (!as_display_context_should_close(display_context))
 	{
 		as_display_context_poll_event();
+		as_render_draw_frame(&render, display_context);
 	}
 	as_display_context_destroy(display_context);
 	as_display_context_terminate();
