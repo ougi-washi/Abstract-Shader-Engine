@@ -948,7 +948,6 @@ void update_uniform_buffer(as_render* render, const u32 current_image)
 	const as_vec3 unit_z = as_vec3_unit_z();
 	const f32 angle = as_radians(90.0f);
 	ubo.model = as_rotate(&identity, time * angle, &unit_z);
-	//ubo.model = identity;
 	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
 	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 100.f);
 	ubo.proj.m[1][1] *= -1;
@@ -1002,8 +1001,6 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
-
-		//vkCmdDraw(command_buffer, as_shape_quad_indices_size, 1, 0, 0);
 
 		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
 

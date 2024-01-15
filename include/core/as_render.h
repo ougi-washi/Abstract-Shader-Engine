@@ -7,7 +7,7 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-typedef struct as_uniform_buffer_object 
+typedef struct as_uniform_buffer_object
 {
 	as_mat4 model;
 	as_mat4 view;
