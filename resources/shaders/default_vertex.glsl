@@ -1,6 +1,6 @@
 #version 450
 
-layout(binding = 0) uniform uniform_buffer_object 
+layout(binding = 0) uniform as_uniform_buffer_object 
 {
     mat4 model;
     mat4 view;
@@ -14,6 +14,6 @@ layout(location = 0) out vec3 fragColor;
 
 void main() 
 {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.0, 1.0);
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 0.f, 1.0);
     fragColor = inColor;
 }

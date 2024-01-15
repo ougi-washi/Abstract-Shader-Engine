@@ -41,6 +41,7 @@ extern as_vec3 as_vec3_unit_z();
 
 // mat4
 extern as_mat4 as_mat4_identity();
+extern void as_translate(as_mat4* m, const as_vec3* translation);
 extern as_mat4 as_rotate(const as_mat4* m, const f32 angle, const as_vec3* v);
 extern as_mat4 as_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up);
 extern as_mat4 as_perspective(const f32 fov, const f32 aspect, const f32 near_plane, const f32 far_plane);
