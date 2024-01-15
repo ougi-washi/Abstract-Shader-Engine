@@ -3,7 +3,6 @@
 #include "as_math.h"
 #include <math.h>
 
-
 f32 as_radians(f32 degrees)
 {
 	return degrees * (AS_PI / 180.0f);
@@ -40,6 +39,13 @@ as_mat4 as_mat4_identity()
 	result.m[2][2] = 1.0f;
 	result.m[3][3] = 1.0f;
 	return result;
+}
+
+void as_translate(as_mat4* m, const as_vec3* translation)
+{
+	m->m[0][3] += translation->x;
+	m->m[1][3] += translation->y;
+	m->m[2][3] += translation->z;
 }
 
 //as_mat4 as_rotate(const as_vec3* axis, const f32 angle)
@@ -137,10 +143,10 @@ as_mat4 as_perspective(const f32 fov, const f32 aspect, const f32 near_plane, co
 	f32 tan_half_fov = tanf(fov / 2.0f);
 	as_mat4 result = 
 	{ {
-		{1.0f / (aspect * tan_half_fov), 0.0f, 0.0f, 0.0f},
-		{0.0f, 1.0f / tan_half_fov, 0.0f, 0.0f},
-		{0.0f, 0.0f, (far_plane + near_plane) / (near_plane - far_plane), -1.0f},
-		{0.0f, 0.0f, (2.0f * far_plane * near_plane) / (near - far_plane), 0.0f},
+		{1.0f / (aspect * tan_half_fov),	0.0f,					0.0f,													0.0f},
+		{0.0f,								1.0f / tan_half_fov,	0.0f,													0.0f},
+		{0.0f,								0.0f,					(far_plane + near_plane) / (near_plane - far_plane),	-1.0f},
+		{0.0f,								0.0f,					(2.0f * far_plane * near_plane) / (near - far_plane),	0.0f},
 	} };
 	return result;
 }

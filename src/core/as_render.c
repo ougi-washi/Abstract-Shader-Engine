@@ -250,7 +250,7 @@ void create_logical_device(as_render* render)
 		indices.present_family
 	};
 
-	float queue_priority = 1.0f;
+	f32 queue_priority = 1.0f;
 	for (u32 i = 0; i < 2; i++)
 	{
 		VkDeviceQueueCreateInfo queue_create_info = {0};
@@ -584,7 +584,7 @@ void create_graphics_pipeline(as_render* render)
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -806,10 +806,11 @@ void create_index_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_indices, buffer_size);
+	memcpy(data, as_shape_quad_indices, (size_t)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
-	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+	create_buffer(render, buffer_size, 
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->index_buffer, &render->index_buffer_memory);
 
 	copy_buffer(render, staging_buffer, render->index_buffer, buffer_size);
@@ -935,13 +936,12 @@ void create_sync_objects(as_render* render)
 	}
 }
 
-
-void update_uniform_buffer(as_render* render, u32 current_image) 
+void update_uniform_buffer(as_render* render, const u32 current_image) 
 {
 	static clock_t start_time = 0;
 
 	clock_t current_time = clock();
-	const float time = ((float)(current_time - start_time)) / CLOCKS_PER_SEC;
+	const f32 time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
 
 	as_uniform_buffer_object ubo = { 0 };
 	const as_mat4 identity = as_mat4_identity();
@@ -949,13 +949,13 @@ void update_uniform_buffer(as_render* render, u32 current_image)
 	const f32 angle = as_radians(90.0f);
 	ubo.model = as_rotate(&identity, time * angle, &unit_z);
 	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (float)render->swap_chain_extent.height, 0.1f, 10.0f);
+	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 100.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
 }
 
-void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, u32 image_index)
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -976,34 +976,35 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, u3
 	render_pass_info.pClearValues = &clear_color;
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+	{
+		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
 
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
+		VkViewport viewport = { 0 };
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = (f32)render->swap_chain_extent.width;
+		viewport.height = (f32)render->swap_chain_extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-	VkViewport viewport = { 0 };
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (float)render->swap_chain_extent.width;
-	viewport.height = (float)render->swap_chain_extent.height;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+		VkRect2D scissor = { 0 };
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		scissor.extent = render->swap_chain_extent;
+		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-	VkRect2D scissor = { 0 };
-	scissor.offset.x = 0;
-	scissor.offset.y = 0;
-	scissor.extent = render->swap_chain_extent;
-	vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+		VkBuffer vertex_buffers[] = { render->vertex_buffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+		vkCmdBindIndexBuffer(command_buffer, render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
-	VkBuffer vertex_buffers[] = { render->vertex_buffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
 
-	vkCmdBindIndexBuffer(command_buffer, render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
 
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
+		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
 
-	vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
-
+	}
 	vkCmdEndRenderPass(command_buffer);
 
 	VkResult end_command_buffer_result = vkEndCommandBuffer(command_buffer);
@@ -1103,7 +1104,8 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = signal_semaphores;
 
-	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, "Failed to submit draw command buffer!");
+	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, 
+		"Failed to submit draw command buffer!");
 
 	VkPresentInfoKHR present_info = { 0 };
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1124,8 +1126,9 @@ void as_render_draw_frame(as_render* render, void* display_context)
 		render->framebuffer_resized = false;
 		recreate_swap_chain(render, display_context);
 	}
-	else if (result != VK_SUCCESS) {
-		AS_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+	else if (result != VK_SUCCESS) 
+	{
+		AS_LOG(LV_ERROR, "Failed to present swap chain image!");
 	}
 
 	render->current_frame = (render->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
