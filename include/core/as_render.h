@@ -16,7 +16,7 @@ typedef struct as_uniform_buffer_object
 
 typedef struct as_vertex
 {
-	as_vec2 pos;
+	as_vec3 pos;
 	as_vec3 color;
 	as_vec2 tex_coord;
 } as_vertex;
@@ -90,6 +90,10 @@ typedef struct as_render
 	u32 render_finished_semaphores_count;
 	VkFence* in_flight_fences;
 	u32 in_flight_fences_count;
+
+	VkImage depth_image;
+	VkDeviceMemory depth_image_memory;
+	VkImageView depth_image_view;
 
 	VkImage texture_image;
 	VkDeviceMemory texture_image_memory;

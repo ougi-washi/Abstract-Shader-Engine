@@ -126,7 +126,7 @@ void as_get_attribute_descriptions(VkVertexInputAttributeDescription* attribute_
 
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
-	attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attribute_descriptions[0].offset = offsetof(as_vertex, pos);
 
 	attribute_descriptions[1].binding = 0;
@@ -186,6 +186,38 @@ queue_family_indices find_queue_families(const VkPhysicalDevice device, const Vk
 	}
 	AS_FREE(queue_families);
 	return indices;
+}
+
+VkFormat find_supported_format(as_render* render, const VkFormat* candidates, sz candidate_count, VkImageTiling tiling, VkFormatFeatureFlags features) 
+{
+	for (sz i = 0; i < candidate_count; ++i) 
+	{
+		VkFormat format = candidates[i];
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(render->physical_device, format, &props);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) 
+		{
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) 
+		{
+			return format;
+		}
+	}
+
+	AS_LOG(LV_ERROR, "Failed to find supported format");
+	return VK_FORMAT_UNDEFINED;
+}
+
+VkFormat find_depth_format(as_render* render) 
+{
+	VkFormat depth_formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+	return find_supported_format(render, depth_formats, AS_ARRAY_SIZE(depth_formats), VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
+bool has_stencil_component(VkFormat format) {
+	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 void create_instance(as_render* render)
@@ -360,7 +392,8 @@ VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR* capabilities, void
 		i32 width, height;
 		glfwGetFramebufferSize(display_context, &width, &height);
 
-		VkExtent2D actual_extent = {
+		VkExtent2D actual_extent = 
+		{
 			.width = (u32)width,
 			.height = (u32)height
 		};
@@ -429,35 +462,59 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	render->swap_chain_extent = extent;
 }
 
+VkImageView create_image_view(as_render* render, VkImage image, VkFormat format, VkImageAspectFlags aspect_flags)
+{
+	VkImageViewCreateInfo view_info = { 0 };
+	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	view_info.image = image;
+	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view_info.format = format;
+	view_info.subresourceRange.aspectMask = aspect_flags;
+	view_info.subresourceRange.baseMipLevel = 0;
+	view_info.subresourceRange.levelCount = 1;
+	view_info.subresourceRange.baseArrayLayer = 0;
+	view_info.subresourceRange.layerCount = 1;
+
+	VkImageView image_view;
+	const VkResult create_image_view_result = vkCreateImageView(render->device, &view_info, NULL, &image_view);
+	AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create texture image view!");
+
+	return image_view;
+}
+
 void create_image_views(as_render* render) 
 {
 	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images_count * sizeof(VkImageView));
 	render->swap_chain_image_views_count = render->swap_chain_images_count;
 
-	for (size_t i = 0; i < render->swap_chain_images_count; i++) {
-		VkImageViewCreateInfo create_info = {0};
-		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		create_info.image = render->swap_chain_images[i];
-		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		create_info.format = render->swap_chain_image_format;
-		create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		create_info.subresourceRange.baseMipLevel = 0;
-		create_info.subresourceRange.levelCount = 1;
-		create_info.subresourceRange.baseArrayLayer = 0;
-		create_info.subresourceRange.layerCount = 1;
-
-		const VkResult create_image_view_result = vkCreateImageView(render->device, &create_info, NULL, &render->swap_chain_image_views[i]);
-		AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create image views");
+	for (sz i = 0; i < render->swap_chain_images_count; i++) 
+	{
+		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
-}
 
+	//for (sz i = 0; i < render->swap_chain_images_count; i++) {
+	//	VkImageViewCreateInfo create_info = {0};
+	//	create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	//	create_info.image = render->swap_chain_images[i];
+	//	create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	//	create_info.format = render->swap_chain_image_format;
+	//	create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	//	create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	//	create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	//	create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+	//	create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	//	create_info.subresourceRange.baseMipLevel = 0;
+	//	create_info.subresourceRange.levelCount = 1;
+	//	create_info.subresourceRange.baseArrayLayer = 0;
+	//	create_info.subresourceRange.layerCount = 1;
+
+	//	const VkResult create_image_view_result = vkCreateImageView(render->device, &create_info, NULL, &render->swap_chain_image_views[i]);
+	//	AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create image views");
+	//}
+}
 void create_render_pass(as_render* render) 
 {
-	VkAttachmentDescription color_attachment = {0};
+	VkAttachmentDescription color_attachment = { 0 };
 	color_attachment.format = render->swap_chain_image_format;
 	color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -467,35 +524,53 @@ void create_render_pass(as_render* render)
 	color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-	VkAttachmentReference color_attachment_ref = {0};
+	VkAttachmentDescription depth_attachment = { 0 };
+	depth_attachment.format = find_depth_format(render);
+	depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference color_attachment_ref = { 0 };
 	color_attachment_ref.attachment = 0;
 	color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	VkSubpassDescription subpass = {0};
+	VkAttachmentReference depth_attachment_ref = { 0 };
+	depth_attachment_ref.attachment = 1;
+	depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass = { 0 };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &color_attachment_ref;
+	subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
-	VkSubpassDependency dependency = {0};
+	VkSubpassDependency dependency = { 0 };
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-	VkRenderPassCreateInfo render_pass_info = {0};
+	VkAttachmentDescription attachments[] = { color_attachment, depth_attachment };
+	VkRenderPassCreateInfo render_pass_info = { 0 };
 	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_info.attachmentCount = 1;
-	render_pass_info.pAttachments = &color_attachment;
+	render_pass_info.attachmentCount = AS_ARRAY_SIZE(attachments);
+	render_pass_info.pAttachments = attachments;
 	render_pass_info.subpassCount = 1;
 	render_pass_info.pSubpasses = &subpass;
 	render_pass_info.dependencyCount = 1;
 	render_pass_info.pDependencies = &dependency;
 
-	VkResult create_render_pass_result = vkCreateRenderPass(render->device, &render_pass_info, NULL, &render->render_pass);
-	AS_ASSERT(create_render_pass_result == VK_SUCCESS, "Failed to create render pass");
+	AS_ASSERT(vkCreateRenderPass(render->device, &render_pass_info, NULL, &render->render_pass) == VK_SUCCESS,
+		"Failed to create render pass");
 }
+
+
 
 void create_descriptor_set_layout(as_render* render) 
 {
@@ -609,6 +684,14 @@ void create_graphics_pipeline(as_render* render)
 	multisampling.sampleShadingEnable = VK_FALSE;
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+	VkPipelineDepthStencilStateCreateInfo depth_stencil = { 0 };
+	depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil.depthTestEnable = VK_TRUE;
+	depth_stencil.depthWriteEnable = VK_TRUE;
+	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil.depthBoundsTestEnable = VK_FALSE;
+	depth_stencil.stencilTestEnable = VK_FALSE;
+
 	// Color blend attachment state
 	VkPipelineColorBlendAttachmentState color_blend_attachment = { 0 };
 	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -653,6 +736,7 @@ void create_graphics_pipeline(as_render* render)
 	pipeline_info.pViewportState = &viewport_state;
 	pipeline_info.pRasterizationState = &rasterizer;
 	pipeline_info.pMultisampleState = &multisampling;
+	pipeline_info.pDepthStencilState = &depth_stencil;
 	pipeline_info.pColorBlendState = &color_blending;
 	pipeline_info.pDynamicState = &dynamic_state;
 	pipeline_info.layout = render->pipeline_layout;
@@ -674,16 +758,17 @@ void create_framebuffers(as_render* render)
 	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
 	render->swap_chain_framebuffers_count = render->swap_chain_image_views_count;
 
-	for (size_t i = 0; i < render->swap_chain_image_views_count; i++) {
+	for (sz i = 0; i < render->swap_chain_image_views_count; i++) {
 		VkImageView attachments[] = 
 		{
-			render->swap_chain_image_views[i]
+			render->swap_chain_image_views[i],
+			render->depth_image_view
 		};
 
 		VkFramebufferCreateInfo framebuffer_info = { 0 };
 		framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebuffer_info.renderPass = render->render_pass;
-		framebuffer_info.attachmentCount = 1;
+		framebuffer_info.attachmentCount = AS_ARRAY_SIZE(attachments);
 		framebuffer_info.pAttachments = attachments;
 		framebuffer_info.width = render->swap_chain_extent.width;
 		framebuffer_info.height = render->swap_chain_extent.height;
@@ -846,7 +931,7 @@ i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags p
 
 void create_vertex_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_vertices[0]) * as_shape_multi_quad_vertices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -856,7 +941,7 @@ void create_vertex_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_vertices, (size_t)buffer_size);
+	memcpy(data, as_shape_multi_quad_vertices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size,
@@ -871,7 +956,7 @@ void create_vertex_buffer(as_render* render)
 
 void create_index_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_indices[0]) * as_shape_multi_quad_indices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -881,7 +966,7 @@ void create_index_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_indices, (size_t)buffer_size);
+	memcpy(data, as_shape_multi_quad_indices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size, 
@@ -905,7 +990,7 @@ void create_uniform_buffers(as_render* render)
 	render->uniform_buffers_memory_count = MAX_FRAMES_IN_FLIGHT;
 	render->uniform_buffers_mapped_count = MAX_FRAMES_IN_FLIGHT;
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
 		create_buffer(render, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1014,7 +1099,7 @@ void create_sync_objects(as_render* render)
 	fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
 		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]);
 		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]);
@@ -1058,9 +1143,15 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 	render_pass_info.renderArea.offset.y = 0;
 	render_pass_info.renderArea.extent = render->swap_chain_extent;
 
-	VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	render_pass_info.clearValueCount = 1;
-	render_pass_info.pClearValues = &clear_color;
+	VkClearColorValue clear_color_value = { {0.f, 0.f, 0.f, 1.f} };
+	VkClearDepthStencilValue clear_depth_value = { 1.f, 0 };
+
+	VkClearValue clear_value_c = { .color = clear_color_value,	.depthStencil = {0} };
+	VkClearValue clear_value_d = { .color = {0},				.depthStencil = clear_depth_value };
+	VkClearValue clear_values[2] = { clear_value_c, clear_value_d }; // same order as attachments
+
+	render_pass_info.pClearValues = clear_values;
+	render_pass_info.clearValueCount = AS_ARRAY_SIZE(clear_values);
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 	{
@@ -1088,7 +1179,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
 
-		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer, as_shape_multi_quad_indices_size, 1, 0, 0, 0);
 
 	}
 	vkCmdEndRenderPass(command_buffer);
@@ -1099,36 +1190,21 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 void cleanup_swap_chain(as_render* render)
 {
-	for (size_t i = 0; i < render->swap_chain_framebuffers_count; i++)
+	for (sz i = 0; i < render->swap_chain_framebuffers_count; i++)
 	{
 		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
 	}
 
-	for (size_t i = 0; i < render->swap_chain_images_count; i++)
+	for (sz i = 0; i < render->swap_chain_images_count; i++)
 	{
 		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
 	}
 
+	vkDestroyImageView(render->device, render->depth_image_view, NULL);
+	vkDestroyImage(render->device, render->depth_image, NULL);
+	vkFreeMemory(render->device, render->depth_image_memory, NULL);
+
 	vkDestroySwapchainKHR(render->device, render->swap_chain, NULL);
-}
-
-void recreate_swap_chain(as_render* render, void* display_context)
-{
-	i32 width = 0, height = 0;
-	glfwGetFramebufferSize(display_context, &width, &height);
-
-	while (width == 0 || height == 0) 
-	{
-		glfwGetFramebufferSize(display_context, &width, &height);
-		glfwWaitEvents();
-	}
-
-	vkDeviceWaitIdle(render->device);
-		
-	cleanup_swap_chain(render);
-	create_swap_chain(render, display_context);
-	create_image_views(render);
-	create_framebuffers(render);
 }
 
 void create_image(as_render* render, u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage* image, VkDeviceMemory* imageMemory) 
@@ -1184,6 +1260,20 @@ void transition_image_layout(as_render* render, VkImage image, VkFormat format, 
 	VkPipelineStageFlags source_stage;
 	VkPipelineStageFlags destination_stage;
 
+	if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+		if (has_stencil_component(format)) 
+		{
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+	}
+	else 
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+
 	if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) 
 	{
 		barrier.srcAccessMask = 0;
@@ -1199,6 +1289,14 @@ void transition_image_layout(as_render* render, VkImage image, VkFormat format, 
 
 		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
 	else 
 	{
@@ -1217,7 +1315,6 @@ void transition_image_layout(as_render* render, VkImage image, VkFormat format, 
 	end_single_time_commands(render, command_buffer);
 }
 
-
 void create_texture_image(as_render* render) 
 {
 	u32 tex_width, tex_height, tex_channels;
@@ -1232,7 +1329,7 @@ void create_texture_image(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, image_size, 0, &data);
-	memcpy(data, pixels, (size_t)image_size);
+	memcpy(data, pixels, (sz)image_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	stbi_image_free(pixels);
@@ -1249,29 +1346,10 @@ void create_texture_image(as_render* render)
 	vkFreeMemory(render->device, staging_buffer_memory, NULL);
 }
 
-VkImageView create_image_view(as_render* render, VkImage image, VkFormat format) 
-{
-	VkImageViewCreateInfo view_info = { 0 };
-	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	view_info.image = image;
-	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	view_info.format = format;
-	view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	view_info.subresourceRange.baseMipLevel = 0;
-	view_info.subresourceRange.levelCount = 1;
-	view_info.subresourceRange.baseArrayLayer = 0;
-	view_info.subresourceRange.layerCount = 1;
-
-	VkImageView imageView;
-	const VkResult create_image_view_result = vkCreateImageView(render->device, &view_info, NULL, &imageView);
-	AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create texture image view");
-
-	return imageView;
-}
 
 void create_texture_image_view(as_render* render)
 {
-	render->texture_image_view = create_image_view(render, render->texture_image, VK_FORMAT_R8G8B8A8_SRGB);
+	render->texture_image_view = create_image_view(render, render->texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void create_texture_sampler(as_render* render) 
@@ -1298,6 +1376,17 @@ void create_texture_sampler(as_render* render)
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
 }
 
+void create_depth_resources(as_render* render) {
+	VkFormat depth_format = find_depth_format(render);
+
+	create_image(render, render->swap_chain_extent.width, render->swap_chain_extent.height, depth_format,
+		VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->depth_image, &render->depth_image_memory);
+
+	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+
 void as_render_create(as_render* render, void* display_context)
 {
 	create_instance(render);
@@ -1309,6 +1398,7 @@ void as_render_create(as_render* render, void* display_context)
 	create_render_pass(render);
 	create_descriptor_set_layout(render);
 	create_graphics_pipeline(render);
+	create_depth_resources(render);
 	create_framebuffers(render);
 	create_command_pool(render);
 	create_texture_image(render);
@@ -1321,6 +1411,26 @@ void as_render_create(as_render* render, void* display_context)
 	create_descriptor_sets(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
+}
+
+void recreate_swap_chain(as_render* render, void* display_context)
+{
+	i32 width = 0, height = 0;
+	glfwGetFramebufferSize(display_context, &width, &height);
+
+	while (width == 0 || height == 0)
+	{
+		glfwGetFramebufferSize(display_context, &width, &height);
+		glfwWaitEvents();
+	}
+
+	vkDeviceWaitIdle(render->device);
+
+	cleanup_swap_chain(render);
+	create_swap_chain(render, display_context);
+	create_image_views(render);
+	create_depth_resources(render);
+	create_framebuffers(render);
 }
 
 void as_render_draw_frame(as_render* render, void* display_context)
@@ -1400,7 +1510,7 @@ void as_render_destroy(as_render* render)
 	vkDestroyPipelineLayout(render->device, render->pipeline_layout, NULL);
 	vkDestroyRenderPass(render->device, render->render_pass, NULL);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroyBuffer(render->device, render->uniform_buffers[i], NULL);
 		vkFreeMemory(render->device, render->uniform_buffers_memory[i], NULL);
@@ -1416,7 +1526,7 @@ void as_render_destroy(as_render* render)
 	vkDestroyBuffer(render->device, render->vertex_buffer, NULL);
 	vkFreeMemory(render->device, render->vertex_buffer_memory, NULL);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroySemaphore(render->device, render->render_finished_semaphores[i], NULL);
 		vkDestroySemaphore(render->device, render->image_available_semaphores[i], NULL);
