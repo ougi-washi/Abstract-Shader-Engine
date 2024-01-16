@@ -15,11 +15,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 i32 main() 
 {
 	void* display_context = as_display_context_create(1200, 720, "Abstract Shader Engine", &key_callback);
-	if (!display_context)
-	{
-		AS_LOG(LV_WARNING, "invalid display context");
-		return AS_ERROR_INVALID_DISPLAY_CONTEXT;
-	}
+	AS_ASSERT(display_context, "invalid display context");
 
 	as_render render = {0};
 	as_render_create(&render, display_context);

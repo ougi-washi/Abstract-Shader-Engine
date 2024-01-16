@@ -34,6 +34,10 @@ find_package(Threads REQUIRED)
 message(STATUS "Adding GLFW library")
 add_subdirectory(${LIB_DIR}/glfw)
 
+# STB
+message(STATUS "Adding STB library")
+include_directories(${LIB_DIR}/stb)
+
 # VULKAN
 message(STATUS "Adding Vulkan library")
 find_package(Vulkan REQUIRED)
