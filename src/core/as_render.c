@@ -112,7 +112,7 @@ VkVertexInputBindingDescription as_get_binding_description()
 	VkVertexInputBindingDescription binding_description = {0};
 	binding_description.binding = 0;
 	binding_description.stride = sizeof(as_vertex);
-	binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
 	return binding_description;
 }
 
@@ -491,27 +491,8 @@ void create_image_views(as_render* render)
 	{
 		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
-
-	//for (sz i = 0; i < render->swap_chain_images_count; i++) {
-	//	VkImageViewCreateInfo create_info = {0};
-	//	create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	//	create_info.image = render->swap_chain_images[i];
-	//	create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	//	create_info.format = render->swap_chain_image_format;
-	//	create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	//	create_info.subresourceRange.baseMipLevel = 0;
-	//	create_info.subresourceRange.levelCount = 1;
-	//	create_info.subresourceRange.baseArrayLayer = 0;
-	//	create_info.subresourceRange.layerCount = 1;
-
-	//	const VkResult create_image_view_result = vkCreateImageView(render->device, &create_info, NULL, &render->swap_chain_image_views[i]);
-	//	AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create image views");
-	//}
 }
+
 void create_render_pass(as_render* render) 
 {
 	VkAttachmentDescription color_attachment = { 0 };
@@ -647,8 +628,7 @@ void create_graphics_pipeline(as_render* render)
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
 	VkVertexInputBindingDescription binding_description = as_get_binding_description();
-	VkVertexInputAttributeDescription* attribute_descriptions;
-	attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
+	VkVertexInputAttributeDescription* attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
 	as_get_attribute_descriptions(attribute_descriptions);
 	vertex_input_info.vertexBindingDescriptionCount = 1;
 	vertex_input_info.vertexAttributeDescriptionCount = AS_VERTEX_VAR_COUNT;
@@ -724,7 +704,6 @@ void create_graphics_pipeline(as_render* render)
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, &render->pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
-
 
 	// Graphics pipeline
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
@@ -931,7 +910,7 @@ i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags p
 
 void create_vertex_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_vertices[0]) * as_shape_multi_quad_vertices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -941,7 +920,7 @@ void create_vertex_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_multi_quad_vertices, (sz)buffer_size);
+	memcpy(data, as_shape_quad_vertices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size,
@@ -956,7 +935,7 @@ void create_vertex_buffer(as_render* render)
 
 void create_index_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_indices[0]) * as_shape_multi_quad_indices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -966,7 +945,7 @@ void create_index_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_multi_quad_indices, (sz)buffer_size);
+	memcpy(data, as_shape_quad_indices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size, 
@@ -1120,8 +1099,8 @@ void update_uniform_buffer(as_render* render, const u32 current_image)
 	const as_vec3 unit_z = as_vec3_unit_z();
 	const f32 angle = as_radians(90.0f);
 	ubo.model = as_rotate(&identity, time * angle, &unit_z);
-	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 100.f);
+	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5.}, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
@@ -1179,7 +1158,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
 
-		vkCmdDrawIndexed(command_buffer, as_shape_multi_quad_indices_size, 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
 
 	}
 	vkCmdEndRenderPass(command_buffer);
@@ -1385,7 +1364,6 @@ void create_depth_resources(as_render* render) {
 
 	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
-
 
 void as_render_create(as_render* render, void* display_context)
 {

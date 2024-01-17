@@ -22,16 +22,41 @@ typedef struct as_vertex
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
 
-typedef struct as_object
-{
-	as_transform transform;
-	VkBuffer vertex_buffer;
-	VkDeviceMemory vertex_buffer_memory;
 
+typedef struct as_texture
+{
+	VkImage texture_image;
+	VkDeviceMemory texture_image_memory;
+	VkImageView texture_image_view;
+	VkSampler texture_sampler;
+} as_texture;
+
+typedef struct as_shader
+{
 	VkShaderModule vertex_shader;
 	VkShaderModule fragment_shader;
 
-	VkDescriptorSet descriptor_set;
+	VkBuffer* uniform_buffers;
+	u32 uniform_buffers_count;
+	VkDeviceMemory* uniform_buffers_memory;
+	u32 uniform_buffers_memory_count;
+	void** uniform_buffers_mapped;
+	u32 uniform_buffers_mapped_count;
+
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorSet* descriptor_sets;
+	u32 descriptor_sets_count;
+}as_shader;
+
+typedef struct as_object
+{
+	as_transform transform;
+
+	VkBuffer vertex_buffer;
+	VkDeviceMemory vertex_buffer_memory;
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
+
 
 } as_object;
 
