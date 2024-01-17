@@ -10,11 +10,13 @@
 
 
 // Arrays
-AS_DECLARE_ARRAY(as_VkImages, 64, VkImage);
-AS_DECLARE_ARRAY(as_VkImageViews, 64, VkImageView);
-AS_DECLARE_ARRAY(as_VkFramebuffer, 64, VkFramebuffer);
-AS_DECLARE_ARRAY(as_VkSemaphores, 64, VkSemaphore);
-AS_DECLARE_ARRAY(as_VkFences, 64, VkFence);
+AS_DECLARE_ARRAY(VkImages64, 64, VkImage);
+AS_DECLARE_ARRAY(VkImageViews64, 64, VkImageView);
+AS_DECLARE_ARRAY(VkFramebuffers32, 32, VkFramebuffer);
+AS_DECLARE_ARRAY(VkSemaphores32, 32, VkSemaphore);
+AS_DECLARE_ARRAY(VkFences32, 32, VkFence);
+AS_DECLARE_ARRAY(VkCommandBuffers32, 32, VkCommandBuffer);
+AS_DECLARE_ARRAY(VkDescriptorSets32, 32, VkDescriptorSet);
 
 typedef struct as_uniform_buffer_object
 {
@@ -39,21 +41,17 @@ typedef struct as_texture
 	VkSampler texture_sampler;
 } as_texture;
 
+typedef struct as_shader_uniform
+{
+	VkDescriptorType type;
+	as_texture* texture;
+} as_shader_uniform;
+AS_DECLARE_ARRAY(as_shader_uniforms_32, 32, as_shader_uniform);
+
 typedef struct as_shader
 {
-	VkShaderModule vertex_shader;
-	VkShaderModule fragment_shader;
-
-	VkBuffer* uniform_buffers;
-	u32 uniform_buffers_count;
-	VkDeviceMemory* uniform_buffers_memory;
-	u32 uniform_buffers_memory_count;
-	void** uniform_buffers_mapped;
-	u32 uniform_buffers_mapped_count;
-
-	VkDescriptorPool descriptor_pool;
-	VkDescriptorSet* descriptor_sets;
-	u32 descriptor_sets_count;
+	VkPipeline graphics_pipeline;
+	VkDescriptorSetLayout descriptor_set_layout;
 }as_shader;
 
 typedef struct as_object
@@ -65,7 +63,7 @@ typedef struct as_object
 	VkBuffer index_buffer;
 	VkDeviceMemory index_buffer_memory;
 
-
+	as_shader* shader;
 } as_object;
 
 typedef struct as_render
@@ -81,11 +79,11 @@ typedef struct as_render
 	VkQueue present_queue;
 
 	VkSwapchainKHR swap_chain;
-	as_VkImages swap_chain_images;
+	VkImages64 swap_chain_images;
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
-	as_VkImageViews swap_chain_image_views;
-	as_VkFramebuffer swap_chain_framebuffers;
+	VkImageViews64 swap_chain_image_views;
+	VkFramebuffers32 swap_chain_framebuffers;
 	bool framebuffer_resized;
 
 	VkRenderPass render_pass;
@@ -111,12 +109,11 @@ typedef struct as_render
 	VkDescriptorSet* descriptor_sets;
 	u32 descriptor_sets_count;
 
-	VkCommandBuffer* command_buffers;
-	u32 command_buffers_count;
+	VkCommandBuffers32 command_buffers;
 
-	as_VkSemaphores image_available_semaphores;
-	as_VkSemaphores render_finished_semaphores;
-	as_VkFences in_flight_fences;
+	VkSemaphores32 image_available_semaphores;
+	VkSemaphores32 render_finished_semaphores;
+	VkFences32 in_flight_fences;
 
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
@@ -134,5 +131,8 @@ void as_render_create(as_render* render, void* display_context);
 void as_render_draw_frame(as_render* render, void* display_context);
 void as_render_destroy(as_render* render);
 
-as_object* as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path);
+sz as_shader_add_uniform_float(as_shader* shader, const VkDescriptorType type, const float value);
+as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path);
+
+sz as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path);
 void as_delete_object(as_render* render, as_object* object);

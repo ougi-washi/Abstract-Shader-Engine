@@ -454,8 +454,8 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	VkResult create_swap_chain_result = vkCreateSwapchainKHR(render->device, &create_info, NULL, &render->swap_chain);
 	AS_ASSERT(create_swap_chain_result == VK_SUCCESS, "Failed to create swap chain");
 
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, NULL);
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, render->swap_chain_images.data);
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &(u32)render->swap_chain_images.size, NULL);
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &(u32)render->swap_chain_images.size, render->swap_chain_images.data);
 
 	render->swap_chain_image_format = surface_format.format;
 	render->swap_chain_extent = extent;
@@ -551,7 +551,7 @@ void create_render_pass(as_render* render)
 
 
 
-void create_descriptor_set_layout(as_render* render) 
+void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) 
 {
 	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
 	ubo_layout_binding.binding = 0;
@@ -573,7 +573,7 @@ void create_descriptor_set_layout(as_render* render)
 	layout_info.bindingCount = AS_ARRAY_SIZE(bindings);
 	layout_info.pBindings = bindings;
 
-	AS_ASSERT(vkCreateDescriptorSetLayout(render->device, &layout_info, NULL, &render->descriptor_set_layout) == VK_SUCCESS,
+	AS_ASSERT(vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout) == VK_SUCCESS,
 		"Failed to create descriptor set layout!");
 }
 
@@ -750,8 +750,8 @@ void create_framebuffers(as_render* render)
 		framebuffer_info.height = render->swap_chain_extent.height;
 		framebuffer_info.layers = 1;
 
-		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers.data[i]);
-		AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create framebuffer!");
+		const VkResult create_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers.data[i]);
+		AS_ASSERT(create_result == VK_SUCCESS, "Failed to create framebuffer!");
 	}
 }
 
@@ -976,7 +976,7 @@ void create_uniform_buffers(as_render* render)
 	}
 }
 
-void create_descriptor_pool(as_render* render) 
+void create_descriptor_pool(VkDevice device, VkDescriptorPool* descriptor_pool) 
 {
 	VkDescriptorPoolSize pool_size = { 0 };
 	pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -988,7 +988,7 @@ void create_descriptor_pool(as_render* render)
 	pool_info.pPoolSizes = &pool_size;
 	pool_info.maxSets = (u32)MAX_FRAMES_IN_FLIGHT;
 
-	AS_ASSERT(vkCreateDescriptorPool(render->device, &pool_info, NULL, &render->descriptor_pool) == VK_SUCCESS, 
+	AS_ASSERT(vkCreateDescriptorPool(device, &pool_info, NULL, descriptor_pool) == VK_SUCCESS, 
 		"Failed to create descriptor pool");
 }
 
@@ -1031,6 +1031,10 @@ void create_descriptor_sets(as_render* render)
 		descriptor_writes[0].descriptorCount = 1;
 		descriptor_writes[0].pBufferInfo = &buffer_info;
 
+		{
+			// TODO: parse, instead of hard code indices
+		}
+
 		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptor_writes[1].dstSet = render->descriptor_sets[i];
 		descriptor_writes[1].dstBinding = 1;
@@ -1046,8 +1050,7 @@ void create_descriptor_sets(as_render* render)
 
 void create_command_buffers(as_render* render) 
 {
-	render->command_buffers = (VkCommandBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkCommandBuffer));
-	render->command_buffers_count = MAX_FRAMES_IN_FLIGHT;
+	render->command_buffers.size = MAX_FRAMES_IN_FLIGHT;
 
 	VkCommandBufferAllocateInfo alloc_info = { 0 };
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1055,7 +1058,7 @@ void create_command_buffers(as_render* render)
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	alloc_info.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-	AS_ASSERT(vkAllocateCommandBuffers(render->device, &alloc_info, render->command_buffers) == VK_SUCCESS, 
+	AS_ASSERT(vkAllocateCommandBuffers(render->device, &alloc_info, render->command_buffers.data) == VK_SUCCESS, 
 		"Failed to allocate command buffers");
 }
 
@@ -1359,32 +1362,6 @@ void create_depth_resources(as_render* render) {
 	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void as_render_create(as_render* render, void* display_context)
-{
-	create_instance(render);
-	create_surface(render, display_context);
-	pick_physical_device(render);
-	create_logical_device(render);
-	create_swap_chain(render, display_context);
-	create_image_views(render);
-	create_render_pass(render);
-	create_descriptor_set_layout(render);
-	create_graphics_pipeline(render);
-	create_depth_resources(render);
-	create_framebuffers(render);
-	create_command_pool(render);
-	create_texture_image(render);
-	create_texture_image_view(render);
-	create_texture_sampler(render);
-	create_vertex_buffer(render);
-	create_index_buffer(render);
-	create_uniform_buffers(render);
-	create_descriptor_pool(render);
-	create_descriptor_sets(render);
-	create_command_buffers(render);
-	create_sync_objects(render);
-}
-
 void recreate_swap_chain(as_render* render, void* display_context)
 {
 	i32 width = 0, height = 0;
@@ -1405,6 +1382,32 @@ void recreate_swap_chain(as_render* render, void* display_context)
 	create_framebuffers(render);
 }
 
+void as_render_create(as_render* render, void* display_context)
+{
+	create_instance(render);
+	create_surface(render, display_context);
+	pick_physical_device(render);
+	create_logical_device(render);
+	create_swap_chain(render, display_context);
+	create_image_views(render);
+	create_render_pass(render);
+	create_descriptor_set_layout(render->device, &render->descriptor_set_layout);
+	create_graphics_pipeline(render);
+	create_depth_resources(render);
+	create_framebuffers(render);
+	create_command_pool(render);
+	create_texture_image(render);
+	create_texture_image_view(render);
+	create_texture_sampler(render);
+	create_vertex_buffer(render);
+	create_index_buffer(render);
+	create_uniform_buffers(render);
+	create_descriptor_pool(render->device, &render->descriptor_pool);
+	create_descriptor_sets(render);
+	create_command_buffers(render);
+	create_sync_objects(render);
+}
+
 void as_render_draw_frame(as_render* render, void* display_context)
 {
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
@@ -1423,8 +1426,8 @@ void as_render_draw_frame(as_render* render, void* display_context)
 
 	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
-	vkResetCommandBuffer(render->command_buffers[render->current_frame], 0);
-	record_command_buffer(render, render->command_buffers[render->current_frame], image_index);
+	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
+	record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index);
 
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1436,7 +1439,7 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	submit_info.pWaitDstStageMask = wait_stages;
 
 	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &render->command_buffers[render->current_frame];
+	submit_info.pCommandBuffers = &render->command_buffers.data[render->current_frame];
 
 	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores.data[render->current_frame] };
 	submit_info.signalSemaphoreCount = 1;
@@ -1518,10 +1521,24 @@ void as_render_destroy(as_render* render)
 	vkDestroyInstance(render->instance, NULL);
 }
 
-as_object* as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path)
+
+
+sz as_shader_add_uniform_float(as_shader* shader, const VkDescriptorType type, const float value)
+{
+	AS_ASSERT(shader, "Trying to add float uniform but shader is NULL");
+	return -1;
+}
+
+as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
+{
+	//create_graphics_pipeline()
+	return NULL;
+}
+
+sz as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	AS_LOG(LV_WARNING, "Not as_add_object is implemented");
-	return NULL;
+	return -1;
 }
 
 void as_delete_object(as_render* render, as_object* object)
