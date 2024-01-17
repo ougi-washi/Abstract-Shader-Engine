@@ -3,9 +3,15 @@
 
 #include "as_types.h"
 #include "as_math.h"
+#include "as_array.h"
 #include <vulkan/vulkan.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
+
+
+// Arrays
+AS_DECLARE_ARRAY(as_VkImages, 64, VkImage);
+
 
 typedef struct as_uniform_buffer_object
 {
@@ -73,8 +79,9 @@ typedef struct as_render
 	VkQueue present_queue;
 
 	VkSwapchainKHR swap_chain;
-	VkImage* swap_chain_images;
-	u32 swap_chain_images_count;
+	//VkImage* swap_chain_images;
+	//u32 swap_chain_images_count;
+	as_VkImages swap_chain_images;
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
 	VkImageView* swap_chain_image_views;

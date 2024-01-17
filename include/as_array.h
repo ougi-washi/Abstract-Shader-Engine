@@ -1,85 +1,30 @@
 #include "as_types.h"
 
-typedef struct 
-{
-	void* data;
-	sz element_size;
-	sz size;
-	sz capacity;
-} as_array;
+#define AS_DECLARE_ARRAY(_name, _capacity, _type)           \
+    typedef struct {                                        \
+        _type data[_capacity];                              \
+        sz size;                                            \
+    } _name
 
-as_array* as_create_array(sz capacity, sz element_size) 
-{
-	as_array* array = (as_array*)AS_MALLOC(sizeof(as_array));
-	AS_ASSERT(array, "Error creating array");
+#define AS_PUSH_BACK_ARRAY(_array, _element)                                    \
+    if ((_array).size < AS_ARRAY_SIZE(_array.data)){                            \
+        (_array).data[(_array).size++] = _element; }                            \
+    else { AS_LOG(LV_ERROR,"Array overflow"); }
 
-	array->data = AS_MALLOC(capacity * element_size);
-	AS_ASSERT(array->data, "Error creating array data");
+#define AS_INSERT_AT_ARRAY(_array, _index, _element)                                                    \
+    if ((_index) >= 0 && (_index) <= (_array).size) {                                                   \
+        if ((_array).size < AS_ARRAY_SIZE(_array.data)) {                                               \
+            for (sz i = (_array).size; i > (_index); --i) { (_array).data[i] = (_array).data[i - 1];}   \
+            (_array).data[(_index)] = _element;                                                         \
+            ++(_array).size; }                                                                          \
+        else { AS_LOG(LV_ERROR,"Array overflow"); }                                                     \
+    } else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-	array->element_size = element_size;
-	array->size = 0;
-	array->capacity = capacity;
+#define AS_REMOVE_AT_ARRAY(_array, _index)                                                              \
+    if ((_index) >= 0 && (_index) < (_array).size) {                                                    \
+         for (sz i = (_index); i < (_array).size - 1; ++i) { (_array).data[i] = (_array).data[i + 1]; } \
+        --(_array).size; }                                                                              \
+    else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-	return array;
-}
-
-void as_resize_array(as_array* array, sz new_capacity) 
-{
-	array->data = AS_REALLOC(array->data, new_capacity * array->element_size);
-	AS_ASSERT(array->data, "Error creating array data");
-	array->capacity = new_capacity;
-}
-
-void as_push_back_array(as_array* array, const void* element) 
-{
-	if (array->size == array->capacity) 
-	{
-		as_resize_array(array, array->capacity * 2);
-	}
-
-	char* dest = ((char*)array->data) + array->size * array->element_size;
-	memcpy(dest, element, array->element_size);
-	array->size++;
-}
-
-void as_insert_at_array(as_array* array, sz index, const void* element) 
-{
-	AS_ASSERT(index >= 0 && index <= array->size, "Array out of bounds");
-
-	if (array->size == array->capacity) {
-		as_resize_array(array, array->capacity * 2);
-	}
-
-	char* dest = ((char*)array->data) + index * array->element_size;
-	memmove(dest + array->element_size, dest, (array->size - index) * array->element_size);
-	memcpy(dest, element, array->element_size);
-	array->size++;
-}
-
-void as_remove_at_array(as_array* array, sz index) 
-{
-	AS_ASSERT(index >= 0 && index < array->size, "Array out of bounds");
-
-	char* dest = ((char*)array->data) + index * array->element_size;
-	char* src = dest + array->element_size;
-	memmove(dest, src, (array->size - index - 1) * array->element_size);
-
-	array->size--;
-
-	if (array->size > 0 && array->size <= array->capacity / 4) 
-	{
-		as_resize_array(array, array->capacity / 2);
-	}
-}
-
-void* as_get_array_elem(const as_array* array, sz index) 
-{
-	AS_ASSERT(index >= 0 && index < array->size, "Array out of bounds");
-	return ((char*)array->data) + index * array->element_size;
-}
-
-void AS_free_array(as_array* array) 
-{
-	AS_FREE(array->data);
-	AS_FREE(array);
-}
+#define AS_GET_ARRAY_ELEM(_array, _index)                                                               \
+    (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)

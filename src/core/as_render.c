@@ -414,18 +414,18 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.present_modes, swap_chain_support.present_modes_count);
 	VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities, display_context);
 
-	render->swap_chain_images_count = swap_chain_support.capabilities.minImageCount + 1;
+	render->swap_chain_images.size = swap_chain_support.capabilities.minImageCount + 1;
 	if (swap_chain_support.capabilities.maxImageCount > 0 && 
-		render->swap_chain_images_count > swap_chain_support.capabilities.maxImageCount)
+		render->swap_chain_images.size > swap_chain_support.capabilities.maxImageCount)
 	{
-		render->swap_chain_images_count = swap_chain_support.capabilities.maxImageCount;
+		render->swap_chain_images.size = swap_chain_support.capabilities.maxImageCount;
 	}
 
 	VkSwapchainCreateInfoKHR create_info = {0};
 	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	create_info.surface = render->surface;
 
-	create_info.minImageCount = render->swap_chain_images_count;
+	create_info.minImageCount = render->swap_chain_images.size;
 	create_info.imageFormat = surface_format.format;
 	create_info.imageColorSpace = surface_format.colorSpace;
 	create_info.imageExtent = extent;
@@ -454,9 +454,9 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	VkResult create_swap_chain_result = vkCreateSwapchainKHR(render->device, &create_info, NULL, &render->swap_chain);
 	AS_ASSERT(create_swap_chain_result == VK_SUCCESS, "Failed to create swap chain");
 
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images_count, NULL);
-	render->swap_chain_images = (VkImage*)AS_MALLOC(sizeof(VkImage) * render->swap_chain_images_count); // todo : unsure if it's needed
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images_count, render->swap_chain_images);
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, NULL);
+	//render->swap_chain_images = (VkImage*)AS_MALLOC(sizeof(VkImage) * render->swap_chain_images_count); // todo : unsure if it's needed
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, render->swap_chain_images.data);
 
 	render->swap_chain_image_format = surface_format.format;
 	render->swap_chain_extent = extent;
@@ -484,12 +484,12 @@ VkImageView create_image_view(as_render* render, VkImage image, VkFormat format,
 
 void create_image_views(as_render* render) 
 {
-	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images_count * sizeof(VkImageView));
-	render->swap_chain_image_views_count = render->swap_chain_images_count;
+	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images.size * sizeof(VkImageView));
+	render->swap_chain_image_views_count = render->swap_chain_images.size;
 
-	for (sz i = 0; i < render->swap_chain_images_count; i++) 
+	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
-		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
+		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images.data[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -1174,7 +1174,7 @@ void cleanup_swap_chain(as_render* render)
 		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
 	}
 
-	for (sz i = 0; i < render->swap_chain_images_count; i++)
+	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
 		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
 	}
