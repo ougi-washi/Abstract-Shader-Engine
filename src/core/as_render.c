@@ -455,7 +455,6 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	AS_ASSERT(create_swap_chain_result == VK_SUCCESS, "Failed to create swap chain");
 
 	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, NULL);
-	//render->swap_chain_images = (VkImage*)AS_MALLOC(sizeof(VkImage) * render->swap_chain_images_count); // todo : unsure if it's needed
 	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, render->swap_chain_images.data);
 
 	render->swap_chain_image_format = surface_format.format;
@@ -484,7 +483,6 @@ VkImageView create_image_view(as_render* render, VkImage image, VkFormat format,
 
 void create_image_views(as_render* render) 
 {
-	//render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images.size * sizeof(VkImageView));
 	render->swap_chain_image_views.size = render->swap_chain_images.size;
 
 	for (sz i = 0; i < render->swap_chain_images.size; i++)
@@ -734,8 +732,7 @@ void create_graphics_pipeline(as_render* render)
 
 void create_framebuffers(as_render* render)
 {
-	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views.size * sizeof(VkFramebuffer));
-	render->swap_chain_framebuffers_count = render->swap_chain_image_views.size;
+	render->swap_chain_framebuffers.size = render->swap_chain_image_views.size;
 
 	for (sz i = 0; i < render->swap_chain_image_views.size; i++) {
 		VkImageView attachments[] = 
@@ -753,7 +750,7 @@ void create_framebuffers(as_render* render)
 		framebuffer_info.height = render->swap_chain_extent.height;
 		framebuffer_info.layers = 1;
 
-		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers[i]);
+		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers.data[i]);
 		AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create framebuffer!");
 	}
 }
@@ -1064,12 +1061,9 @@ void create_command_buffers(as_render* render)
 
 void create_sync_objects(as_render* render) 
 {
-	render->image_available_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-	render->render_finished_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-	render->in_flight_fences = (VkFence*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
-	render->image_available_semaphores_count = MAX_FRAMES_IN_FLIGHT;
-	render->render_finished_semaphores_count = MAX_FRAMES_IN_FLIGHT;
-	render->in_flight_fences_count = MAX_FRAMES_IN_FLIGHT;
+	render->image_available_semaphores.size = MAX_FRAMES_IN_FLIGHT;
+	render->render_finished_semaphores.size = MAX_FRAMES_IN_FLIGHT;
+	render->in_flight_fences.size = MAX_FRAMES_IN_FLIGHT;
 
 	VkSemaphoreCreateInfo semaphore_info = { 0 };
 	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1080,9 +1074,9 @@ void create_sync_objects(as_render* render)
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
-		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]);
-		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]);
-		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]);
+		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores.data[i]);
+		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores.data[i]);
+		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences.data[i]);
 		AS_ASSERT(image_available_semaphore_create_res && render_finished_semaphore_create_res && in_flight_fence_create_res, "Failed to create synchronization objects for a frame!");
 	}
 }
@@ -1117,7 +1111,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 	VkRenderPassBeginInfo render_pass_info = { 0 };
 	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	render_pass_info.renderPass = render->render_pass;
-	render_pass_info.framebuffer = render->swap_chain_framebuffers[image_index];
+	render_pass_info.framebuffer = render->swap_chain_framebuffers.data[image_index];
 	render_pass_info.renderArea.offset.x = 0;
 	render_pass_info.renderArea.offset.y = 0;
 	render_pass_info.renderArea.extent = render->swap_chain_extent;
@@ -1169,9 +1163,9 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 void cleanup_swap_chain(as_render* render)
 {
-	for (sz i = 0; i < render->swap_chain_framebuffers_count; i++)
+	for (sz i = 0; i < render->swap_chain_framebuffers.size; i++)
 	{
-		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
+		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers.data[i], NULL);
 	}
 
 	for (sz i = 0; i < render->swap_chain_images.size; i++)
@@ -1413,10 +1407,10 @@ void recreate_swap_chain(as_render* render, void* display_context)
 
 void as_render_draw_frame(as_render* render, void* display_context)
 {
-	vkWaitForFences(render->device, 1, &render->in_flight_fences[render->current_frame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index;
-	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores[render->current_frame], VK_NULL_HANDLE, &image_index);
+	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores.data[render->current_frame], VK_NULL_HANDLE, &image_index);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
@@ -1427,7 +1421,7 @@ void as_render_draw_frame(as_render* render, void* display_context)
 
 	update_uniform_buffer(render, render->current_frame);
 
-	vkResetFences(render->device, 1, &render->in_flight_fences[render->current_frame]);
+	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 	vkResetCommandBuffer(render->command_buffers[render->current_frame], 0);
 	record_command_buffer(render, render->command_buffers[render->current_frame], image_index);
@@ -1435,7 +1429,7 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore wait_semaphores[] = { render->image_available_semaphores[render->current_frame] };
+	VkSemaphore wait_semaphores[] = { render->image_available_semaphores.data[render->current_frame] };
 	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submit_info.waitSemaphoreCount = 1;
 	submit_info.pWaitSemaphores = wait_semaphores;
@@ -1444,11 +1438,11 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &render->command_buffers[render->current_frame];
 
-	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores[render->current_frame] };
+	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores.data[render->current_frame] };
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = signal_semaphores;
 
-	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, 
+	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences.data[render->current_frame]) == VK_SUCCESS, 
 		"Failed to submit draw command buffer!");
 
 	VkPresentInfoKHR present_info = { 0 };
@@ -1506,9 +1500,9 @@ void as_render_destroy(as_render* render)
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroySemaphore(render->device, render->render_finished_semaphores[i], NULL);
-		vkDestroySemaphore(render->device, render->image_available_semaphores[i], NULL);
-		vkDestroyFence(render->device, render->in_flight_fences[i], NULL);
+		vkDestroySemaphore(render->device, render->render_finished_semaphores.data[i], NULL);
+		vkDestroySemaphore(render->device, render->image_available_semaphores.data[i], NULL);
+		vkDestroyFence(render->device, render->in_flight_fences.data[i], NULL);
 	}
 
 	vkDestroyCommandPool(render->device, render->command_pool, NULL);

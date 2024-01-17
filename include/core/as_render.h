@@ -12,7 +12,9 @@
 // Arrays
 AS_DECLARE_ARRAY(as_VkImages, 64, VkImage);
 AS_DECLARE_ARRAY(as_VkImageViews, 64, VkImageView);
-
+AS_DECLARE_ARRAY(as_VkFramebuffer, 64, VkFramebuffer);
+AS_DECLARE_ARRAY(as_VkSemaphores, 64, VkSemaphore);
+AS_DECLARE_ARRAY(as_VkFences, 64, VkFence);
 
 typedef struct as_uniform_buffer_object
 {
@@ -28,7 +30,6 @@ typedef struct as_vertex
 	as_vec2 tex_coord;
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
-
 
 typedef struct as_texture
 {
@@ -84,8 +85,7 @@ typedef struct as_render
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
 	as_VkImageViews swap_chain_image_views;
-	VkFramebuffer* swap_chain_framebuffers;
-	u32 swap_chain_framebuffers_count;
+	as_VkFramebuffer swap_chain_framebuffers;
 	bool framebuffer_resized;
 
 	VkRenderPass render_pass;
@@ -114,12 +114,9 @@ typedef struct as_render
 	VkCommandBuffer* command_buffers;
 	u32 command_buffers_count;
 
-	VkSemaphore* image_available_semaphores;
-	u32 image_available_semaphores_count;
-	VkSemaphore* render_finished_semaphores;
-	u32 render_finished_semaphores_count;
-	VkFence* in_flight_fences;
-	u32 in_flight_fences_count;
+	as_VkSemaphores image_available_semaphores;
+	as_VkSemaphores render_finished_semaphores;
+	as_VkFences in_flight_fences;
 
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
