@@ -484,12 +484,12 @@ VkImageView create_image_view(as_render* render, VkImage image, VkFormat format,
 
 void create_image_views(as_render* render) 
 {
-	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images.size * sizeof(VkImageView));
-	render->swap_chain_image_views_count = render->swap_chain_images.size;
+	//render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images.size * sizeof(VkImageView));
+	render->swap_chain_image_views.size = render->swap_chain_images.size;
 
 	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
-		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images.data[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
+		render->swap_chain_image_views.data[i] = create_image_view(render, render->swap_chain_images.data[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -734,13 +734,13 @@ void create_graphics_pipeline(as_render* render)
 
 void create_framebuffers(as_render* render)
 {
-	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
-	render->swap_chain_framebuffers_count = render->swap_chain_image_views_count;
+	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views.size * sizeof(VkFramebuffer));
+	render->swap_chain_framebuffers_count = render->swap_chain_image_views.size;
 
-	for (sz i = 0; i < render->swap_chain_image_views_count; i++) {
+	for (sz i = 0; i < render->swap_chain_image_views.size; i++) {
 		VkImageView attachments[] = 
 		{
-			render->swap_chain_image_views[i],
+			render->swap_chain_image_views.data[i],
 			render->depth_image_view
 		};
 
@@ -1176,7 +1176,7 @@ void cleanup_swap_chain(as_render* render)
 
 	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
-		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
+		vkDestroyImageView(render->device, render->swap_chain_image_views.data[i], NULL);
 	}
 
 	vkDestroyImageView(render->device, render->depth_image_view, NULL);

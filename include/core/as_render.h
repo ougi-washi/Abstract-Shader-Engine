@@ -11,6 +11,7 @@
 
 // Arrays
 AS_DECLARE_ARRAY(as_VkImages, 64, VkImage);
+AS_DECLARE_ARRAY(as_VkImageViews, 64, VkImageView);
 
 
 typedef struct as_uniform_buffer_object
@@ -79,13 +80,10 @@ typedef struct as_render
 	VkQueue present_queue;
 
 	VkSwapchainKHR swap_chain;
-	//VkImage* swap_chain_images;
-	//u32 swap_chain_images_count;
 	as_VkImages swap_chain_images;
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
-	VkImageView* swap_chain_image_views;
-	u32 swap_chain_image_views_count;
+	as_VkImageViews swap_chain_image_views;
 	VkFramebuffer* swap_chain_framebuffers;
 	u32 swap_chain_framebuffers_count;
 	bool framebuffer_resized;
