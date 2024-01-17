@@ -112,7 +112,7 @@ VkVertexInputBindingDescription as_get_binding_description()
 	VkVertexInputBindingDescription binding_description = {0};
 	binding_description.binding = 0;
 	binding_description.stride = sizeof(as_vertex);
-	binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
 	return binding_description;
 }
 
@@ -414,18 +414,18 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.present_modes, swap_chain_support.present_modes_count);
 	VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities, display_context);
 
-	render->swap_chain_images_count = swap_chain_support.capabilities.minImageCount + 1;
+	render->swap_chain_images.size = swap_chain_support.capabilities.minImageCount + 1;
 	if (swap_chain_support.capabilities.maxImageCount > 0 && 
-		render->swap_chain_images_count > swap_chain_support.capabilities.maxImageCount)
+		render->swap_chain_images.size > swap_chain_support.capabilities.maxImageCount)
 	{
-		render->swap_chain_images_count = swap_chain_support.capabilities.maxImageCount;
+		render->swap_chain_images.size = swap_chain_support.capabilities.maxImageCount;
 	}
 
 	VkSwapchainCreateInfoKHR create_info = {0};
 	create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	create_info.surface = render->surface;
 
-	create_info.minImageCount = render->swap_chain_images_count;
+	create_info.minImageCount = render->swap_chain_images.size;
 	create_info.imageFormat = surface_format.format;
 	create_info.imageColorSpace = surface_format.colorSpace;
 	create_info.imageExtent = extent;
@@ -454,9 +454,8 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 	VkResult create_swap_chain_result = vkCreateSwapchainKHR(render->device, &create_info, NULL, &render->swap_chain);
 	AS_ASSERT(create_swap_chain_result == VK_SUCCESS, "Failed to create swap chain");
 
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images_count, NULL);
-	render->swap_chain_images = (VkImage*)AS_MALLOC(sizeof(VkImage) * render->swap_chain_images_count); // todo : unsure if it's needed
-	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images_count, render->swap_chain_images);
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, NULL);
+	vkGetSwapchainImagesKHR(render->device, render->swap_chain, &render->swap_chain_images.size, render->swap_chain_images.data);
 
 	render->swap_chain_image_format = surface_format.format;
 	render->swap_chain_extent = extent;
@@ -484,34 +483,14 @@ VkImageView create_image_view(as_render* render, VkImage image, VkFormat format,
 
 void create_image_views(as_render* render) 
 {
-	render->swap_chain_image_views = (VkImageView*)AS_MALLOC(render->swap_chain_images_count * sizeof(VkImageView));
-	render->swap_chain_image_views_count = render->swap_chain_images_count;
+	render->swap_chain_image_views.size = render->swap_chain_images.size;
 
-	for (sz i = 0; i < render->swap_chain_images_count; i++) 
+	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
-		render->swap_chain_image_views[i] = create_image_view(render, render->swap_chain_images[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
+		render->swap_chain_image_views.data[i] = create_image_view(render, render->swap_chain_images.data[i], render->swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
-
-	//for (sz i = 0; i < render->swap_chain_images_count; i++) {
-	//	VkImageViewCreateInfo create_info = {0};
-	//	create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	//	create_info.image = render->swap_chain_images[i];
-	//	create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	//	create_info.format = render->swap_chain_image_format;
-	//	create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-	//	create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	//	create_info.subresourceRange.baseMipLevel = 0;
-	//	create_info.subresourceRange.levelCount = 1;
-	//	create_info.subresourceRange.baseArrayLayer = 0;
-	//	create_info.subresourceRange.layerCount = 1;
-
-	//	const VkResult create_image_view_result = vkCreateImageView(render->device, &create_info, NULL, &render->swap_chain_image_views[i]);
-	//	AS_ASSERT(create_image_view_result == VK_SUCCESS, "Failed to create image views");
-	//}
 }
+
 void create_render_pass(as_render* render) 
 {
 	VkAttachmentDescription color_attachment = { 0 };
@@ -647,8 +626,7 @@ void create_graphics_pipeline(as_render* render)
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
 	VkVertexInputBindingDescription binding_description = as_get_binding_description();
-	VkVertexInputAttributeDescription* attribute_descriptions;
-	attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
+	VkVertexInputAttributeDescription* attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
 	as_get_attribute_descriptions(attribute_descriptions);
 	vertex_input_info.vertexBindingDescriptionCount = 1;
 	vertex_input_info.vertexAttributeDescriptionCount = AS_VERTEX_VAR_COUNT;
@@ -725,7 +703,6 @@ void create_graphics_pipeline(as_render* render)
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, &render->pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 
-
 	// Graphics pipeline
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
 	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -755,13 +732,12 @@ void create_graphics_pipeline(as_render* render)
 
 void create_framebuffers(as_render* render)
 {
-	render->swap_chain_framebuffers = (VkFramebuffer*)AS_MALLOC(render->swap_chain_image_views_count * sizeof(VkFramebuffer));
-	render->swap_chain_framebuffers_count = render->swap_chain_image_views_count;
+	render->swap_chain_framebuffers.size = render->swap_chain_image_views.size;
 
-	for (sz i = 0; i < render->swap_chain_image_views_count; i++) {
+	for (sz i = 0; i < render->swap_chain_image_views.size; i++) {
 		VkImageView attachments[] = 
 		{
-			render->swap_chain_image_views[i],
+			render->swap_chain_image_views.data[i],
 			render->depth_image_view
 		};
 
@@ -774,7 +750,7 @@ void create_framebuffers(as_render* render)
 		framebuffer_info.height = render->swap_chain_extent.height;
 		framebuffer_info.layers = 1;
 
-		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers[i]);
+		VkResult create_graphics_pipeline_result = vkCreateFramebuffer(render->device, &framebuffer_info, NULL, &render->swap_chain_framebuffers.data[i]);
 		AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create framebuffer!");
 	}
 }
@@ -931,7 +907,7 @@ i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags p
 
 void create_vertex_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_vertices[0]) * as_shape_multi_quad_vertices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -941,7 +917,7 @@ void create_vertex_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_multi_quad_vertices, (sz)buffer_size);
+	memcpy(data, as_shape_quad_vertices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size,
@@ -956,7 +932,7 @@ void create_vertex_buffer(as_render* render)
 
 void create_index_buffer(as_render* render) 
 {
-	VkDeviceSize buffer_size = sizeof(as_shape_multi_quad_indices[0]) * as_shape_multi_quad_indices_size;
+	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
@@ -966,7 +942,7 @@ void create_index_buffer(as_render* render)
 
 	void* data;
 	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_multi_quad_indices, (sz)buffer_size);
+	memcpy(data, as_shape_quad_indices, (sz)buffer_size);
 	vkUnmapMemory(render->device, staging_buffer_memory);
 
 	create_buffer(render, buffer_size, 
@@ -1085,12 +1061,9 @@ void create_command_buffers(as_render* render)
 
 void create_sync_objects(as_render* render) 
 {
-	render->image_available_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-	render->render_finished_semaphores = (VkSemaphore*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkSemaphore));
-	render->in_flight_fences = (VkFence*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkFence));
-	render->image_available_semaphores_count = MAX_FRAMES_IN_FLIGHT;
-	render->render_finished_semaphores_count = MAX_FRAMES_IN_FLIGHT;
-	render->in_flight_fences_count = MAX_FRAMES_IN_FLIGHT;
+	render->image_available_semaphores.size = MAX_FRAMES_IN_FLIGHT;
+	render->render_finished_semaphores.size = MAX_FRAMES_IN_FLIGHT;
+	render->in_flight_fences.size = MAX_FRAMES_IN_FLIGHT;
 
 	VkSemaphoreCreateInfo semaphore_info = { 0 };
 	semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1101,9 +1074,9 @@ void create_sync_objects(as_render* render)
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
 	{
-		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores[i]);
-		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores[i]);
-		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences[i]);
+		const VkResult image_available_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->image_available_semaphores.data[i]);
+		const VkResult render_finished_semaphore_create_res = vkCreateSemaphore(render->device, &semaphore_info, NULL, &render->render_finished_semaphores.data[i]);
+		const VkResult in_flight_fence_create_res = vkCreateFence(render->device, &fence_info, NULL, &render->in_flight_fences.data[i]);
 		AS_ASSERT(image_available_semaphore_create_res && render_finished_semaphore_create_res && in_flight_fence_create_res, "Failed to create synchronization objects for a frame!");
 	}
 }
@@ -1120,8 +1093,8 @@ void update_uniform_buffer(as_render* render, const u32 current_image)
 	const as_vec3 unit_z = as_vec3_unit_z();
 	const f32 angle = as_radians(90.0f);
 	ubo.model = as_rotate(&identity, time * angle, &unit_z);
-	ubo.view = as_look_at(&(as_vec3) { 2.0f, 2.0f, 2.0f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 100.f);
+	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5.}, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
@@ -1138,7 +1111,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 	VkRenderPassBeginInfo render_pass_info = { 0 };
 	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	render_pass_info.renderPass = render->render_pass;
-	render_pass_info.framebuffer = render->swap_chain_framebuffers[image_index];
+	render_pass_info.framebuffer = render->swap_chain_framebuffers.data[image_index];
 	render_pass_info.renderArea.offset.x = 0;
 	render_pass_info.renderArea.offset.y = 0;
 	render_pass_info.renderArea.extent = render->swap_chain_extent;
@@ -1179,7 +1152,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
 
-		vkCmdDrawIndexed(command_buffer, as_shape_multi_quad_indices_size, 1, 0, 0, 0);
+		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
 
 	}
 	vkCmdEndRenderPass(command_buffer);
@@ -1190,14 +1163,14 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 void cleanup_swap_chain(as_render* render)
 {
-	for (sz i = 0; i < render->swap_chain_framebuffers_count; i++)
+	for (sz i = 0; i < render->swap_chain_framebuffers.size; i++)
 	{
-		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers[i], NULL);
+		vkDestroyFramebuffer(render->device, render->swap_chain_framebuffers.data[i], NULL);
 	}
 
-	for (sz i = 0; i < render->swap_chain_images_count; i++)
+	for (sz i = 0; i < render->swap_chain_images.size; i++)
 	{
-		vkDestroyImageView(render->device, render->swap_chain_image_views[i], NULL);
+		vkDestroyImageView(render->device, render->swap_chain_image_views.data[i], NULL);
 	}
 
 	vkDestroyImageView(render->device, render->depth_image_view, NULL);
@@ -1386,7 +1359,6 @@ void create_depth_resources(as_render* render) {
 	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-
 void as_render_create(as_render* render, void* display_context)
 {
 	create_instance(render);
@@ -1435,10 +1407,10 @@ void recreate_swap_chain(as_render* render, void* display_context)
 
 void as_render_draw_frame(as_render* render, void* display_context)
 {
-	vkWaitForFences(render->device, 1, &render->in_flight_fences[render->current_frame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index;
-	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores[render->current_frame], VK_NULL_HANDLE, &image_index);
+	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores.data[render->current_frame], VK_NULL_HANDLE, &image_index);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
@@ -1449,7 +1421,7 @@ void as_render_draw_frame(as_render* render, void* display_context)
 
 	update_uniform_buffer(render, render->current_frame);
 
-	vkResetFences(render->device, 1, &render->in_flight_fences[render->current_frame]);
+	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 	vkResetCommandBuffer(render->command_buffers[render->current_frame], 0);
 	record_command_buffer(render, render->command_buffers[render->current_frame], image_index);
@@ -1457,7 +1429,7 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore wait_semaphores[] = { render->image_available_semaphores[render->current_frame] };
+	VkSemaphore wait_semaphores[] = { render->image_available_semaphores.data[render->current_frame] };
 	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submit_info.waitSemaphoreCount = 1;
 	submit_info.pWaitSemaphores = wait_semaphores;
@@ -1466,11 +1438,11 @@ void as_render_draw_frame(as_render* render, void* display_context)
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &render->command_buffers[render->current_frame];
 
-	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores[render->current_frame] };
+	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores.data[render->current_frame] };
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = signal_semaphores;
 
-	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences[render->current_frame]) == VK_SUCCESS, 
+	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences.data[render->current_frame]) == VK_SUCCESS, 
 		"Failed to submit draw command buffer!");
 
 	VkPresentInfoKHR present_info = { 0 };
@@ -1528,9 +1500,9 @@ void as_render_destroy(as_render* render)
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroySemaphore(render->device, render->render_finished_semaphores[i], NULL);
-		vkDestroySemaphore(render->device, render->image_available_semaphores[i], NULL);
-		vkDestroyFence(render->device, render->in_flight_fences[i], NULL);
+		vkDestroySemaphore(render->device, render->render_finished_semaphores.data[i], NULL);
+		vkDestroySemaphore(render->device, render->image_available_semaphores.data[i], NULL);
+		vkDestroyFence(render->device, render->in_flight_fences.data[i], NULL);
 	}
 
 	vkDestroyCommandPool(render->device, render->command_pool, NULL);

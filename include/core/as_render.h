@@ -3,9 +3,18 @@
 
 #include "as_types.h"
 #include "as_math.h"
+#include "as_array.h"
 #include <vulkan/vulkan.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
+
+
+// Arrays
+AS_DECLARE_ARRAY(as_VkImages, 64, VkImage);
+AS_DECLARE_ARRAY(as_VkImageViews, 64, VkImageView);
+AS_DECLARE_ARRAY(as_VkFramebuffer, 64, VkFramebuffer);
+AS_DECLARE_ARRAY(as_VkSemaphores, 64, VkSemaphore);
+AS_DECLARE_ARRAY(as_VkFences, 64, VkFence);
 
 typedef struct as_uniform_buffer_object
 {
@@ -22,16 +31,40 @@ typedef struct as_vertex
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
 
-typedef struct as_object
+typedef struct as_texture
 {
-	as_transform transform;
-	VkBuffer vertex_buffer;
-	VkDeviceMemory vertex_buffer_memory;
+	VkImage texture_image;
+	VkDeviceMemory texture_image_memory;
+	VkImageView texture_image_view;
+	VkSampler texture_sampler;
+} as_texture;
 
+typedef struct as_shader
+{
 	VkShaderModule vertex_shader;
 	VkShaderModule fragment_shader;
 
-	VkDescriptorSet descriptor_set;
+	VkBuffer* uniform_buffers;
+	u32 uniform_buffers_count;
+	VkDeviceMemory* uniform_buffers_memory;
+	u32 uniform_buffers_memory_count;
+	void** uniform_buffers_mapped;
+	u32 uniform_buffers_mapped_count;
+
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorSet* descriptor_sets;
+	u32 descriptor_sets_count;
+}as_shader;
+
+typedef struct as_object
+{
+	as_transform transform;
+
+	VkBuffer vertex_buffer;
+	VkDeviceMemory vertex_buffer_memory;
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
+
 
 } as_object;
 
@@ -48,14 +81,11 @@ typedef struct as_render
 	VkQueue present_queue;
 
 	VkSwapchainKHR swap_chain;
-	VkImage* swap_chain_images;
-	u32 swap_chain_images_count;
+	as_VkImages swap_chain_images;
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
-	VkImageView* swap_chain_image_views;
-	u32 swap_chain_image_views_count;
-	VkFramebuffer* swap_chain_framebuffers;
-	u32 swap_chain_framebuffers_count;
+	as_VkImageViews swap_chain_image_views;
+	as_VkFramebuffer swap_chain_framebuffers;
 	bool framebuffer_resized;
 
 	VkRenderPass render_pass;
@@ -84,12 +114,9 @@ typedef struct as_render
 	VkCommandBuffer* command_buffers;
 	u32 command_buffers_count;
 
-	VkSemaphore* image_available_semaphores;
-	u32 image_available_semaphores_count;
-	VkSemaphore* render_finished_semaphores;
-	u32 render_finished_semaphores_count;
-	VkFence* in_flight_fences;
-	u32 in_flight_fences_count;
+	as_VkSemaphores image_available_semaphores;
+	as_VkSemaphores render_finished_semaphores;
+	as_VkFences in_flight_fences;
 
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
