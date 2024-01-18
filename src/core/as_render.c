@@ -550,8 +550,7 @@ void create_render_pass(as_render* render)
 }
 
 
-
-void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) 
+void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) // TODO: Remove later 
 {
 	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
 	ubo_layout_binding.binding = 0;
@@ -577,6 +576,44 @@ void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descri
 		"Failed to create descriptor set layout!");
 }
 
+void create_descriptor_set_layout_from_uniforms(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout, as_shader_uniforms_32* uniforms) 
+{
+	AS_ASSERT(uniforms, "Cannot create_descriptor_set_layout_from_uniforms, NULL uniforms");
+
+	const sz bindings_count = (uniforms->size + 1); // ubo + uniforms
+	VkDescriptorSetLayoutBinding* bindings = AS_MALLOC(sizeof(VkDescriptorSetLayoutBinding) * bindings_count);
+
+	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.pImmutableSamplers = NULL;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	bindings[ubo_layout_binding.binding] = ubo_layout_binding;
+
+	for (sz i = 0 ; i < uniforms->size ; i++)
+	{
+		as_shader_uniform* uniform = AS_GET_ARRAY_ELEM(*uniforms, i);
+		VkDescriptorSetLayoutBinding uniform_layout_binding = { 0 };
+		uniform_layout_binding.binding = i + 1; // ubo is 0, so + 1
+		uniform_layout_binding.descriptorCount = 1;
+		uniform_layout_binding.descriptorType = uniform->type;
+		uniform_layout_binding.pImmutableSamplers = NULL;
+		uniform_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		bindings[uniform_layout_binding.binding] = uniform_layout_binding;
+	}
+
+	VkDescriptorSetLayoutCreateInfo layout_info = { 0 };
+	layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layout_info.bindingCount = bindings_count;
+	layout_info.pBindings = bindings;
+
+	AS_ASSERT(vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout) == VK_SUCCESS,
+		"Failed to create descriptor set layout!");
+}
+
 VkShaderModule create_shader_module(VkDevice device, as_shader_binary* shader_bin)
 {
 	VkShaderModuleCreateInfo create_info = {0};
@@ -596,7 +633,7 @@ void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 	vkDestroyShaderModule(device, shader_module, NULL);
 }
 
-void create_graphics_pipeline(as_render* render)
+void create_graphics_pipeline(as_render* render, VkDescriptorSetLayout* descriptor_set_layout)
 {
 	// Load shader code
 	as_shader_binary vert_shader_code = read_shader_code("../resources/shaders/default_vertex.glsl", AS_SHADER_TYPE_VERTEX);
@@ -698,7 +735,7 @@ void create_graphics_pipeline(as_render* render)
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
-	pipeline_layout_info.pSetLayouts = &render->descriptor_set_layout;
+	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, &render->pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
@@ -1392,7 +1429,7 @@ void as_render_create(as_render* render, void* display_context)
 	create_image_views(render);
 	create_render_pass(render);
 	create_descriptor_set_layout(render->device, &render->descriptor_set_layout);
-	create_graphics_pipeline(render);
+	create_graphics_pipeline(render, &render->descriptor_set_layout);
 	create_depth_resources(render);
 	create_framebuffers(render);
 	create_command_pool(render);
@@ -1521,16 +1558,36 @@ void as_render_destroy(as_render* render)
 	vkDestroyInstance(render->instance, NULL);
 }
 
-
-
-sz as_shader_add_uniform_float(as_shader* shader, const VkDescriptorType type, const float value)
+sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, const float* value)
 {
-	AS_ASSERT(shader, "Trying to add float uniform but shader is NULL");
+	AS_ASSERT(uniforms, "Trying to add float uniform but uniforms array is NULL");
+	AS_ASSERT(uniforms, "Trying to add float uniform but flaot value is NULL");
+
+
+
 	return -1;
 }
 
-as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
+sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, const as_texture* texture)
 {
+	AS_ASSERT(uniforms, "Trying to add texture uniform but uniforms array is NULL");
+	AS_ASSERT(texture, "Trying to add texture uniform but texture is NULL");
+
+
+
+	return -1;
+}
+
+as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path)
+{
+	AS_ASSERT(render, "Trying to create shader, but render is NULL");
+	AS_ASSERT(uniforms, "Trying to create shader, but uniforms array is NULL");
+	AS_ASSERT(vertex_shader_path, "Trying to create shader, but vertex_shader_path is NULL");
+	AS_ASSERT(fragment_shader_path, "Trying to create shader, but fragment_shader_path is NULL");
+
+	as_shader* shader = (as_shader*)AS_MALLOC(sizeof(as_shader));
+	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, uniforms);
+	
 	//create_graphics_pipeline()
 	return NULL;
 }

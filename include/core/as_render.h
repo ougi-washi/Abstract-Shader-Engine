@@ -52,6 +52,7 @@ typedef struct as_shader
 {
 	VkPipeline graphics_pipeline;
 	VkDescriptorSetLayout descriptor_set_layout;
+	as_shader_uniforms_32* uniforms;
 }as_shader;
 
 typedef struct as_object
@@ -131,8 +132,9 @@ void as_render_create(as_render* render, void* display_context);
 void as_render_draw_frame(as_render* render, void* display_context);
 void as_render_destroy(as_render* render);
 
-sz as_shader_add_uniform_float(as_shader* shader, const VkDescriptorType type, const float value);
-as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path);
+sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, const float* value);
+sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, const as_texture* texture);
+as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
 
 sz as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path);
 void as_delete_object(as_render* render, as_object* object);

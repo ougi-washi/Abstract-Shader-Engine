@@ -91,14 +91,15 @@ pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 
 #if defined(_DEBUG) || defined(NDEBUG) || defined(DEBUG)
-#define AS_LOG(level, text)																				\
+#define AS_LOG(level, text)																					\
 	if (level == LV_LOG)				printf("LOG : %s\n", text);											\
 	else if(level == LV_WARNING)		printf("[%s|%d] WARNING: %s\n", __FILE__, __LINE__, text);			\
 	else if(level == LV_ERROR)			printf("[%s|%d] ERROR: %s\n", __FILE__, __LINE__, text);
 
-#define AS_ASSERT(result, text)																			\
+#define AS_ASSERT(result, text)																				\
 if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 
 #else
 #define AS_LOG(level, text) {};
+#define AS_ASSERT(result, text)	{};
 #endif
