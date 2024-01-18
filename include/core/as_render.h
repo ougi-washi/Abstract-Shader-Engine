@@ -12,7 +12,7 @@
 // Arrays
 
 AS_DECLARE_ARRAY(VkImages64, 64, VkImage);
-AS_DECLARE_ARRAY(VkImageViews64, 64, VkImageView);
+AS_DECLARE_ARRAY(VkImageViews32, 32, VkImageView);
 AS_DECLARE_ARRAY(VkFramebuffers32, 32, VkFramebuffer);
 AS_DECLARE_ARRAY(VkSemaphores32, 32, VkSemaphore);
 AS_DECLARE_ARRAY(VkFences32, 32, VkFence);
@@ -20,6 +20,8 @@ AS_DECLARE_ARRAY(VkCommandBuffers32, 32, VkCommandBuffer);
 AS_DECLARE_ARRAY(VkDescriptorSets32, 32, VkDescriptorSet);
 AS_DECLARE_ARRAY(VkBuffers32, 32, VkBuffer);
 AS_DECLARE_ARRAY(VkDeviceMemories32, 32, VkDeviceMemory);
+AS_DECLARE_ARRAY(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
+AS_DECLARE_ARRAY(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
 typedef struct as_uniform_buffer_object
@@ -102,7 +104,7 @@ typedef struct as_render
 	VkImages64 swap_chain_images;
 	VkFormat swap_chain_image_format;
 	VkExtent2D swap_chain_extent;
-	VkImageViews64 swap_chain_image_views;
+	VkImageViews32 swap_chain_image_views;
 	VkFramebuffers32 swap_chain_framebuffers;
 	bool framebuffer_resized;
 
@@ -147,16 +149,22 @@ typedef struct as_render
 	u32 current_frame;
 } as_render;
 
-void as_render_create(as_render* render, void* display_context);
+as_render* as_render_create(void* display_context);
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
 void as_render_destroy(as_render* render);
 
-void as_texture_create(as_render* render, as_texture* texture, const char* path);
+as_texture* as_texture_create(as_render* render, const char* path);
+
+as_shader_uniforms_32* as_uniforms_create();
 
 sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
 sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
 as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
+void as_shader_destroy(as_render* render, as_shader* shader);
 
 as_object* as_object_create(as_render* render, as_shader* shader);
 sz as_object_add(as_object* object, as_objects_1024* objects);
-void as_object_delete(as_render* render, as_object* object);
+void as_object_destroy(as_render* render, as_object* object);
+
+as_objects_1024* as_objects_create();
+void as_objects_destroy(as_render* render, as_objects_1024* objects);

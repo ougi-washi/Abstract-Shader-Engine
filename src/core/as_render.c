@@ -54,10 +54,10 @@ const u32 validation_layers_count = AS_ARRAY_SIZE(validation_layers);
 typedef struct swap_chain_support_details 
 {
 	VkSurfaceCapabilitiesKHR capabilities;
-	VkSurfaceFormatKHR* formats;
-	VkPresentModeKHR* present_modes;
-	u32 formats_count;
-	u32 present_modes_count;
+	VkSurfaceFormatKHR32 formats;
+	VkPresentModeKHR32 present_modes;
+	//u32 formats_count;
+	//u32 present_modes_count;
 } swap_chain_support_details;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
@@ -336,22 +336,18 @@ swap_chain_support_details query_swap_chain_support(VkPhysicalDevice device, VkS
 
 	u32 format_count = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, NULL);
-
 	if (format_count != 0) 
 	{
-		details.formats_count = format_count;
-		details.formats = (VkSurfaceFormatKHR*)AS_MALLOC(format_count * sizeof(VkSurfaceFormatKHR));
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, details.formats);
+		details.formats.size = format_count;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, details.formats.data);
 	}
 
 	u32 present_mode_count = 0;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, NULL);
-
 	if (present_mode_count != 0) 
 	{
-		details.present_modes_count = present_mode_count;
-		details.present_modes = (VkPresentModeKHR*)AS_MALLOC(present_mode_count * sizeof(VkPresentModeKHR));
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, details.present_modes);
+		details.present_modes.size = present_mode_count;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, details.present_modes.data);
 	}
 
 	return details;
@@ -410,8 +406,8 @@ void create_swap_chain(as_render* render, void* display_context) // TODO : move 
 {
 	swap_chain_support_details swap_chain_support = query_swap_chain_support(render->physical_device, render->surface);
 
-	VkSurfaceFormatKHR surface_format = choose_swap_surface_format(swap_chain_support.formats, swap_chain_support.formats_count);
-	VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.present_modes, swap_chain_support.present_modes_count);
+	VkSurfaceFormatKHR surface_format = choose_swap_surface_format(swap_chain_support.formats.data, swap_chain_support.formats.size);
+	VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.present_modes.data, swap_chain_support.present_modes.size);
 	VkExtent2D extent = choose_swap_extent(&swap_chain_support.capabilities, display_context);
 
 	render->swap_chain_images.size = swap_chain_support.capabilities.minImageCount + 1;
@@ -636,12 +632,12 @@ void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout, const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	// Load shader code
-	as_shader_binary vert_shader_code = read_shader_code(vertex_shader_path, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary frag_shader_code = read_shader_code(fragment_shader_path, AS_SHADER_TYPE_FRAGMENT);
+	as_shader_binary* vert_shader_code = as_shader_read_code(vertex_shader_path, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_code = as_shader_read_code(fragment_shader_path, AS_SHADER_TYPE_FRAGMENT);
 
 	// Create shader modules
-	VkShaderModule vert_shader_module = create_shader_module(render->device, &vert_shader_code);
-	VkShaderModule frag_shader_module = create_shader_module(render->device, &frag_shader_code);
+	VkShaderModule vert_shader_module = create_shader_module(render->device, vert_shader_code);
+	VkShaderModule frag_shader_module = create_shader_module(render->device, frag_shader_code);
 
 	// Shader stage info
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
@@ -763,6 +759,9 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 
 	vkDestroyShaderModule(render->device, frag_shader_module, NULL);
 	vkDestroyShaderModule(render->device, vert_shader_module, NULL);
+
+	as_shader_destroy_binary(frag_shader_code, true);
+	as_shader_destroy_binary(vert_shader_code, true);
 
 	AS_FREE(attribute_descriptions);
 }
@@ -1552,8 +1551,9 @@ void recreate_swap_chain(as_render* render, void* display_context)
 	create_framebuffers(render);
 }
 
-void as_render_create(as_render* render, void* display_context)
+as_render* as_render_create(void* display_context)
 {
+	as_render* render = (as_render*)AS_MALLOC(sizeof(as_render));
 	create_instance(render);
 	create_surface(render, display_context);
 	pick_physical_device(render);
@@ -1576,6 +1576,7 @@ void as_render_create(as_render* render, void* display_context)
 	create_descriptor_sets(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
+	return render;
 }
 
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects)
@@ -1594,14 +1595,17 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 
 	update_uniform_buffer(render, render->current_frame);
 
-	for (sz obj_index = 0; obj_index < objects->size; obj_index++)
+	if (objects)
 	{
-		as_object* object = &objects->data[obj_index];
-		if (!object) { continue; }
-		as_shader* shader = object->shader;
-		update_shader_uniform_buffer(render, shader, render->current_frame);
+		for (sz obj_index = 0; obj_index < objects->size; obj_index++)
+		{
+			as_object* object = &objects->data[obj_index];
+			if (!object) { continue; }
+			as_shader* shader = object->shader;
+			update_shader_uniform_buffer(render, shader, render->current_frame);
+		}
 	}
-
+	
 	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
@@ -1679,6 +1683,12 @@ void as_render_destroy(as_render* render)
 	vkDestroyBuffer(render->device, render->vertex_buffer, NULL);
 	vkFreeMemory(render->device, render->vertex_buffer_memory, NULL);
 	 
+	vkDestroyImage(render->device, render->texture_image, NULL);
+	vkDestroyImageView(render->device, render->texture_image_view, NULL);
+	vkDestroySampler(render->device, render->texture_sampler, NULL);
+	vkFreeMemory(render->device, render->texture_image_memory, NULL);
+
+
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroySemaphore(render->device, render->render_finished_semaphores.data[i], NULL);
@@ -1697,12 +1707,13 @@ void as_render_destroy(as_render* render)
 
 	vkDestroySurfaceKHR(render->instance, render->surface, NULL);
 	vkDestroyInstance(render->instance, NULL);
+
+	AS_FREE(render);
 }
 
-void as_texture_create(as_render* render, as_texture* texture, const char* path)
+as_texture* as_texture_create(as_render* render, const char* path)
 {
-	AS_ASSERT(texture, "Trying to create texture but ptr is NULL");
-	
+	as_texture* texture = AS_MALLOC_SINGLE(as_texture);
 	u32 tex_width, tex_height, tex_channels;
 	stbi_uc* pixels = stbi_load(path, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 	AS_ASSERT(pixels, "Failed to load texture image!");
@@ -1753,6 +1764,13 @@ void as_texture_create(as_render* render, as_texture* texture, const char* path)
 
 	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &texture->sampler);
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
+	
+	return texture;
+}
+
+as_shader_uniforms_32* as_uniforms_create()
+{
+	return AS_MALLOC_SINGLE(as_shader_uniforms_32);
 }
 
 sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
@@ -1779,7 +1797,7 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	AS_INSERT_AT_ARRAY((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	uniforms->data[index].data = AS_MALLOC(sizeof(as_texture));
+	uniforms->data[index].data = AS_MALLOC_SINGLE(as_texture);
 	uniforms->data[index].data = texture;
 
 	return index;
@@ -1792,7 +1810,7 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	AS_ASSERT(vertex_shader_path, "Trying to create shader, but vertex_shader_path is NULL");
 	AS_ASSERT(fragment_shader_path, "Trying to create shader, but fragment_shader_path is NULL");
 
-	as_shader* shader = (as_shader*)AS_MALLOC(sizeof(as_shader));
+	as_shader* shader = AS_MALLOC_SINGLE(as_shader);
 	shader->uniforms = *uniforms;
 	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, &shader->uniforms);
 
@@ -1804,12 +1822,44 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	return shader;
 }
 
+void as_shader_destroy(as_render* render, as_shader* shader)
+{
+	AS_ASSERT(render, "Trying to delete object, but object is NULL");
+	
+	if (!shader) { return; }
+
+	vkDestroyPipeline(render->device, shader->graphics_pipeline, NULL);
+	vkDestroyPipelineLayout(render->device, shader->graphics_pipeline_layout, NULL);
+
+	for (sz i = 0; i < shader->uniforms.size; i++)
+	{
+		if (shader->uniforms.data[i].type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			as_texture* texture = (as_texture*)shader->uniforms.data[i].data;
+			if (!texture) { continue; }
+			vkDestroyImage(render->device, texture->image, NULL);
+			vkDestroyImageView(render->device, texture->image_view, NULL);
+			vkDestroySampler(render->device, texture->sampler, NULL);
+		}
+		AS_FREE(shader->uniforms.data[i].data);
+	}
+
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroyBuffer(render->device, shader->uniform_buffers.buffers.data[i], NULL);
+		vkFreeMemory(render->device, shader->uniform_buffers.memories.data[i], NULL);
+	}
+
+	vkDestroyDescriptorPool(render->device, shader->descriptor_pool, NULL);
+	vkDestroyDescriptorSetLayout(render->device, shader->descriptor_set_layout, NULL);
+}
+
 as_object* as_object_create(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
 	
-	as_object* object = (as_object*)AS_MALLOC(sizeof(as_object));
+	as_object* object = AS_MALLOC_SINGLE(as_object);
 	
 	// vertex buffer
 
@@ -1871,14 +1921,38 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 	return objects->size - 1;
 }
 
-void as_object_delete(as_render* render, as_object* object)
+void as_object_destroy(as_render* render, as_object* object)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
-	AS_ASSERT(object, "Trying to delete object, but render is NULL");
+
+	if (!object) { return; }
+
+	as_shader_destroy(render, object->shader);
+	AS_FREE(object->shader);
 
 	vkDestroyBuffer(render->device, object->index_buffer, NULL);
 	vkFreeMemory(render->device, object->index_buffer_memory, NULL);
 
 	vkDestroyBuffer(render->device, object->vertex_buffer, NULL);
 	vkFreeMemory(render->device, object->vertex_buffer_memory, NULL);
+}
+
+as_objects_1024* as_objects_create()
+{
+	return AS_MALLOC_SINGLE(as_objects_1024);
+}
+
+void as_objects_destroy(as_render* render, as_objects_1024* objects)
+{
+	AS_ASSERT(render, "Trying to delete objects, but object is NULL");
+	if (!objects) { return; }
+
+	vkDeviceWaitIdle(render->device);
+
+	for (sz i = 0; i < objects->size; i++)
+	{
+		as_object_destroy(render, &objects->data[i]);
+	}
+
+	AS_FREE(objects);
 }

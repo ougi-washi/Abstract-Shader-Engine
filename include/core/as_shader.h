@@ -16,6 +16,6 @@ typedef struct as_shader_binary
 	size_t size;
 } as_shader_binary;
 
-i32 as_compile_shader(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size);
-as_shader_binary read_shader_code(const char* filename, const as_shader_type shader_type);
-void destroy_shader(as_shader_binary* shader_bin, const bool is_ptr);
+i32 as_shader_compile(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size);
+as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type);
+void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr);
