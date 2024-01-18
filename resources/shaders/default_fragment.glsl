@@ -1,4 +1,5 @@
 #version 450
+#include "as_common.glsl"
 
 layout(binding = 1) uniform sampler2D texSampler;
 
