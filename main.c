@@ -20,10 +20,19 @@ i32 main()
 	as_render render = {0};
 	as_render_create(&render, display_context);
 
+	as_shader_uniforms_32 uniforms = {0};
+	as_texture texture = {0};
+	as_texture_create(&render, &texture, "../resources/textures/default_texture.png");
+	as_shader_add_uniform_texture(&uniforms, &texture);
+	as_shader* shader = as_shader_create(&render, &uniforms, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
+	as_object* object = as_object_create(&render, shader);
+	as_objects_1024 objects = {0};
+	as_object_add(object, &objects);
+
 	while (!as_display_context_should_close(display_context))
 	{
 		as_display_context_poll_event();
-		as_render_draw_frame(&render, display_context);
+		as_render_draw_frame(&render, display_context, &objects);
 	}
 	as_display_context_destroy(display_context);
 	as_display_context_terminate();

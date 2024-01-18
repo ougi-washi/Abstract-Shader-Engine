@@ -10,6 +10,7 @@
 
 
 // Arrays
+
 AS_DECLARE_ARRAY(VkImages64, 64, VkImage);
 AS_DECLARE_ARRAY(VkImageViews64, 64, VkImageView);
 AS_DECLARE_ARRAY(VkFramebuffers32, 32, VkFramebuffer);
@@ -17,6 +18,9 @@ AS_DECLARE_ARRAY(VkSemaphores32, 32, VkSemaphore);
 AS_DECLARE_ARRAY(VkFences32, 32, VkFence);
 AS_DECLARE_ARRAY(VkCommandBuffers32, 32, VkCommandBuffer);
 AS_DECLARE_ARRAY(VkDescriptorSets32, 32, VkDescriptorSet);
+AS_DECLARE_ARRAY(VkBuffers32, 32, VkBuffer);
+AS_DECLARE_ARRAY(VkDeviceMemories32, 32, VkDeviceMemory);
+
 
 typedef struct as_uniform_buffer_object
 {
@@ -24,7 +28,7 @@ typedef struct as_uniform_buffer_object
 	as_mat4 view;
 	as_mat4 proj;
 } as_uniform_buffer_object;
-
+ // use of _Alignof may be needed somewhere here
 typedef struct as_vertex
 {
 	as_vec3 pos;
@@ -33,26 +37,39 @@ typedef struct as_vertex
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
 
+typedef struct as_uniform_buffers
+{
+	VkBuffers32 buffers;
+	VkDeviceMemories32 memories;
+	voids32 buffers_mapped;
+} as_uniform_buffers;
+
 typedef struct as_texture
 {
-	VkImage texture_image;
-	VkDeviceMemory texture_image_memory;
-	VkImageView texture_image_view;
-	VkSampler texture_sampler;
+	VkImage image;
+	VkDeviceMemory memory;
+	VkImageView image_view;
+	VkSampler sampler;
 } as_texture;
 
 typedef struct as_shader_uniform
 {
 	VkDescriptorType type;
-	as_texture* texture;
+	void* data;
 } as_shader_uniform;
 AS_DECLARE_ARRAY(as_shader_uniforms_32, 32, as_shader_uniform);
 
 typedef struct as_shader
 {
 	VkPipeline graphics_pipeline;
+	VkPipelineLayout graphics_pipeline_layout;
+
+	VkDescriptorPool descriptor_pool;
 	VkDescriptorSetLayout descriptor_set_layout;
-	as_shader_uniforms_32* uniforms;
+	VkDescriptorSets32 descriptor_sets;
+
+	as_uniform_buffers uniform_buffers;
+	as_shader_uniforms_32 uniforms;
 }as_shader;
 
 typedef struct as_object
@@ -63,9 +80,11 @@ typedef struct as_object
 	VkDeviceMemory vertex_buffer_memory;
 	VkBuffer index_buffer;
 	VkDeviceMemory index_buffer_memory;
+	u32 indices_size;
 
 	as_shader* shader;
 } as_object;
+AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object);
 
 typedef struct as_render
 {
@@ -129,12 +148,15 @@ typedef struct as_render
 } as_render;
 
 void as_render_create(as_render* render, void* display_context);
-void as_render_draw_frame(as_render* render, void* display_context);
+void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
 void as_render_destroy(as_render* render);
 
-sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, const float* value);
-sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, const as_texture* texture);
+void as_texture_create(as_render* render, as_texture* texture, const char* path);
+
+sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
+sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
 as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
 
-sz as_add_object(as_render* render, const as_transform* transform, const char* vertex_shader_path, const char* fragment_shader_path);
-void as_delete_object(as_render* render, as_object* object);
+as_object* as_object_create(as_render* render, as_shader* shader);
+sz as_object_add(as_object* object, as_objects_1024* objects);
+void as_object_delete(as_render* render, as_object* object);

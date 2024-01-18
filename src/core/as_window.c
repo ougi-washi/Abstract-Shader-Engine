@@ -11,6 +11,8 @@ void* as_display_context_create(const i32 x, const i32 y, const char* title, voi
 		return NULL;
 	}
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+	glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 	GLFWwindow* display_context = glfwCreateWindow(x, y, title, NULL, NULL);
 	if (display_context)
 	{

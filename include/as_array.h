@@ -28,3 +28,10 @@
 
 #define AS_GET_ARRAY_ELEM(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
+
+AS_DECLARE_ARRAY(voids32, 32, void*);
+AS_DECLARE_ARRAY(voids64, 64, void*);
+AS_DECLARE_ARRAY(voids128, 128, void*);
+AS_DECLARE_ARRAY(voids256, 256, void*);
+AS_DECLARE_ARRAY(voids512, 512, void*);
+AS_DECLARE_ARRAY(voids1024, 1024, void*);
