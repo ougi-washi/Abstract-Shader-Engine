@@ -67,21 +67,19 @@ void as_free_fn(void* _ptr)
 	{
 		allocations_count--;
 	}
-	if (_ptr)
-	{
-		free(_ptr);
-		_ptr = NULL;
-	}
+	//if (_ptr)
+	//{
+	//	free(_ptr);
+	//	_ptr = NULL;
+	//}
 }
 
-char* as_allocation_to_string(as_allocation* _allocation)
+char* as_allocation_to_string(as_allocation* _allocation) 
 {
-	if (_allocation)
-	{
+	if (_allocation) {
 		char* str = (char*)malloc(256);
-		if (str)
-		{
-			sprintf(str, "ptr=%p, size=%zu, file=%s, line=%d", 
+		if (str) {
+			snprintf(str, 256, "ptr=%p, size=%zu, file=%s, line=%d",
 				_allocation->ptr, _allocation->size, _allocation->file, _allocation->line);
 			return str;
 		}
@@ -89,13 +87,17 @@ char* as_allocation_to_string(as_allocation* _allocation)
 	return NULL;
 }
 
-//void as_log_memory()
-//{
-//	as_LOG(LV_LOG, std::string("Total allocated memory = " + std::to_string(allocated_memory)));
-//	for (u32 i = 0; i < allocations_count; i++)
-//	{
-//		char* str = as_allocation_to_string(&allocations[i]);
-//		as_LOG(LV_LOG, str);
-//		free(str);
-//	}
-//}
+void as_log_memory() 
+{
+	char log_buffer[4096];
+
+	snprintf(log_buffer, sizeof(log_buffer), "Total allocated memory = %zu\n", allocated_memory);
+	for (u32 i = 0; i < allocations_count; i++) 
+	{
+		char* str = as_allocation_to_string(&allocations[i]);
+		strncat(log_buffer, str, sizeof(log_buffer) - strlen(log_buffer) - 1);
+		free(str);
+		strncat(log_buffer, "\n", sizeof(log_buffer) - strlen(log_buffer) - 1);
+	}
+	AS_LOG(LV_LOG, log_buffer);
+}

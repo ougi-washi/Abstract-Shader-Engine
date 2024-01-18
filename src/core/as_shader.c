@@ -81,7 +81,7 @@ char* process_shader_source_recursive(const char* source, size_t* size, const ch
 		strcat(full_suffix, include_suffix);
 		size_t suffix_len = strlen(full_suffix);
 		size_t new_source_len = prefix_len + included_size + suffix_len;
-		char* new_source = (char*)malloc(new_source_len + 1);
+		char* new_source = (char*)AS_MALLOC(new_source_len + 1);
 
 		memcpy(new_source, processed_source, prefix_len);
 		memcpy(new_source + prefix_len, processed_included_content, included_size);
@@ -103,7 +103,7 @@ char* process_shader_source_recursive(const char* source, size_t* size, const ch
 	return processed_source;
 }
 
-i32 as_compile_shader(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size)
+i32 as_shader_compile(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size)
 {
 	size_t out_size = 0;
 	char* processed_source = process_shader_source_recursive(source, &out_size, NULL);
@@ -161,9 +161,9 @@ i32 as_compile_shader(const char* source, const char* entry_point, const as_shad
 	return 0;
 }
 
-as_shader_binary read_shader_code(const char* filename, const as_shader_type shader_type)
+as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type)
 {
-	as_shader_binary output = {0};
+	as_shader_binary* output = AS_MALLOC_SINGLE(as_shader_binary);
 	size_t file_size = 0;
 	char* source_code = read_file(filename, &file_size);
 	if (!source_code)
@@ -173,7 +173,7 @@ as_shader_binary read_shader_code(const char* filename, const as_shader_type sha
 
 	//u32* spirv_code = NULL;
 	size_t spirv_size = 0;
-	i32 compile_result = as_compile_shader(source_code, "main", shader_type, &output.bin, &output.size);
+	i32 compile_result = as_shader_compile(source_code, "main", shader_type, &output->bin, &output->size);
 	AS_FREE(source_code);
 	return output;
 	/*
@@ -183,7 +183,7 @@ as_shader_binary read_shader_code(const char* filename, const as_shader_type sha
 	}*/
 }
 
-void destroy_shader(as_shader_binary* shader_bin, const bool is_ptr)
+void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 {
 	AS_FREE(shader_bin->bin);
 	if (is_ptr)
