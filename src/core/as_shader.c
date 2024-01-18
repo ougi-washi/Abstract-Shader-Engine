@@ -40,6 +40,25 @@ char* process_shader_source_recursive(const char* source, size_t* size, const ch
 		size_t filename_len = include_end - (include_start + include_prefix_len);
 		char* filename = strdup(include_start + include_prefix_len, filename_len); //??
 
+		// Calculate the start and end positions for the substring
+		size_t start_pos = include_start - processed_source + include_prefix_len;
+		size_t end_pos = include_end - processed_source + 1; // +1 to include the closing quote
+
+		// Extract the substring
+		size_t substring_len = end_pos - start_pos;
+		char* include_content = (char*)AS_MALLOC(substring_len + 1); // +1 for null terminator
+		if (include_content != NULL) 
+		{
+			memcpy(include_content, processed_source + start_pos, substring_len);
+			include_content[substring_len] = '\0';  // Null-terminate the string
+		}
+		else 
+		{
+			// Handle memory allocation failure
+			free(processed_source);
+			return NULL;  // Or some other way to indicate an error
+		}
+
 		// Resolve the full path to the included file
 		char* full_path;
 		if (base_path)
@@ -106,11 +125,10 @@ char* process_shader_source_recursive(const char* source, size_t* size, const ch
 i32 as_shader_compile(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size)
 {
 	size_t out_size = 0;
-	char* processed_source = process_shader_source_recursive(source, &out_size, NULL);
+
 	shaderc_compiler_t compiler = shaderc_compiler_initialize();
 	if (!compiler) 
 	{
-		AS_FREE(processed_source);
 		return -1;
 	}
 
@@ -125,7 +143,6 @@ i32 as_shader_compile(const char* source, const char* entry_point, const as_shad
 		// Add support for other shader types if needed
 		shaderc_compiler_release(compiler);
 		shaderc_compile_options_release(options);
-		AS_FREE(processed_source);
 		return -1;
 	}
 
@@ -135,12 +152,10 @@ i32 as_shader_compile(const char* source, const char* entry_point, const as_shad
 
 	shaderc_compile_options_set_generate_debug_info(options);
 
-	const i32 processed_source_size = strlen(processed_source);
-	shaderc_compilation_result_t result = shaderc_compile_into_spv(compiler, processed_source, processed_source_size, kind, "source", entry_point, options);
+	const i32 processed_source_size = strlen(source);
+	shaderc_compilation_result_t result = shaderc_compile_into_spv(compiler, source, processed_source_size, kind, "source", entry_point, options);
 	shaderc_compiler_release(compiler);
 	shaderc_compile_options_release(options);
-
-	AS_FREE(processed_source);
 
 	const shaderc_compilation_status compilation_status = shaderc_result_get_compilation_status(result);
 	AS_LOG(LV_LOG, (compilation_status_texts[compilation_status]));
@@ -165,22 +180,13 @@ as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type
 {
 	as_shader_binary* output = AS_MALLOC_SINGLE(as_shader_binary);
 	size_t file_size = 0;
-	char* source_code = read_file(filename, &file_size);
-	if (!source_code)
-	{
-		return output;
-	}
+	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
+	as_util_expand_file_includes(filename, processed_source);
 
-	//u32* spirv_code = NULL;
 	size_t spirv_size = 0;
-	i32 compile_result = as_shader_compile(source_code, "main", shader_type, &output->bin, &output->size);
-	AS_FREE(source_code);
+	i32 compile_result = as_shader_compile(processed_source, "main", shader_type, &output->bin, &output->size);
+	AS_FREE(processed_source);
 	return output;
-	/*
-	if (compile_result != 0)
-	{
-		return output;
-	}*/
 }
 
 void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
