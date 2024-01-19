@@ -108,10 +108,9 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 
 typedef enum as_flag
 {
-	AS_NONE		= 0x00,
-	AS_INVALID	= 0x01,
-	AS_VALID	= 0x02,
-	AS_MAX		= 0x03
+	AS_INVALID	= 0x00,
+	AS_VALID	= 0x01,
+	AS_MAX		= 0x02
 } as_flag;
 
 #define ADD_FLAG as_flag obj_flag

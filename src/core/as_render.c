@@ -1545,6 +1545,7 @@ void as_texture_destroy(as_render* render, as_texture* texture)
 	vkDestroyImage(render->device, texture->image, NULL);
 	vkDestroyImageView(render->device, texture->image_view, NULL);
 	vkDestroySampler(render->device, texture->sampler, NULL);
+	vkFreeMemory(render->device, texture->memory, NULL);
 
 	AS_SET_INVALID(texture);
 }
