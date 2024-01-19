@@ -134,3 +134,25 @@ void as_util_expand_file_includes(const char* filename, char* output)
 	}
 }
 
+clock_t get_current_time()
+{
+	return clock();
+}
+
+f32 calculate_delta_time(clock_t start, clock_t end)
+{
+	return ((f32)(end - start)) / (f64)CLOCKS_PER_SEC;
+}
+
+void sleep_seconds(double seconds)
+{
+#ifdef _WIN32
+	Sleep((DWORD)(seconds * 1000));
+#else
+	struct timespec sleepTime;
+	sleepTime.tv_sec = (time_t)seconds;
+	sleepTime.tv_nsec = (long)((seconds - sleepTime.tv_sec) * 1e9);
+	nanosleep(&sleepTime, NULL);
+#endif
+}
+

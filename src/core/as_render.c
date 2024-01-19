@@ -2,8 +2,6 @@
 #include "core/as_shader.h"
 #include "core/as_shapes.h"
 #include "as_memory.h"
-#include "as_utility.h"
-#include <time.h>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -24,9 +22,10 @@
 
 #define AS_USE_VULKAN_VALIDATION_LAYER 1
 
+
 static clock_t start_time = 0;
 
-typedef struct queue_family_indices 
+typedef struct queue_family_indices
 {
 	u32 graphics_family;
 	u32 present_family;
@@ -1107,8 +1106,8 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, const u3
 {
 	as_uniform_buffer_object ubo = { 0 };
 	as_mat4_set_identity(&ubo.model);
-	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
+	ubo.view = as_mat4_look_at(&(as_vec3) { 5., 5., 5. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_mat4_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
@@ -1169,7 +1168,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 		{
 			for (sz obj_index = 0 ; obj_index < objects->size ; obj_index++)
 			{
-				as_object* object = &objects->data[obj_index];
+				as_object* object = objects->data[obj_index];
 				as_shader* shader = object->shader;
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
 
@@ -1368,11 +1367,31 @@ as_render* as_render_create(void* display_context)
 	create_command_pool(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
+
 	return render;
+}
+
+void as_render_start_draw_loop(as_render* render)
+{
+	render->last_frame_time = get_current_time();
+}
+
+void as_render_end_draw_loop(as_render* render)
+{
+	render->current_time = get_current_time();
+
+	const f32 remaining_time = as_render_get_remaining_time(render);
+	if (remaining_time > 0)
+	{
+		sleep_seconds(remaining_time);
+	}
+	render->delta_time = calculate_delta_time(render->last_frame_time, get_current_time());
+	render->last_frame_time = get_current_time();
 }
 
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects)
 {
+
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index;
@@ -1391,7 +1410,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	{
 		for (sz obj_index = 0; obj_index < objects->size; obj_index++)
 		{
-			as_object* object = &objects->data[obj_index];
+			as_object* object = objects->data[obj_index];
 			if (!object) { continue; }
 			as_shader* shader = object->shader;
 			update_shader_uniform_buffer(render, shader, render->current_frame);
@@ -1477,6 +1496,23 @@ void as_render_destroy(as_render* render)
 	vkDestroyInstance(render->instance, NULL);
 
 	AS_FREE(render);
+}
+
+f32 as_render_get_time(as_render* render)
+{
+	return render->time;
+}
+
+f32 as_render_get_remaining_time(as_render* render)
+{
+	clock_t next_frame_time = get_current_time();
+	f32 elapsedTime = calculate_delta_time(render->last_frame_time, next_frame_time);
+	return 1.0 / TARGET_FPS - elapsedTime;
+}
+
+f32 as_render_get_delta_time(as_render* render)
+{
+	return render->delta_time;
 }
 
 as_texture* as_texture_create(as_render* render, const char* path)
@@ -1705,7 +1741,7 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 	AS_ASSERT(object, "Trying to add object, but object is NULL");
 	AS_ASSERT(objects, "Trying to add object, but objects array is NULL");
 
-	AS_INSERT_AT_ARRAY((*objects), objects->size, *object);
+	AS_INSERT_AT_ARRAY((*objects), objects->size, object);
 	return objects->size - 1;
 }
 
@@ -1714,23 +1750,39 @@ void as_object_set_translation(as_object* object, const as_vec3* translation)
 	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
 	AS_ASSERT(translation, TEXT("Trying to set object location, but translation is NULL"));
 
-	as_set_translation(&object->transform, translation);
+	as_mat4_set_translation(&object->transform, translation);
 }
 
 void as_object_set_rotation(as_object* object, const as_vec3* rotation)
 {
-	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(object, TEXT("Trying to set object rotation, but object is NULL"));
 	AS_ASSERT(rotation, TEXT("Trying to set object rotation, but rotation is NULL"));
 
-	as_set_rotation(&object->transform, rotation);
+	as_mat4_set_rotation(&object->transform, rotation);
+}
+
+void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
+{
+	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
+	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
+
+
+	// If I rotate it around the 0 axis
+	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC3_PTR(0, 0, 2.));
+	
+
+
+
+	//const as_vec3 current_translation = as_mat4_get_translation(&object->transform);
+	//object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, &current_translation);
 }
 
 void as_object_set_scale(as_object* object, const as_vec3* scale)
 {
-	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(object, TEXT("Trying to set object scale, but object is NULL"));
 	AS_ASSERT(scale, TEXT("Trying to set object scale, but scale is NULL"));
 
-	as_set_scale(&object->transform, scale);
+	as_mat4_set_scale(&object->transform, scale);
 }
 
 void as_object_destroy(as_render* render, as_object* object)
@@ -1764,7 +1816,7 @@ void as_objects_destroy(as_render* render, as_objects_1024* objects)
 
 	for (sz i = 0; i < objects->size; i++)
 	{
-		as_object_destroy(render, &objects->data[i]);
+		as_object_destroy(render, objects->data[i]);
 	}
 
 	AS_FREE(objects);

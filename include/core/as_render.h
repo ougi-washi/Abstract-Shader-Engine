@@ -4,10 +4,13 @@
 #include "as_types.h"
 #include "as_math.h"
 #include "as_array.h"
+#include "as_utility.h"
 #include <vulkan/vulkan.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
+#define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
+#define TARGET_FPS 60
 
 // Arrays
 
@@ -96,7 +99,7 @@ typedef struct as_object
 	u32 indices_size;
 	ADD_FLAG;
 } as_object;
-AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object);
+AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object*);
 
 typedef struct as_render
 {
@@ -133,12 +136,22 @@ typedef struct as_render
 	VkImageView depth_image_view;
 
 	u32 current_frame;
+	
+	// move somewhere else maybe
 	f32 time;
+	f32 last_frame_time;
+	f32 delta_time;
+	f32 current_time;
 } as_render;
 
 as_render* as_render_create(void* display_context);
+void as_render_start_draw_loop(as_render* render);
+void as_render_end_draw_loop(as_render* render);
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
 void as_render_destroy(as_render* render);
+f32 as_render_get_time(as_render* render);
+f32 as_render_get_remaining_time(as_render* render);
+f32 as_render_get_delta_time(as_render* render);
 
 as_texture* as_texture_create(as_render* render, const char* path);
 void as_texture_destroy(as_render* render, as_texture* texture);
@@ -154,6 +167,7 @@ as_object* as_object_create(as_render* render, as_shader* shader);
 sz as_object_add(as_object* object, as_objects_1024* objects);
 void as_object_set_translation(as_object* object, const as_vec3* translation);
 void as_object_set_rotation(as_object* object, const as_vec3* rotation);
+void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
 void as_object_set_scale(as_object* object, const as_vec3* scale);
 void as_object_destroy(as_render* render, as_object* object);
 

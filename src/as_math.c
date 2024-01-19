@@ -52,18 +52,86 @@ void as_mat4_set_identity(as_mat4* m)
 	}
 }
 
-void as_translate(as_mat4* m, const as_vec3* translation)
+as_mat4 as_mat4_multiply(const as_mat4* a, const as_mat4* b)
+{
+	as_mat4 result;
+
+	for (size_t i = 0; i < 4; ++i)
+	{
+		for (size_t j = 0; j < 4; ++j)
+		{
+			result.m[i][j] = a->m[i][0] * b->m[0][j] +
+				a->m[i][1] * b->m[1][j] +
+				a->m[i][2] * b->m[2][j] +
+				a->m[i][3] * b->m[3][j];
+		}
+	}
+
+	return result;
+}
+
+as_vec3 as_mat4_get_translation(const as_mat4* m)
+{
+	return AS_VEC3(m->m[3][0], m->m[3][1], m->m[3][2]);
+}
+
+void as_mat4_translate(as_mat4* m, const as_vec3* translation)
 {
 	m->m[0][3] += translation->x;
 	m->m[1][3] += translation->y;
 	m->m[2][3] += translation->z;
 }
 
-void as_set_translation(as_mat4* m, const as_vec3* translation)
+void as_mat4_set_translation(as_mat4* m, const as_vec3* translation)
 {
 	m->m[3][0] = translation->x;
 	m->m[3][1] = translation->y;
 	m->m[3][2] = translation->z;
+}
+
+extern as_quat as_mat4_get_rotation(const as_mat4* m)
+{
+	as_quat quat;
+
+	float trace = m->m[0][0] + m->m[1][1] + m->m[2][2];
+
+	if (trace > 0.0f)
+	{
+		float s = 0.5f / sqrtf(trace + 1.0f);
+		quat.w = 0.25f / s;
+		quat.x = (m->m[2][1] - m->m[1][2]) * s;
+		quat.y = (m->m[0][2] - m->m[2][0]) * s;
+		quat.z = (m->m[1][0] - m->m[0][1]) * s;
+	}
+	else
+	{
+		if (m->m[0][0] > m->m[1][1] && m->m[0][0] > m->m[2][2])
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[0][0] - m->m[1][1] - m->m[2][2]);
+			quat.w = (m->m[2][1] - m->m[1][2]) / s;
+			quat.x = 0.25f * s;
+			quat.y = (m->m[0][1] + m->m[1][0]) / s;
+			quat.z = (m->m[0][2] + m->m[2][0]) / s;
+		}
+		else if (m->m[1][1] > m->m[2][2])
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[1][1] - m->m[0][0] - m->m[2][2]);
+			quat.w = (m->m[0][2] - m->m[2][0]) / s;
+			quat.x = (m->m[0][1] + m->m[1][0]) / s;
+			quat.y = 0.25f * s;
+			quat.z = (m->m[1][2] + m->m[2][1]) / s;
+		}
+		else
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[2][2] - m->m[0][0] - m->m[1][1]);
+			quat.w = (m->m[1][0] - m->m[0][1]) / s;
+			quat.x = (m->m[0][2] + m->m[2][0]) / s;
+			quat.y = (m->m[1][2] + m->m[2][1]) / s;
+			quat.z = 0.25f * s;
+		}
+	}
+
+	return quat;
 }
 
 //as_mat4 as_rotate(const as_vec3* axis, const f32 angle)
@@ -87,7 +155,7 @@ void as_set_translation(as_mat4* m, const as_vec3* translation)
 //	return result;
 //}
 
-as_mat4 as_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
+as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 {
 	f32 const a = angle;
 	f32 const c = cosf(a);
@@ -127,7 +195,16 @@ as_mat4 as_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 	return result;
 }
 
-void as_set_rotation(as_mat4* m, const as_vec3* rotation)
+as_mat4 as_mat4_rotate_around_center(const as_mat4* m, const f32 angle, const as_vec3* v, const as_vec3* center)
+{
+	as_mat4 translate_to_origin = AS_MAT4_TRANSLATION(-center->x, -center->y, -center->z);
+	as_mat4 rotate = as_mat4_rotate(&translate_to_origin, angle, v);
+	as_mat4 translate_back = AS_MAT4_TRANSLATION(center->x, center->y, center->z);
+	as_mat4 result = as_mat4_multiply(&translate_back, &rotate);
+	return as_mat4_multiply(m, &result);
+}
+
+void as_mat4_set_rotation(as_mat4* m, const as_vec3* rotation)
 {
 	as_mat4_set_identity(m);
 
@@ -151,7 +228,24 @@ void as_set_rotation(as_mat4* m, const as_vec3* rotation)
 	m->m[2][2] = cosX * cosY;
 }
 
-as_mat4 as_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up)
+extern as_vec3 as_mat4_get_scale(const as_mat4* m)
+{
+	as_vec3 scale;
+	scale.x = sqrtf(m->m[0][0] * m->m[0][0] + m->m[0][1] * m->m[0][1] + m->m[0][2] * m->m[0][2]);
+	scale.y = sqrtf(m->m[1][0] * m->m[1][0] + m->m[1][1] * m->m[1][1] + m->m[1][2] * m->m[1][2]);
+	scale.z = sqrtf(m->m[2][0] * m->m[2][0] + m->m[2][1] * m->m[2][1] + m->m[2][2] * m->m[2][2]);
+
+	return scale;
+}
+
+void as_mat4_set_scale(as_mat4* m, const as_vec3* scale)
+{
+	m->m[0][0] = scale->x;
+	m->m[1][1] = scale->y;
+	m->m[2][2] = scale->z;
+}
+
+as_mat4 as_mat4_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up)
 {
 	as_vec3 f, r, u;
 	f.x = center->x - eye->x;
@@ -180,7 +274,7 @@ as_mat4 as_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up)
 	return result;
 }
 
-as_mat4 as_perspective(const f32 fov, const f32 aspect, const f32 near_plane, const f32 far_plane)
+as_mat4 as_mat4_perspective(const f32 fov, const f32 aspect, const f32 near_plane, const f32 far_plane)
 {
 	f32 tan_half_fov = tanf(fov / 2.0f);
 	as_mat4 result = 
@@ -193,9 +287,44 @@ as_mat4 as_perspective(const f32 fov, const f32 aspect, const f32 near_plane, co
 	return result;
 }
 
-void as_set_scale(as_mat4* m, const as_vec3* scale)
+as_quat as_vec3_to_quat(const as_vec3* v)
 {
-	m->m[0][0] = scale->x;
-	m->m[1][1] = scale->y;
-	m->m[2][2] = scale->z;
+	float c1 = cosf(v->x / 2.0f);
+	float s1 = sinf(v->x / 2.0f);
+	float c2 = cosf(v->y / 2.0f);
+	float s2 = sinf(v->y / 2.0f);
+	float c3 = cosf(v->z / 2.0f);
+	float s3 = sinf(v->z / 2.0f);
+
+	as_quat quat;
+	quat.w = c1 * c2 * c3 - s1 * s2 * s3;
+	quat.x = s1 * s2 * c3 + c1 * c2 * s3;
+	quat.y = s1 * c2 * c3 + c1 * s2 * s3;
+	quat.z = c1 * s2 * c3 - s1 * c2 * s3;
+
+	return quat;
+}
+
+as_vec3 as_quat_to_vec3(const as_quat* q)
+{
+	float roll, pitch, yaw;
+
+	// roll (x-axis rotation)
+	float sinr_cosp = 2.0f * (q->w * q->x + q->y * q->z);
+	float cosr_cosp = 1.0f - 2.0f * (q->x * q->x + q->y * q->y);
+	roll = atan2f(sinr_cosp, cosr_cosp);
+
+	// pitch (y-axis rotation)
+	float sinp = 2.0f * (q->w * q->y - q->z * q->x);
+	if (fabs(sinp) >= 1)
+		pitch = copysignf(AS_PI / 2, sinp); // use 90 degrees if out of range
+	else
+		pitch = asinf(sinp);
+
+	// yaw (z-axis rotation)
+	float siny_cosp = 2.0f * (q->w * q->z + q->x * q->y);
+	float cosy_cosp = 1.0f - 2.0f * (q->y * q->y + q->z * q->z);
+	yaw = atan2f(siny_cosp, cosy_cosp);
+
+	return (as_vec3) { roll, pitch, yaw };
 }
