@@ -2,8 +2,6 @@
 #include "core/as_shader.h"
 #include "core/as_shapes.h"
 #include "as_memory.h"
-#include "as_utility.h"
-#include <time.h>
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -24,7 +22,10 @@
 
 #define AS_USE_VULKAN_VALIDATION_LAYER 1
 
-typedef struct queue_family_indices 
+
+static clock_t start_time = 0;
+
+typedef struct queue_family_indices
 {
 	u32 graphics_family;
 	u32 present_family;
@@ -727,11 +728,19 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
 	dynamic_state.pDynamicStates = dynamic_states;
 
+	// Pipeline layout constant
+	VkPushConstantRange push_constant_range = { 0 };
+	push_constant_range.offset = 0;
+	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
+
 	// Pipeline layout
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
 	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
+	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
+	pipeline_layout_info.pushConstantRangeCount = 1;
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
@@ -941,77 +950,6 @@ i32 find_memory_type(as_render* render, u32 type_filter, VkMemoryPropertyFlags p
 	return 0; 
 }
 
-void create_vertex_buffer(as_render* render) 
-{
-	VkDeviceSize buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
-
-	VkBuffer staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&staging_buffer, &staging_buffer_memory);
-
-	void* data;
-	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_vertices, (sz)buffer_size);
-	vkUnmapMemory(render->device, staging_buffer_memory);
-
-	create_buffer(render, buffer_size,
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->vertex_buffer, &render->vertex_buffer_memory);
-
-	copy_buffer(render, staging_buffer, render->vertex_buffer, buffer_size);
-
-	vkDestroyBuffer(render->device, staging_buffer, NULL);
-	vkFreeMemory(render->device, staging_buffer_memory, NULL);
-}
-
-void create_index_buffer(as_render* render) 
-{
-	VkDeviceSize buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
-
-	VkBuffer staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&staging_buffer, &staging_buffer_memory);
-
-	void* data;
-	vkMapMemory(render->device, staging_buffer_memory, 0, buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_indices, (sz)buffer_size);
-	vkUnmapMemory(render->device, staging_buffer_memory);
-
-	create_buffer(render, buffer_size, 
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->index_buffer, &render->index_buffer_memory);
-
-	copy_buffer(render, staging_buffer, render->index_buffer, buffer_size);
-
-	vkDestroyBuffer(render->device, staging_buffer, NULL);
-	vkFreeMemory(render->device, staging_buffer_memory, NULL);
-}
-
-void create_uniform_buffers(as_render* render) 
-{
-	VkDeviceSize buffer_size = sizeof(as_uniform_buffer_object);
-
-	render->uniform_buffers = (VkBuffer*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkBuffer));
-	render->uniform_buffers_memory = (VkDeviceMemory*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDeviceMemory));
-	render->uniform_buffers_mapped = (void**)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(void*));
-	render->uniform_buffers_count = MAX_FRAMES_IN_FLIGHT;
-	render->uniform_buffers_memory_count = MAX_FRAMES_IN_FLIGHT;
-	render->uniform_buffers_mapped_count = MAX_FRAMES_IN_FLIGHT;
-
-	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
-	{
-		create_buffer(render, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			&render->uniform_buffers[i], &render->uniform_buffers_memory[i]);
-
-		vkMapMemory(render->device, render->uniform_buffers_memory[i], 0, buffer_size, 0, &render->uniform_buffers_mapped[i]);
-	}
-}
-
 void create_uniform_buffers_direct(as_uniform_buffers* uniform_buffers, as_render* render)
 {
 	VkDeviceSize buffer_size = sizeof(as_uniform_buffer_object);
@@ -1044,57 +982,6 @@ void create_descriptor_pool(VkDevice device, VkDescriptorPool* descriptor_pool)
 
 	AS_ASSERT(vkCreateDescriptorPool(device, &pool_info, NULL, descriptor_pool) == VK_SUCCESS, 
 		"Failed to create descriptor pool");
-}
-
-void create_descriptor_sets(as_render* render)
-{
-	VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
-	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) 
-	{
-		layouts[i] = render->descriptor_set_layout;
-	}
-
-	VkDescriptorSetAllocateInfo alloc_info = { 0 };
-	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = render->descriptor_pool;
-	alloc_info.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
-	alloc_info.pSetLayouts = layouts;
-
-	render->descriptor_sets = (VkDescriptorSet*)AS_MALLOC(MAX_FRAMES_IN_FLIGHT * sizeof(VkDescriptorSet));
-	AS_ASSERT(vkAllocateDescriptorSets(render->device, &alloc_info, render->descriptor_sets) == VK_SUCCESS, "Failed to allocate descriptor sets!");
-
-	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) 
-	{
-		VkDescriptorBufferInfo buffer_info = { 0 };
-		buffer_info.buffer = render->uniform_buffers[i];
-		buffer_info.offset = 0;
-		buffer_info.range = sizeof(as_uniform_buffer_object);
-
-		VkDescriptorImageInfo image_info = { 0 };
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = render->texture_image_view;
-		image_info.sampler = render->texture_sampler;
-
-		VkWriteDescriptorSet descriptor_writes[2] = { 0 };
-
-		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptor_writes[0].dstSet = render->descriptor_sets[i];
-		descriptor_writes[0].dstBinding = 0;
-		descriptor_writes[0].dstArrayElement = 0;
-		descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptor_writes[0].descriptorCount = 1;
-		descriptor_writes[0].pBufferInfo = &buffer_info;
-
-		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptor_writes[1].dstSet = render->descriptor_sets[i];
-		descriptor_writes[1].dstBinding = 1;
-		descriptor_writes[1].dstArrayElement = 0;
-		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptor_writes[1].descriptorCount = 1;
-		descriptor_writes[1].pImageInfo = &image_info;
-
-		vkUpdateDescriptorSets(render->device, AS_ARRAY_SIZE(descriptor_writes), descriptor_writes, 0, NULL);
-	}
 }
 
 void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
@@ -1215,44 +1102,21 @@ void create_sync_objects(as_render* render)
 	}
 }
 
-void update_uniform_buffer(as_render* render, const u32 current_image) 
-{
-	static clock_t start_time = 0;
-
-	clock_t current_time = clock();
-	const f32 time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
-
-	as_uniform_buffer_object ubo = { 0 };
-	const as_mat4 identity = as_mat4_identity();
-	const as_vec3 unit_z = as_vec3_unit_z();
-	const f32 angle = as_radians(90.0f);
-	ubo.model = as_rotate(&identity, time * angle, &unit_z);
-	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5.}, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
-	ubo.proj.m[1][1] *= -1;
-
-	memcpy(render->uniform_buffers_mapped[current_image], &ubo, sizeof(ubo));
-}
-
 void update_shader_uniform_buffer(as_render* render, as_shader* shader, const u32 current_image)
 {
-	static clock_t start_time = 0;
-
-	clock_t current_time = clock();
-	const f32 time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
-
 	as_uniform_buffer_object ubo = { 0 };
-	const as_mat4 identity = as_mat4_identity();
-	const as_vec3 unit_z = as_vec3_unit_z();
-	const f32 angle = as_radians(200.);
-	ubo.model = identity;
-	as_translate(&ubo.model, &(as_vec3) { 1., 1., 2.});
-	ubo.model = as_rotate(&ubo.model, time * angle, &unit_z);
-	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
+	as_mat4_set_identity(&ubo.model);
+	ubo.view = as_mat4_look_at(&(as_vec3) { 5., 5., 5. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.proj = as_mat4_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+}
+
+as_push_const_vertex_buffer get_push_const_vertex_buffer(const as_object* object, const as_render* render)
+{
+	const as_push_const_vertex_buffer output_buffer = { object->transform, {0}, render->time };
+	return output_buffer;
 }
 
 void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_objects_1024* objects)
@@ -1283,7 +1147,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 	{
-		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
+		//vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
 
 		VkViewport viewport = { 0 };
 		viewport.x = 0.0f;
@@ -1293,33 +1157,25 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-		
+
 		VkRect2D scissor = { 0 };
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
 		scissor.extent = render->swap_chain_extent;
 		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-		VkBuffer vertex_buffers[] = { render->vertex_buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-		vkCmdBindIndexBuffer(command_buffer, render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->pipeline_layout, 0, 1, &render->descriptor_sets[render->current_frame], 0, NULL);
-
-		vkCmdDrawIndexed(command_buffer, as_shape_quad_indices_size, 1, 0, 0, 0);
-
 		if (objects)
 		{
 			for (sz obj_index = 0 ; obj_index < objects->size ; obj_index++)
 			{
-				as_object* object = &objects->data[obj_index];
+				as_object* object = objects->data[obj_index];
 				as_shader* shader = object->shader;
+				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
+
 				if (!shader) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
-				//vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(shader->constants), &shader->constants);
-				VkDeviceSize object_offsets[] = { 0 };
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, object_offsets);
+				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);
 				vkCmdDrawIndexed(command_buffer, object->indices_size, 1, 0, 0, 0);
@@ -1460,67 +1316,6 @@ void transition_image_layout(as_render* render, VkImage image, VkFormat format, 
 	end_single_time_commands(render, command_buffer);
 }
 
-void create_texture_image(as_render* render) 
-{
-	u32 tex_width, tex_height, tex_channels;
-	stbi_uc* pixels = stbi_load("../resources/textures/default_texture.png", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
-	AS_ASSERT(pixels, "Failed to load texture image!");
-
-	VkDeviceSize image_size = tex_width * tex_height * 4;
-
-	VkBuffer staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	create_buffer(render, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &staging_buffer, &staging_buffer_memory);
-
-	void* data;
-	vkMapMemory(render->device, staging_buffer_memory, 0, image_size, 0, &data);
-	memcpy(data, pixels, (sz)image_size);
-	vkUnmapMemory(render->device, staging_buffer_memory);
-
-	stbi_image_free(pixels);
-
-	create_image(	render, tex_width, tex_height, 
-					VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-					&render->texture_image, &render->texture_image_memory);
-
-	transition_image_layout(render, render->texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copy_buffer_to_image(render, staging_buffer, render->texture_image, tex_width, tex_height);
-	transition_image_layout(render, render->texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	vkDestroyBuffer(render->device, staging_buffer, NULL);
-	vkFreeMemory(render->device, staging_buffer_memory, NULL);
-}
-
-
-void create_texture_image_view(as_render* render)
-{
-	render->texture_image_view = create_image_view(render, render->texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void create_texture_sampler(as_render* render) 
-{
-	VkPhysicalDeviceProperties properties = { 0 };
-	vkGetPhysicalDeviceProperties(render->physical_device, &properties);
-
-	VkSamplerCreateInfo sampler_info = { 0 };
-	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	sampler_info.magFilter = VK_FILTER_LINEAR;
-	sampler_info.minFilter = VK_FILTER_LINEAR;
-	sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.anisotropyEnable = VK_TRUE;
-	sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-	sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	sampler_info.unnormalizedCoordinates = VK_FALSE;
-	sampler_info.compareEnable = VK_FALSE;
-	sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
-	sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &render->texture_sampler);
-	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
-}
-
 void create_depth_resources(as_render* render) {
 	VkFormat depth_format = find_depth_format(render);
 
@@ -1529,6 +1324,12 @@ void create_depth_resources(as_render* render) {
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &render->depth_image, &render->depth_image_memory);
 
 	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+void update_time(as_render* render)
+{
+	clock_t current_time = clock();
+	render->time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
 }
 
 void recreate_swap_chain(as_render* render, void* display_context)
@@ -1561,26 +1362,36 @@ as_render* as_render_create(void* display_context)
 	create_swap_chain(render, display_context);
 	create_image_views(render);
 	create_render_pass(render);
-	create_descriptor_set_layout(render->device, &render->descriptor_set_layout);
-	create_graphics_pipeline(render, &render->graphics_pipeline, &render->pipeline_layout, &render->descriptor_set_layout, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
 	create_depth_resources(render);
 	create_framebuffers(render);
 	create_command_pool(render);
-	create_texture_image(render);
-	create_texture_image_view(render);
-	create_texture_sampler(render);
-	create_vertex_buffer(render);
-	create_index_buffer(render);
-	create_uniform_buffers(render);
-	create_descriptor_pool(render->device, &render->descriptor_pool);
-	create_descriptor_sets(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
+
 	return render;
+}
+
+void as_render_start_draw_loop(as_render* render)
+{
+	render->last_frame_time = get_current_time();
+}
+
+void as_render_end_draw_loop(as_render* render)
+{
+	render->current_time = get_current_time();
+
+	const f32 remaining_time = as_render_get_remaining_time(render);
+	if (remaining_time > 0)
+	{
+		sleep_seconds(remaining_time);
+	}
+	render->delta_time = calculate_delta_time(render->last_frame_time, get_current_time());
+	render->last_frame_time = get_current_time();
 }
 
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects)
 {
+
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index;
@@ -1593,13 +1404,13 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	}
 	AS_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swap chain image!");
 
-	update_uniform_buffer(render, render->current_frame);
+	update_time(render);
 
 	if (objects)
 	{
 		for (sz obj_index = 0; obj_index < objects->size; obj_index++)
 		{
-			as_object* object = &objects->data[obj_index];
+			as_object* object = objects->data[obj_index];
 			if (!object) { continue; }
 			as_shader* shader = object->shader;
 			update_shader_uniform_buffer(render, shader, render->current_frame);
@@ -1663,31 +1474,7 @@ void as_render_destroy(as_render* render)
 
 	cleanup_swap_chain(render);
 
-	vkDestroyPipeline(render->device, render->graphics_pipeline, NULL);
-	vkDestroyPipelineLayout(render->device, render->pipeline_layout, NULL);
 	vkDestroyRenderPass(render->device, render->render_pass, NULL);
-
-	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vkDestroyBuffer(render->device, render->uniform_buffers[i], NULL);
-		vkFreeMemory(render->device, render->uniform_buffers_memory[i], NULL);
-	}
-
-	vkDestroyDescriptorPool(render->device, render->descriptor_pool, NULL);
-
-	vkDestroyDescriptorSetLayout(render->device, render->descriptor_set_layout, NULL);
-
-	vkDestroyBuffer(render->device, render->index_buffer, NULL);
-	vkFreeMemory(render->device, render->index_buffer_memory, NULL);
-
-	vkDestroyBuffer(render->device, render->vertex_buffer, NULL);
-	vkFreeMemory(render->device, render->vertex_buffer_memory, NULL);
-	 
-	vkDestroyImage(render->device, render->texture_image, NULL);
-	vkDestroyImageView(render->device, render->texture_image_view, NULL);
-	vkDestroySampler(render->device, render->texture_sampler, NULL);
-	vkFreeMemory(render->device, render->texture_image_memory, NULL);
-
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
@@ -1709,6 +1496,23 @@ void as_render_destroy(as_render* render)
 	vkDestroyInstance(render->instance, NULL);
 
 	AS_FREE(render);
+}
+
+f32 as_render_get_time(as_render* render)
+{
+	return render->time;
+}
+
+f32 as_render_get_remaining_time(as_render* render)
+{
+	clock_t next_frame_time = get_current_time();
+	f32 elapsedTime = calculate_delta_time(render->last_frame_time, next_frame_time);
+	return 1.0 / TARGET_FPS - elapsedTime;
+}
+
+f32 as_render_get_delta_time(as_render* render)
+{
+	return render->delta_time;
 }
 
 as_texture* as_texture_create(as_render* render, const char* path)
@@ -1765,7 +1569,21 @@ as_texture* as_texture_create(as_render* render, const char* path)
 	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &texture->sampler);
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
 	
+	AS_SET_VALID(texture);
 	return texture;
+}
+
+void as_texture_destroy(as_render* render, as_texture* texture)
+{
+	AS_ASSERT(render, "Trying to destroy texture but render is NULL");
+	if (!texture | AS_IS_INVALID(texture)) { return; }
+
+	vkDestroyImage(render->device, texture->image, NULL);
+	vkDestroyImageView(render->device, texture->image_view, NULL);
+	vkDestroySampler(render->device, texture->sampler, NULL);
+	vkFreeMemory(render->device, texture->memory, NULL);
+
+	AS_SET_INVALID(texture);
 }
 
 as_shader_uniforms_32* as_uniforms_create()
@@ -1819,6 +1637,8 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);
+
+	AS_SET_VALID(shader);
 	return shader;
 }
 
@@ -1826,8 +1646,8 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
 	
-	if (!shader) { return; }
-
+	if (!shader || AS_IS_INVALID(shader)) { return; }
+	
 	vkDestroyPipeline(render->device, shader->graphics_pipeline, NULL);
 	vkDestroyPipelineLayout(render->device, shader->graphics_pipeline_layout, NULL);
 
@@ -1837,9 +1657,7 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 		{
 			as_texture* texture = (as_texture*)shader->uniforms.data[i].data;
 			if (!texture) { continue; }
-			vkDestroyImage(render->device, texture->image, NULL);
-			vkDestroyImageView(render->device, texture->image_view, NULL);
-			vkDestroySampler(render->device, texture->sampler, NULL);
+			as_texture_destroy(render, texture);
 		}
 		AS_FREE(shader->uniforms.data[i].data);
 	}
@@ -1852,15 +1670,18 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 
 	vkDestroyDescriptorPool(render->device, shader->descriptor_pool, NULL);
 	vkDestroyDescriptorSetLayout(render->device, shader->descriptor_set_layout, NULL);
+
+	AS_SET_INVALID(shader);
+	AS_FREE(shader);
 }
 
 as_object* as_object_create(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
-	
+
 	as_object* object = AS_MALLOC_SINGLE(as_object);
-	
+	as_mat4_set_identity(&object->transform);
 	// vertex buffer
 
 	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
@@ -1907,8 +1728,11 @@ as_object* as_object_create(as_render* render, as_shader* shader)
 	vkDestroyBuffer(render->device, index_staging_buffer, NULL);
 	vkFreeMemory(render->device, index_staging_buffer_memory, NULL);
 
-	object->shader = (as_shader*)AS_MALLOC(sizeof(as_shader));
-	memcpy(object->shader, shader, sizeof(as_shader));
+	object->shader = shader;
+		//= (as_shader*)AS_MALLOC(sizeof(as_shader));
+	//memcpy(object->shader, shader, sizeof(as_shader));
+	
+	AS_SET_VALID(object);
 	return object;
 }
 
@@ -1917,24 +1741,65 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 	AS_ASSERT(object, "Trying to add object, but object is NULL");
 	AS_ASSERT(objects, "Trying to add object, but objects array is NULL");
 
-	AS_INSERT_AT_ARRAY((*objects), objects->size, *object);
+	AS_INSERT_AT_ARRAY((*objects), objects->size, object);
 	return objects->size - 1;
+}
+
+void as_object_set_translation(as_object* object, const as_vec3* translation)
+{
+	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(translation, TEXT("Trying to set object location, but translation is NULL"));
+
+	as_mat4_set_translation(&object->transform, translation);
+}
+
+void as_object_set_rotation(as_object* object, const as_vec3* rotation)
+{
+	AS_ASSERT(object, TEXT("Trying to set object rotation, but object is NULL"));
+	AS_ASSERT(rotation, TEXT("Trying to set object rotation, but rotation is NULL"));
+
+	as_mat4_set_rotation(&object->transform, rotation);
+}
+
+void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
+{
+	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
+	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
+
+
+	// If I rotate it around the 0 axis
+	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC3_PTR(0, 0, 2.));
+	
+
+
+
+	//const as_vec3 current_translation = as_mat4_get_translation(&object->transform);
+	//object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, &current_translation);
+}
+
+void as_object_set_scale(as_object* object, const as_vec3* scale)
+{
+	AS_ASSERT(object, TEXT("Trying to set object scale, but object is NULL"));
+	AS_ASSERT(scale, TEXT("Trying to set object scale, but scale is NULL"));
+
+	as_mat4_set_scale(&object->transform, scale);
 }
 
 void as_object_destroy(as_render* render, as_object* object)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
 
-	if (!object) { return; }
+	if (!object || AS_IS_INVALID(object)) { return; }
 
 	as_shader_destroy(render, object->shader);
-	AS_FREE(object->shader);
 
 	vkDestroyBuffer(render->device, object->index_buffer, NULL);
 	vkFreeMemory(render->device, object->index_buffer_memory, NULL);
 
 	vkDestroyBuffer(render->device, object->vertex_buffer, NULL);
 	vkFreeMemory(render->device, object->vertex_buffer_memory, NULL);
+
+	AS_SET_INVALID(object);
 }
 
 as_objects_1024* as_objects_create()
@@ -1951,7 +1816,7 @@ void as_objects_destroy(as_render* render, as_objects_1024* objects)
 
 	for (sz i = 0; i < objects->size; i++)
 	{
-		as_object_destroy(render, &objects->data[i]);
+		as_object_destroy(render, objects->data[i]);
 	}
 
 	AS_FREE(objects);

@@ -1,10 +1,18 @@
 #version 450
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(binding = 0) uniform uniform_buffer_object 
+{
     mat4 model;
     mat4 view;
     mat4 proj;
 } ubo;
+
+layout(push_constant) uniform const_vertex_buffer
+{
+	mat4 transform;
+	vec4 mouse_data;
+	float time;
+} ps;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -28,7 +36,7 @@ void main()
         float(instanceIndexZ) * gridSpacing.z
     );
 
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(new_pos, 1.0);
+    gl_Position = ubo.proj * ubo.view * ps.transform * vec4(new_pos, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 }
