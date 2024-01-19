@@ -24,6 +24,8 @@
 
 #define AS_USE_VULKAN_VALIDATION_LAYER 1
 
+static clock_t start_time = 0;
+
 typedef struct queue_family_indices 
 {
 	u32 graphics_family;
@@ -727,11 +729,19 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
 	dynamic_state.pDynamicStates = dynamic_states;
 
+	// Pipeline layout constant
+	VkPushConstantRange push_constant_range = { 0 };
+	push_constant_range.offset = 0;
+	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
+
 	// Pipeline layout
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
 	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
+	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
+	pipeline_layout_info.pushConstantRangeCount = 1;
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
@@ -1217,16 +1227,11 @@ void create_sync_objects(as_render* render)
 
 void update_uniform_buffer(as_render* render, const u32 current_image) 
 {
-	static clock_t start_time = 0;
-
-	clock_t current_time = clock();
-	const f32 time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
-
 	as_uniform_buffer_object ubo = { 0 };
 	const as_mat4 identity = as_mat4_identity();
 	const as_vec3 unit_z = as_vec3_unit_z();
 	const f32 angle = as_radians(90.0f);
-	ubo.model = as_rotate(&identity, time * angle, &unit_z);
+	ubo.model = as_rotate(&identity, render->time * angle, &unit_z);
 	ubo.view = as_look_at(&(as_vec3) { 5., 5., 5.}, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
 	ubo.proj = as_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
@@ -1253,6 +1258,12 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, const u3
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+}
+
+as_push_const_vertex_buffer get_push_const_vertex_buffer(const as_object* object, const as_render* render)
+{
+	const as_push_const_vertex_buffer output_buffer = { object->transform, {0}, render->time };
+	return output_buffer;
 }
 
 void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_objects_1024* objects)
@@ -1315,11 +1326,12 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 			{
 				as_object* object = &objects->data[obj_index];
 				as_shader* shader = object->shader;
+				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
+
 				if (!shader) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
-				//vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(shader->constants), &shader->constants);
-				VkDeviceSize object_offsets[] = { 0 };
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, object_offsets);
+				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);
 				vkCmdDrawIndexed(command_buffer, object->indices_size, 1, 0, 0, 0);
@@ -1531,6 +1543,12 @@ void create_depth_resources(as_render* render) {
 	render->depth_image_view = create_image_view(render, render->depth_image, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
+void update_time(as_render* render)
+{
+	clock_t current_time = clock();
+	render->time = ((f32)(current_time - start_time)) / CLOCKS_PER_SEC;
+}
+
 void recreate_swap_chain(as_render* render, void* display_context)
 {
 	i32 width = 0, height = 0;
@@ -1593,6 +1611,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	}
 	AS_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swap chain image!");
 
+	update_time(render);
 	update_uniform_buffer(render, render->current_frame);
 
 	if (objects)
@@ -1919,6 +1938,30 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 
 	AS_INSERT_AT_ARRAY((*objects), objects->size, *object);
 	return objects->size - 1;
+}
+
+void as_object_set_translation(as_object* object, const as_vec3* translation)
+{
+	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(translation, TEXT("Trying to set object location, but translation is NULL"));
+
+	as_set_translation(&object->transform, translation);
+}
+
+void as_object_set_rotation(as_object* object, const as_vec3* rotation)
+{
+	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(rotation, TEXT("Trying to set object rotation, but rotation is NULL"));
+
+	as_set_rotation(&object->transform, rotation);
+}
+
+void as_object_set_scale(as_object* object, const as_vec3* scale)
+{
+	AS_ASSERT(object, TEXT("Trying to set object location, but object is NULL"));
+	AS_ASSERT(scale, TEXT("Trying to set object scale, but scale is NULL"));
+
+	as_set_scale(&object->transform, scale);
 }
 
 void as_object_destroy(as_render* render, as_object* object)

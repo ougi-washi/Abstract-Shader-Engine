@@ -30,6 +30,7 @@ typedef struct as_uniform_buffer_object
 	as_mat4 view;
 	as_mat4 proj;
 } as_uniform_buffer_object;
+
  // use of _Alignof may be needed somewhere here
 typedef struct as_vertex
 {
@@ -38,6 +39,13 @@ typedef struct as_vertex
 	as_vec2 tex_coord;
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
+
+typedef struct as_push_const_vertex_buffer
+{
+	as_mat4 transform;
+	as_vec4 mouse_data;
+	f32 time;
+} as_push_const_vertex_buffer;
 
 typedef struct as_uniform_buffers
 {
@@ -147,6 +155,7 @@ typedef struct as_render
 	VkSampler texture_sampler;
 
 	u32 current_frame;
+	f32 time;
 } as_render;
 
 as_render* as_render_create(void* display_context);
@@ -164,6 +173,9 @@ void as_shader_destroy(as_render* render, as_shader* shader);
 
 as_object* as_object_create(as_render* render, as_shader* shader);
 sz as_object_add(as_object* object, as_objects_1024* objects);
+void as_object_set_translation(as_object* object, const as_vec3* translation);
+void as_object_set_rotation(as_object* object, const as_vec3* rotation);
+void as_object_set_scale(as_object* object, const as_vec3* scale);
 void as_object_destroy(as_render* render, as_object* object);
 
 as_objects_1024* as_objects_create();

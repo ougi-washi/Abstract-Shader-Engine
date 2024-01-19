@@ -41,11 +41,29 @@ as_mat4 as_mat4_identity()
 	return result;
 }
 
+void as_mat4_set_identity(as_mat4* m)
+{
+	for (size_t i = 0; i < 4; ++i) 
+	{
+		for (size_t j = 0; j < 4; ++j) 
+		{
+			m->m[i][j] = (i == j) ? 1.0f : 0.0f;
+		}
+	}
+}
+
 void as_translate(as_mat4* m, const as_vec3* translation)
 {
 	m->m[0][3] += translation->x;
 	m->m[1][3] += translation->y;
 	m->m[2][3] += translation->z;
+}
+
+void as_set_translation(as_mat4* m, const as_vec3* translation)
+{
+	m->m[3][0] = translation->x;
+	m->m[3][1] = translation->y;
+	m->m[3][2] = translation->z;
 }
 
 //as_mat4 as_rotate(const as_vec3* axis, const f32 angle)
@@ -109,6 +127,30 @@ as_mat4 as_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 	return result;
 }
 
+void as_set_rotation(as_mat4* m, const as_vec3* rotation)
+{
+	as_mat4_set_identity(m);
+
+	float cosX = cosf(rotation->x);
+	float sinX = sinf(rotation->x);
+	float cosY = cosf(rotation->y);
+	float sinY = sinf(rotation->y);
+	float cosZ = cosf(rotation->z);
+	float sinZ = sinf(rotation->z);
+
+	m->m[0][0] = cosY * cosZ;
+	m->m[0][1] = cosX * sinZ + sinX * sinY * cosZ;
+	m->m[0][2] = sinX * sinZ - cosX * sinY * cosZ;
+
+	m->m[1][0] = -cosY * sinZ;
+	m->m[1][1] = cosX * cosZ - sinX * sinY * sinZ;
+	m->m[1][2] = sinX * cosZ + cosX * sinY * sinZ;
+
+	m->m[2][0] = sinY;
+	m->m[2][1] = -sinX * cosY;
+	m->m[2][2] = cosX * cosY;
+}
+
 as_mat4 as_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up)
 {
 	as_vec3 f, r, u;
@@ -149,4 +191,11 @@ as_mat4 as_perspective(const f32 fov, const f32 aspect, const f32 near_plane, co
 		{0.0f,								0.0f,					(2.0f * far_plane * near_plane) / (near - far_plane),	0.0f},
 	} };
 	return result;
+}
+
+void as_set_scale(as_mat4* m, const as_vec3* scale)
+{
+	m->m[0][0] = scale->x;
+	m->m[1][1] = scale->y;
+	m->m[2][2] = scale->z;
 }
