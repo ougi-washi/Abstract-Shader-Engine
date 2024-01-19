@@ -13,21 +13,25 @@ typedef struct as_vec2
 {
 	f32 x, y, z;
 } as_vec2;
+#define AS_VEC2_PTR(_x, _y) &(as_vec2) { _x, _y } 
 
 typedef struct as_vec3
 {
 	f32 x, y, z;
 } as_vec3;
+#define AS_VEC3_PTR(_x, _y, _z) &(as_vec3) { _x, _y, _z } 
 
 typedef struct as_vec4
 {
 	f32 x, y, z, w;
 } as_vec4;
+#define AS_VEC4_PTR(_x, _y, _z, _w) &(as_vec4) { _x, _y, _z, _w } 
 
 typedef struct as_int_vec2
 {
 	i32 x, y;
 } as_int_vec2;
+#define AS_iv2_PTR(_x, _y) &(as_int_vec2) { _x, _y } 
 
 typedef struct as_mat4
 {

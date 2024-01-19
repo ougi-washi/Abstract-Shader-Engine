@@ -24,10 +24,13 @@ i32 main()
 	as_texture* texture = as_texture_create(render, "../resources/textures/default_texture.png");
 	as_shader_add_uniform_texture(uniforms, texture);
 	as_shader* shader = as_shader_create(render, uniforms, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
-	as_object* object = as_object_create(render, shader);
-	as_object_set_translation(object, &(as_vec3) {0., 0., 2.5});
+	as_object* object1 = as_object_create(render, shader);
+	as_object* object2 = as_object_create(render, shader);
+	as_object_set_translation(object1, AS_VEC3_PTR(0., 0., 2.5));
+	as_object_set_rotation(object2, AS_VEC3_PTR(3., 2., 2.5));
 	as_objects_1024* objects = as_objects_create();
-	as_object_add(object, objects);
+	as_object_add(object1, objects);
+	as_object_add(object2, objects);
 
 	while (!as_display_context_should_close(display_context))
 	{

@@ -21,6 +21,7 @@ typedef float f32;
 typedef double f64;
 typedef size_t sz;
 
+
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 #define PLATFORM_WINDOWS 1
@@ -103,3 +104,20 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 #define AS_LOG(level, text) {};
 #define AS_ASSERT(result, text)	{};
 #endif
+
+
+typedef enum as_flag
+{
+	AS_NONE		= 0x00,
+	AS_INVALID	= 0x01,
+	AS_VALID	= 0x02,
+	AS_MAX		= 0x03
+} as_flag;
+
+#define ADD_FLAG as_flag obj_flag
+
+#define AS_IS_VALID(_obj)		(_obj->obj_flag == AS_VALID)
+#define AS_IS_INVALID(_obj)		(!AS_IS_VALID(_obj))
+
+#define AS_SET_VALID(_obj)		_obj->obj_flag = AS_VALID
+#define AS_SET_INVALID(_obj)	_obj->obj_flag = AS_INVALID
