@@ -1879,7 +1879,7 @@ as_object* as_object_create(as_render* render, as_shader* shader)
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
 	
 	as_object* object = AS_MALLOC_SINGLE(as_object);
-	
+	as_mat4_set_identity(&object->transform);
 	// vertex buffer
 
 	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;

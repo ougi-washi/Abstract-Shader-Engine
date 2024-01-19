@@ -36,7 +36,7 @@ void main()
         float(instanceIndexZ) * gridSpacing.z
     );
 
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(new_pos, 1.0);
+    gl_Position = ubo.proj * ubo.view * ps.transform * vec4(new_pos, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 }
