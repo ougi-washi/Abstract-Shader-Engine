@@ -1768,10 +1768,7 @@ void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
 
 
 	// If I rotate it around the 0 axis
-	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC3_PTR(0, 0, 2.));
-	
-
-
+	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC_PTR(as_vec3, 0, 0, 0.));
 
 	//const as_vec3 current_translation = as_mat4_get_translation(&object->transform);
 	//object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, &current_translation);

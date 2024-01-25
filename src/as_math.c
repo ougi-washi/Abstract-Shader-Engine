@@ -72,7 +72,7 @@ as_mat4 as_mat4_multiply(const as_mat4* a, const as_mat4* b)
 
 as_vec3 as_mat4_get_translation(const as_mat4* m)
 {
-	return AS_VEC3(m->m[3][0], m->m[3][1], m->m[3][2]);
+	return AS_VEC(as_vec3, m->m[3][0], m->m[3][1], m->m[3][2]);
 }
 
 void as_mat4_translate(as_mat4* m, const as_vec3* translation)
@@ -198,6 +198,9 @@ as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 as_mat4 as_mat4_rotate_around_center(const as_mat4* m, const f32 angle, const as_vec3* v, const as_vec3* center)
 {
 	as_mat4 translate_to_origin = AS_MAT4_TRANSLATION(-center->x, -center->y, -center->z);
+	as_vec3 current_translation = as_mat4_get_translation(m);
+	//as_vec3_add(&current_translation, center);
+	//as_mat4_translate(m, &current_translation);
 	as_mat4 rotate = as_mat4_rotate(&translate_to_origin, angle, v);
 	as_mat4 translate_back = AS_MAT4_TRANSLATION(center->x, center->y, center->z);
 	as_mat4 result = as_mat4_multiply(&translate_back, &rotate);

@@ -9,40 +9,45 @@
 #define AS_PI 3.14159265358979323846f
 #define AS_CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
-typedef struct as_vec2
-{
-	f32 x, y, z;
-} as_vec2;
+#define AS_VEC_OP_GENERATE(_type, _operation, _size, _function_name) \
+static inline void _function_name (_type* _result, _type* _val1, _type* _val2) { \
+    for (u8 i = 0; i < _size; ++i) { (_result)->data[i] = (_val1)->data[i] _operation (_val2)->data[i]; }  \
+}
 
-typedef struct as_vec3
-{
-	f32 x, y, z;
-} as_vec3;
+#define AS_VEC_ALL_OP_GENERATE(_type, _size)           \
+AS_VEC_OP_GENERATE(_type, +, _size, _type##_add)       \
+AS_VEC_OP_GENERATE(_type, -, _size, _type##_sub)       \
+AS_VEC_OP_GENERATE(_type, *, _size, _type##_mul)       \
+AS_VEC_OP_GENERATE(_type, /, _size, _type##_div)       
 
-typedef struct as_vec4
-{
-	f32 x, y, z, w;
-} as_vec4;
+#define AS_VEC_DEFINE_VECTOR(_name, _type, _size) \
+typedef struct _name { \
+    union { \
+        _type data[_size]; \
+        struct { \
+            _type x; \
+            _type y; \
+            _type z; \
+            _type w; \
+        }; \
+    }; \
+} _name; \
+AS_VEC_ALL_OP_GENERATE(_name, _size)
 
-typedef struct as_int_vec2
-{
-	i32 x, y;
-} as_int_vec2;
+// Define all vectors 
+AS_VEC_DEFINE_VECTOR(as_vec2, f32, 2)
+AS_VEC_DEFINE_VECTOR(as_vec3, f32, 3)
+AS_VEC_DEFINE_VECTOR(as_vec4, f32, 4)
+AS_VEC_DEFINE_VECTOR(as_quat, f32, 4)
+AS_VEC_DEFINE_VECTOR(as_ivec2, i32, 2)
+AS_VEC_DEFINE_VECTOR(as_ivec3, i32, 3)
+AS_VEC_DEFINE_VECTOR(as_ivec4, i32, 4)
 
 typedef struct as_mat4
 {
 	f32 m[4][4];
 } as_mat4;
-
-typedef struct as_quat
-{
-	f32 x, y, z, w;
-} as_quat;
-
-
 typedef as_mat4 as_transform;
-
-
 
 // float
 extern f32 as_radians(f32 degrees);
@@ -78,38 +83,17 @@ as_vec3 as_quat_to_vec3(const as_quat* q);
 
 
 
-
 // Macros for performance
+#define AS_VEC(_type, ...) ( _type ) { __VA_ARGS__ }
+#define AS_VEC_PTR(_type, ...) &( _type ) { __VA_ARGS__ }
 
-// 2D Vector
-#define AS_VEC2(_x, _y) (as_vec2) { _x, _y }
-#define AS_VEC2_PTR(_x, _y) &(as_vec2) { _x, _y }
-
-// 3D Vector
-#define AS_VEC3(_x, _y, _z) (as_vec3) { _x, _y, _z }
-#define AS_VEC3_PTR(_x, _y, _z) &(as_vec3) { _x, _y, _z }
-#define AS_VEC3_X_AXIS (as_vec3) { 1.0f, 0.0f, 0.0f }
-#define AS_VEC3_X_AXIS_PTR &(as_vec3) { 1.0f, 0.0f, 0.0f }
-#define AS_VEC3_Y_AXIS (as_vec3) { 0.0f, 1.0f, 0.0f }
-#define AS_VEC3_Y_AXIS_PTR &(as_vec3) { 0.0f, 1.0f, 0.0f }
-#define AS_VEC3_Z_AXIS (as_vec3) { 0.0f, 0.0f, 1.0f }
-#define AS_VEC3_Z_AXIS_PTR &(as_vec3) { 0.0f, 0.0f, 1.0f }
-
-// 4D Vector
-#define AS_VEC4(_x, _y, _z, _w) (as_vec4) { _x, _y, _z, _w }
-#define AS_VEC4_PTR(_x, _y, _z, _w) &(as_vec4) { _x, _y, _z, _w }
-
-// Integer 2D Vector
-#define AS_IV2(_x, _y) (as_int_vec2) { _x, _y }
-#define AS_IV2_PTR(_x, _y) &(as_int_vec2) { _x, _y }
-
-// Integer 3D Vector
-#define AS_IV3(_x, _y, _z) (as_int_vec3) { _x, _y, _z }
-#define AS_IV3_PTR(_x, _y, _z) &(as_int_vec3) { _x, _y, _z }
-
-// Integer 4D Vector
-#define AS_IV4(_x, _y, _z, _w) (as_int_vec4) { _x, _y, _z, _w }
-#define AS_IV4_PTR(_x, _y, _z, _w) &(as_int_vec4) { _x, _y, _z, _w }
+// Macros for specific vectors
+#define AS_VEC3_X_AXIS AS_VEC(as_vec3, 1.0f, 0.0f, 0.0f)
+#define AS_VEC3_X_AXIS_PTR AS_VEC_PTR(as_vec3, 1.0f, 0.0f, 0.0f)
+#define AS_VEC3_Y_AXIS AS_VEC(as_vec3, 0.0f, 1.0f, 0.0f)
+#define AS_VEC3_Y_AXIS_PTR AS_VEC_PTR(as_vec3, 0.0f, 1.0f, 0.0f)
+#define AS_VEC3_Z_AXIS AS_VEC(as_vec3, 0.0f, 0.0f, 1.0f)
+#define AS_VEC3_Z_AXIS_PTR AS_VEC_PTR(as_vec3, 0.0f, 0.0f, 1.0f)
 
 // Matrix 4x4
 #define AS_MAT4_IDENTITY &(as_mat4) \
@@ -119,7 +103,6 @@ as_vec3 as_quat_to_vec3(const as_quat* q);
     {0.0f, 0.0f, 1.0f, 0.0f},			\
     {0.0f, 0.0f, 0.0f, 1.0f}			\
 }}
-
 
 // Matrix Multiplication
 #define AS_MAT4_MUL(m1, m2) \
