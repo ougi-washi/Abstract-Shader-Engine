@@ -1729,9 +1729,6 @@ as_object* as_object_create(as_render* render, as_shader* shader)
 	vkFreeMemory(render->device, index_staging_buffer_memory, NULL);
 
 	object->shader = shader;
-		//= (as_shader*)AS_MALLOC(sizeof(as_shader));
-	//memcpy(object->shader, shader, sizeof(as_shader));
-	
 	AS_SET_VALID(object);
 	return object;
 }
