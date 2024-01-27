@@ -3,6 +3,7 @@
 #pragma once
 
 #include <as_types.h>
+#include <math.h>
 
 // TODO : SIMD
 
@@ -58,7 +59,7 @@ typedef struct as_mat4
 typedef as_mat4 as_transform;
 
 // float
-extern f32 as_radians(f32 degrees);
+extern f32 as_radians(const f32 degrees);
 
 // vec3
 extern void as_vec3_normalize(as_vec3* v);

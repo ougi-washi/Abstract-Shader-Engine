@@ -592,7 +592,7 @@ void create_descriptor_set_layout_from_uniforms(VkDevice device, VkDescriptorSet
 
 	for (sz i = 0 ; i < uniforms->size ; i++)
 	{
-		as_shader_uniform* uniform = AS_GET_ARRAY_ELEM(*uniforms, i);
+		as_shader_uniform* uniform = AS_ARRAY_GET(*uniforms, i);
 		VkDescriptorSetLayoutBinding uniform_layout_binding = { 0 };
 		uniform_layout_binding.binding = i + 1; // ubo is 0, so + 1
 		uniform_layout_binding.descriptorCount = 1;
@@ -629,6 +629,26 @@ VkShaderModule create_shader_module(VkDevice device, as_shader_binary* shader_bi
 void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 {
 	vkDestroyShaderModule(device, shader_module, NULL);
+}
+
+void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout)
+{
+	// Pipeline layout constant
+	VkPushConstantRange push_constant_range = { 0 };
+	push_constant_range.offset = 0;
+	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
+
+	// Pipeline layout
+	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
+	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipeline_layout_info.setLayoutCount = 1;
+	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
+	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
+	pipeline_layout_info.pushConstantRangeCount = 1;
+
+	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
+	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 }
 
 void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout, const char* vertex_shader_path, const char* fragment_shader_path)
@@ -722,29 +742,13 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 	color_blending.blendConstants[2] = 0.0f;
 	color_blending.blendConstants[3] = 0.0f;
 
+
 	// Dynamic state
 	VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamic_state = { 0 };
 	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
 	dynamic_state.pDynamicStates = dynamic_states;
-
-	// Pipeline layout constant
-	VkPushConstantRange push_constant_range = { 0 };
-	push_constant_range.offset = 0;
-	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
-
-	// Pipeline layout
-	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
-	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipeline_layout_info.setLayoutCount = 1;
-	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
-	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
-	pipeline_layout_info.pushConstantRangeCount = 1;
-
-	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
-	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 
 	// Graphics pipeline
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
@@ -764,6 +768,11 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
+	if (graphics_pipeline != VK_NULL_HANDLE)
+	{
+		// it's better to mark to destroy for next frame and set it as invalid instead of destroying it here. could be called from the draw side
+		vkDestroyPipeline(render->device, *graphics_pipeline, NULL);
+	}
 	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(render->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, graphics_pipeline);
 	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
 
@@ -1024,7 +1033,7 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 
 		for (sz j = 0 ; j < shader->uniforms.size ; j++)
 		{
-			as_shader_uniform* uniform = AS_GET_ARRAY_ELEM(shader->uniforms, j);
+			as_shader_uniform* uniform = AS_ARRAY_GET(shader->uniforms, j);
 			if (!uniform)
 			{
 				continue;
@@ -1107,7 +1116,7 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, const u3
 {
 	as_uniform_buffer_object ubo = { 0 };
 	as_mat4_set_identity(&ubo.model);
-	ubo.view = as_mat4_look_at(&(as_vec3) { 5., 5., 5. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	ubo.view = as_mat4_look_at(&(as_vec3) { 9., 9., 9. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
 	ubo.proj = as_mat4_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
@@ -1170,7 +1179,6 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				as_object* object = objects->data[obj_index];
 				as_shader* shader = object->shader;
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
-
 				if (!shader || !shader->graphics_pipeline) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
@@ -1631,6 +1639,7 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	strcpy(shader->filename_fragment, fragment_shader_path);
 	strcpy(shader->filename_vertex, vertex_shader_path);
 	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, &shader->uniforms);
+	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
 	create_graphics_pipeline(render, &shader->graphics_pipeline, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout, vertex_shader_path, fragment_shader_path);
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
@@ -1674,23 +1683,39 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	AS_FREE(shader);
 }
 
-void* as_shader_monitor_run(as_shader_monitor* args)
+void* as_shader_monitor_run(as_shader_monitor* monitor)
 {
-	as_shader_monitor* monitor = args;
 	AS_ASSERT(monitor && AS_IS_VALID(monitor), "cannot run as_shader_monitor_run, monitor invalid");
-	for(u32 i = 0; i < monitor->shaders.size; i++)
+	while (monitor->is_running)
 	{
-		
+		for (sz i = 0; i < monitor->shaders.size; i++)
+		{
+			as_shader_monitored* shader = AS_ARRAY_GET(monitor->shaders, i);
+			if (shader && !shader->is_locked)
+			{
+				shader->is_locked = true;
+				if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
+				{
+					create_graphics_pipeline(shader->render, shader->graphics_pipeline, shader->graphics_pipeline_layout,
+						shader->descriptor_set_layout, shader->filename_vertex, shader->filename_fragment);
+				}
+				shader->is_locked = false;
+			}
+		}
+		sleep_seconds(.1f); // wait time 100ms
 	}
-	
 	return NULL;
 }
 
-as_shader_monitor* as_shader_monitor_create()
+as_shader_monitor* as_shader_monitor_create(const u64* current_frame)
 {
 	as_shader_monitor* monitor = AS_MALLOC_SINGLE(as_shader_monitor);
-	as_mutex_init(monitor->mutex);
-	monitor->thread = as_thread_create(as_shader_monitor_run, monitor);
+	monitor->is_running = true;
+	as_mutex_init(&monitor->mutex);
+	for(sz i = 0 ; i < AS_SHADER_MONITOR_COUNT; i++)
+	{
+		monitor->threads[i] = as_thread_create(as_shader_monitor_run, monitor);
+	};
 	AS_SET_VALID(monitor);
 	return monitor;
 }
@@ -1698,20 +1723,32 @@ as_shader_monitor* as_shader_monitor_create()
 void as_shader_monitored_destroy(as_shader_monitor* monitor)
 {
 	if (!monitor || AS_IS_INVALID(monitor)) { return; }
-	as_thread_join(monitor->thread);
-	as_mutex_destroy(monitor->mutex);
+	monitor->is_running = false;
+	as_mutex_destroy(&monitor->mutex);
+	for (sz i = 0; i < AS_SHADER_MONITOR_COUNT; i++)
+	{
+		as_thread_join(monitor->threads[i]);
+	};
 	AS_SET_INVALID(monitor);
 	AS_FREE(monitor);
 }
 
-void as_shader_monitor_add(as_shader_monitor* monitor, as_shader* shader)
+void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader)
 {
 	AS_ASSERT(monitor, "cannot add shader to monitor, invalid monitor");
 	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
 	
-	//as_shader_monitored shader_to_add = { 0 };
-	//strcpy(shader_to_add.filename_fragment, shader->filename_fragment);
-	//AS_PUSH_BACK_ARRAY(monitor->shaders, shader);
+	as_shader_monitored shader_to_add = { 0 };
+	shader_to_add.render = render;
+	shader_to_add.graphics_pipeline = &shader->graphics_pipeline;
+	shader_to_add.graphics_pipeline_layout = &shader->graphics_pipeline_layout;
+	shader_to_add.descriptor_pool = &shader->descriptor_pool;
+	shader_to_add.descriptor_set_layout = &shader->descriptor_set_layout;
+	shader_to_add.descriptor_sets = &shader->descriptor_sets;
+	strcpy(shader_to_add.filename_fragment, shader->filename_fragment);
+	strcpy(shader_to_add.filename_vertex, shader->filename_vertex);
+	
+	AS_PUSH_BACK_ARRAY(monitor->shaders, shader_to_add);
 }
 
 as_object* as_object_create(as_render* render, as_shader* shader)

@@ -1,9 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_math.h"
-#include <math.h>
 
-f32 as_radians(f32 degrees)
+f32 as_radians(const f32 degrees)
 {
 	return degrees * (AS_PI / 180.0f);
 }
@@ -77,9 +76,9 @@ as_vec3 as_mat4_get_translation(const as_mat4* m)
 
 void as_mat4_translate(as_mat4* m, const as_vec3* translation)
 {
-	m->m[0][3] += translation->x;
-	m->m[1][3] += translation->y;
-	m->m[2][3] += translation->z;
+	m->m[3][0] += translation->x;
+	m->m[3][1] += translation->y;
+	m->m[3][2] += translation->z;
 }
 
 void as_mat4_set_translation(as_mat4* m, const as_vec3* translation)

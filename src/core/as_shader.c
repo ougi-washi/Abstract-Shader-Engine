@@ -77,9 +77,7 @@ as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type
 	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = {0};
 	sprintf(cached_filename, "%s_cache", filename);
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
-	if (cached_binary && 
-		cached_binary->source_size == AS_MAX_SHADER_SOURCE_SIZE &&
-		strcmp(cached_binary->source, processed_source) == 0)
+	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0)
 	{
 		return cached_binary;
 	}
@@ -102,6 +100,19 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 	{
 		AS_FREE(shader_bin);
 	}
+}
+
+bool as_shader_has_changed(const char* filename)
+{
+	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
+	as_util_expand_file_includes(filename, processed_source);
+
+	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
+	sprintf(cached_filename, "%s_cache", filename);
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
+	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source);
+	AS_FREE(cached_binary);
+	return !is_same;
 }
 
 void as_shader_binary_serialize(const as_shader_binary* data, const char* filename)

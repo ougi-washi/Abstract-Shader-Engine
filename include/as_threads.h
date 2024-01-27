@@ -3,6 +3,7 @@
 #pragma once
 
 #include "as_types.h"
+#include "as_array.h"
 
 #if PLATFORM_WINDOWS
 #include <windows.h>
@@ -14,7 +15,6 @@ typedef DWORD as_thread_id;
 typedef pthread_t as_thread;
 typedef pid_t as_thread_id;
 #endif
-
 
 extern as_thread as_thread_create(void* (*func)(void*), void* arg);
 extern void as_thread_join(as_thread thread);

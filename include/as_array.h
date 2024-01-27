@@ -30,12 +30,12 @@
         --(_array).size; }                                                                              \
     else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-#define AS_GET_ARRAY_ELEM(_array, _index)                                                               \
+#define AS_ARRAY_GET(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
 
 #define AS_FOREACH(_array, _element_type, _element, _body) \
     for (sz _i = 0; _i < (_array).size; ++_i) { \
-        _element_type _element = (_array).data[_i]; \
+        _element_type* _element = &(_array).data[_i]; \
         _body }
 
 

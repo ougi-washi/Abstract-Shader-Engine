@@ -1,6 +1,7 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_threads.h"
+#include "as_memory.h"
 
 as_thread as_thread_create(void* (*func)(void*), void* arg)
 {
@@ -103,6 +104,7 @@ i32 emulate_pthread_mutex_lock(volatile AS_MUTEX_TYPE* mx)
 
 bool as_mutex_init(as_mutex* mutex)
 {
+	//mutex = AS_MALLOC_SINGLE(as_mutex);
 	AS_MUTEX_SETUP(*mutex);
 	return true;  
 }
@@ -119,5 +121,7 @@ bool as_mutex_unlock(as_mutex* mutex)
 
 bool as_mutex_destroy(as_mutex* mutex)
 {
-	return AS_MUTEX_CLEANUP(*mutex);
+	bool result = AS_MUTEX_CLEANUP(*mutex);
+	AS_FREE(mutex);
+	return result;
 }

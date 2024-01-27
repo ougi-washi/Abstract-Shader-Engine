@@ -6,6 +6,7 @@
 #include "as_array.h"
 #include "as_utility.h"
 #include "as_threads.h"
+#include "defines/as_global.h"
 #include <vulkan/vulkan.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
@@ -89,27 +90,10 @@ typedef struct as_shader
 	char filename_vertex[AS_MAX_PATH_SIZE];
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
+	u64 refresh_frame; // this will define whether or not to use the graphics_pipeline
+
 	ADD_FLAG;
 }as_shader;
-
-typedef struct as_shader_monitored
-{
-	VkPipeline graphics_pipeline;
-	VkPipelineLayout graphics_pipeline_layout;
-
-	char filename_vertex[AS_MAX_PATH_SIZE];
-	char filename_fragment[AS_MAX_PATH_SIZE];
-} as_shader_monitored;
-AS_DECLARE_ARRAY(as_shaders_monitored_512, 512, as_shader_monitored);
-
-typedef struct as_shader_monitor
-{
-	as_thread thread;
-	as_mutex mutex;
-	as_shaders_monitored_512 shaders;
-
-	ADD_FLAG;
-} as_shader_monitor;
 
 typedef struct as_object
 {
@@ -160,7 +144,7 @@ typedef struct as_render
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;
 
-	u32 current_frame;
+	u64 current_frame;
 	
 	// move somewhere else maybe
 	f32 time;
@@ -168,6 +152,35 @@ typedef struct as_render
 	f32 delta_time;
 	f32 current_time;
 } as_render;
+
+typedef struct as_shader_monitored
+{
+	as_render* render;
+
+	VkPipeline* graphics_pipeline;
+	VkPipelineLayout* graphics_pipeline_layout;
+
+	VkDescriptorPool* descriptor_pool;
+	VkDescriptorSetLayout* descriptor_set_layout;
+	VkDescriptorSets32* descriptor_sets;
+
+	char filename_vertex[AS_MAX_PATH_SIZE];
+	char filename_fragment[AS_MAX_PATH_SIZE];
+
+	bool is_locked;
+} as_shader_monitored;
+AS_DECLARE_ARRAY(as_shaders_monitored_128, 128, as_shader_monitored);
+AS_DECLARE_ARRAY(as_shaders_monitored_256, 256, as_shader_monitored);
+
+typedef struct as_shader_monitor
+{
+	as_render* render;
+	as_thread threads[AS_SHADER_MONITOR_COUNT];
+	as_mutex mutex;
+	as_shaders_monitored_128 shaders;
+	bool is_running;
+	ADD_FLAG;
+} as_shader_monitor;
 
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
@@ -188,9 +201,9 @@ extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_text
 extern as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
 
-extern as_shader_monitor* as_shader_monitor_create();
+extern as_shader_monitor* as_shader_monitor_create(const u64* current_frame);
 extern void as_shader_monitored_destroy(as_shader_monitor* monitor);
-extern void as_shader_monitor_add(as_shader_monitor* monitor, as_shader* shader);
+extern void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader);
 
 extern as_object* as_object_create(as_render* render, as_shader* shader);
 extern sz as_object_add(as_object* object, as_objects_1024* objects);
