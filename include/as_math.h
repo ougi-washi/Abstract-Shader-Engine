@@ -25,8 +25,8 @@ AS_VEC_GENERATE_OP(_type, +, _size, _type##_add)                    \
 AS_VEC_GENERATE_OP(_type, -, _size, _type##_sub)                    \
 AS_VEC_GENERATE_OP(_type, *, _size, _type##_mul)                    \
 AS_VEC_GENERATE_OP(_type, /, _size, _type##_div)                    \
-AS_VEC_GENERATE_NEGATE(_type, _type, _size, _type##_cnegate)        \
-AS_VEC_GENERATE_NEGATE(const _type, _type, _size, _type##_negate)
+AS_VEC_GENERATE_NEGATE(_type, _type, _size, _type##_negate)        \
+AS_VEC_GENERATE_NEGATE(const _type, _type, _size, _type##_cnegate)
 
 #define AS_VEC_DEFINE_VECTOR(_name, _type, _size) \
 typedef struct _name { \
@@ -75,10 +75,12 @@ extern void as_mat4_translate(as_mat4* m, const as_vec3* translation);
 extern void as_mat4_set_translation(as_mat4* m, const as_vec3* translation);
 
 extern as_quat as_mat4_get_rotation(const as_mat4* m);
-extern as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v);
-extern as_mat4 as_mat4_rotate_around_center(const as_mat4* m, const f32 angle, const as_vec3* v, const as_vec3* center);
+extern void  as_mat4_rotate(as_mat4* m, const f32 angle, const as_vec3* axis);
+extern void as_mat4_rotate_around_pivot(as_mat4* m, const f32 angle, const as_vec3* axis, const as_vec3* pivot);
+extern void as_mat4_rotate_with_quat(as_mat4* m, const as_quat* q);
 extern void as_mat4_set_rotation(as_mat4* m, const as_vec3* rotation);
-
+extern as_vec3 as_mat4_multiply_vec3(const as_mat4* m, const as_vec3* v);
+extern as_vec4 as_mat4_multiply_vec4(const as_mat4* m, const as_vec4* v);
 extern as_vec3 as_mat4_get_scale(const as_mat4* m);
 extern void as_mat4_set_scale(as_mat4* m, const as_vec3* scale);
 
@@ -87,8 +89,9 @@ extern as_mat4 as_mat4_perspective(const f32 fov, const f32 aspect, const f32 ne
 
 // quat
 extern as_quat as_vec3_to_quat(const as_vec3* v);
-as_vec3 as_quat_to_vec3(const as_quat* q);
-
+extern as_vec3 as_quat_to_vec3(const as_quat* q);
+extern void as_quat_rotate(as_quat* q, const f32 angle, const as_vec3* axis);
+extern as_quat as_mat4_to_quat(const as_mat4* m);
 
 
 // Macros for performance

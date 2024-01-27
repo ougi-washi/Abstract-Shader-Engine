@@ -2,6 +2,7 @@
 #include "core/as_shader.h"
 #include "core/as_shapes.h"
 #include "as_memory.h"
+#include "as_threads.h"
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -1147,8 +1148,6 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 	{
-		//vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render->graphics_pipeline);
-
 		VkViewport viewport = { 0 };
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -1172,7 +1171,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				as_shader* shader = object->shader;
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
 
-				if (!shader) { continue; }
+				if (!shader || !shader->graphics_pipeline) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
@@ -1391,7 +1390,6 @@ void as_render_end_draw_loop(as_render* render)
 
 void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects)
 {
-
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index;
@@ -1630,12 +1628,14 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 
 	as_shader* shader = AS_MALLOC_SINGLE(as_shader);
 	shader->uniforms = *uniforms;
+	strcpy(shader->filename_fragment, fragment_shader_path);
+	strcpy(shader->filename_vertex, vertex_shader_path);
 	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, &shader->uniforms);
 	create_graphics_pipeline(render, &shader->graphics_pipeline, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout, vertex_shader_path, fragment_shader_path);
-	//i8 k = 0; k++; vs is bs
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);
+	//i8 k = 0; k++; vs is bs
 
 	AS_SET_VALID(shader);
 	return shader;
@@ -1672,6 +1672,46 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 
 	AS_SET_INVALID(shader);
 	AS_FREE(shader);
+}
+
+void* as_shader_monitor_run(as_shader_monitor* args)
+{
+	as_shader_monitor* monitor = args;
+	AS_ASSERT(monitor && AS_IS_VALID(monitor), "cannot run as_shader_monitor_run, monitor invalid");
+	for(u32 i = 0; i < monitor->shaders.size; i++)
+	{
+		
+	}
+	
+	return NULL;
+}
+
+as_shader_monitor* as_shader_monitor_create()
+{
+	as_shader_monitor* monitor = AS_MALLOC_SINGLE(as_shader_monitor);
+	as_mutex_init(monitor->mutex);
+	monitor->thread = as_thread_create(as_shader_monitor_run, monitor);
+	AS_SET_VALID(monitor);
+	return monitor;
+}
+
+void as_shader_monitored_destroy(as_shader_monitor* monitor)
+{
+	if (!monitor || AS_IS_INVALID(monitor)) { return; }
+	as_thread_join(monitor->thread);
+	as_mutex_destroy(monitor->mutex);
+	AS_SET_INVALID(monitor);
+	AS_FREE(monitor);
+}
+
+void as_shader_monitor_add(as_shader_monitor* monitor, as_shader* shader)
+{
+	AS_ASSERT(monitor, "cannot add shader to monitor, invalid monitor");
+	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
+	
+	//as_shader_monitored shader_to_add = { 0 };
+	//strcpy(shader_to_add.filename_fragment, shader->filename_fragment);
+	//AS_PUSH_BACK_ARRAY(monitor->shaders, shader);
 }
 
 as_object* as_object_create(as_render* render, as_shader* shader)
@@ -1762,7 +1802,15 @@ void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
 	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
 	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
 
-	object->transform = as_mat4_rotate(&object->transform, angle, axis);
+	as_mat4_rotate(&object->transform, angle, axis);
+}
+
+void as_object_rotate_around_pivot(as_object* object, const f32 angle, const as_vec3* axis, const as_vec3* pivot)
+{
+	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
+	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
+
+	as_mat4_rotate_around_pivot(&object->transform, angle, axis, pivot);
 }
 
 void as_object_set_scale(as_object* object, const as_vec3* scale)

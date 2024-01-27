@@ -2,9 +2,7 @@
 
 #include "core/as_shader.h"
 #include <shaderc/shaderc.h>
-#include "as_utility.h"
 #include "as_memory.h"
-
 
 const char* compilation_status_texts[] =
 {	
@@ -106,14 +104,11 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 	}
 }
 
-
 void as_shader_binary_serialize(const as_shader_binary* data, const char* filename)
 {
 	FILE* file = fopen(filename, "wb");
 	AS_ASSERT(file, "Failed to open file for writing");
-
 	fwrite(data, sizeof(as_shader_binary), 1, file);
-
 	fclose(file);
 }
 
@@ -127,8 +122,6 @@ as_shader_binary* as_shader_binary_deserialize(const char* filename)
 	}
 
 	fread(data, sizeof(as_shader_binary), 1, file);
-
 	fclose(file);
-
 	return data;
 }

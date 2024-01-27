@@ -155,21 +155,21 @@ extern as_quat as_mat4_get_rotation(const as_mat4* m)
 //	return result;
 //}
 
-as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
+void as_mat4_rotate(as_mat4* m, const f32 angle, const as_vec3* axis)
 {
 	f32 const a = angle;
 	f32 const c = cosf(a);
 	f32 const s = sinf(a);
 
-	as_vec3 axis = *v;
-	as_vec3_normalize(&axis);
-	as_vec3 temp = { (1.0f - c) * axis.x, (1.0f - c) * axis.y, (1.0f - c) * axis.z };
+	as_vec3 axis_norm = *axis;
+	as_vec3_normalize(&axis_norm);
+	as_vec3 temp = { (1.0f - c) * axis_norm.x, (1.0f - c) * axis_norm.y, (1.0f - c) * axis_norm.z };
 
 	as_mat4 rotate = 
 	{ {
-		{c + temp.x * axis.x, temp.x * axis.y + s * axis.z, temp.x * axis.z - s * axis.y, 0.0f},
-		{temp.y * axis.x - s * axis.z, c + temp.y * axis.y, temp.y * axis.z + s * axis.x, 0.0f},
-		{temp.z * axis.x + s * axis.y, temp.z * axis.y - s * axis.x, c + temp.z * axis.z, 0.0f},
+		{c + temp.x * axis_norm.x, temp.x * axis_norm.y + s * axis_norm.z, temp.x * axis_norm.z - s * axis_norm.y, 0.0f},
+		{temp.y * axis_norm.x - s * axis_norm.z, c + temp.y * axis_norm.y, temp.y * axis_norm.z + s * axis_norm.x, 0.0f},
+		{temp.z * axis_norm.x + s * axis_norm.y, temp.z * axis_norm.y - s * axis_norm.x, c + temp.z * axis_norm.z, 0.0f},
 		{0.0f, 0.0f, 0.0f, 1.0f},
 	} };
 
@@ -192,32 +192,37 @@ as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 		{m->m[3][0], m->m[3][1], m->m[3][2], m->m[3][3]},
 	} };
 
-	return result;
+	*m = result;
 }
 
-as_mat4 as_mat4_rotate_around_center(const as_mat4* m, const f32 angle, const as_vec3* v, const as_vec3* center)
+void as_mat4_rotate_around_pivot(as_mat4* m, const f32 angle, const as_vec3* axis, const as_vec3* pivot)
 {
-	
-#if 1
-	AS_LOG(LV_ERROR, "as_mat4_rotate_around_center is not implemented, use as_mat4_rotate instead");
-	return as_mat4_rotate(m, angle, v);
-#endif
+	// still WIP
+	as_mat4 translation_matrix = AS_MAT4_TRANSLATION(pivot->x, pivot->y, pivot->z);
+	as_mat4 rotation_matrix = { 0 };
+	as_mat4_rotate(&rotation_matrix, angle, axis);
+	as_mat4 translation_back_matrix = AS_MAT4_TRANSLATION(-pivot->x, -pivot->y, -pivot->z);
 
-	// Translate to the center
-	as_mat4 current_mat = *m;
-	as_mat4_translate(&current_mat, center);
+	as_vec3 p = as_mat4_get_translation(m);
+	as_vec3 p1 = as_mat4_multiply_vec3(&translation_matrix, &p);
+	as_vec3 p2 = as_mat4_multiply_vec3(&rotation_matrix, &p1);
+	as_vec3 p3 = as_mat4_multiply_vec3(&translation_back_matrix, &p2);
 
-	as_mat4 rotate = as_mat4_rotate(&current_mat, angle, v);
+	as_mat4_set_translation(m, &p3);
+}
 
-	// Translate back from the center
-	as_mat4_translate(&current_mat, as_vec3_negate(center));
+void as_mat4_rotate_with_quat(as_mat4* m, const as_quat* q)
+{
+	as_mat4 rotation_matrix = {
+		.m = {
+			{1.0f - 2.0f * (q->y * q->y + q->z * q->z), 2.0f * (q->x * q->y - q->w * q->z),     2.0f * (q->x * q->z + q->w * q->y),     0.0f},
+			{2.0f * (q->x * q->y + q->w * q->z),     1.0f - 2.0f * (q->x * q->x + q->z * q->z), 2.0f * (q->y * q->z - q->w * q->x),     0.0f},
+			{2.0f * (q->x * q->z - q->w * q->y),     2.0f * (q->y * q->z + q->w * q->x),     1.0f - 2.0f * (q->x * q->x + q->y * q->y), 0.0f},
+			{0.0f,                                 0.0f,                                 0.0f,                                 1.0f}
+		}
+	};
 
-	// Combine the transformations
-	as_mat4 result;
-	result = rotate;
-	result = as_mat4_multiply(&rotate, &current_mat);
-
-	return result;
+	*m = as_mat4_multiply(m, &rotation_matrix);
 }
 
 void as_mat4_set_rotation(as_mat4* m, const as_vec3* rotation)
@@ -242,6 +247,30 @@ void as_mat4_set_rotation(as_mat4* m, const as_vec3* rotation)
 	m->m[2][0] = sinY;
 	m->m[2][1] = -sinX * cosY;
 	m->m[2][2] = cosX * cosY;
+}
+
+as_vec3 as_mat4_multiply_vec3(const as_mat4* m, const as_vec3* v)
+{
+	as_vec4 result = as_mat4_multiply_vec4(m, AS_VEC_PTR(as_vec4, v->x, v->y, v->z, 1.f));
+	return AS_VEC(as_vec3, result.x, result.y, result.z);
+}
+
+as_vec4 as_mat4_multiply_vec4(const as_mat4* m, const as_vec4* v)
+{
+	as_vec4 result;
+
+	result.x = m->m[0][0] * v->x + m->m[1][0] * v->y + m->m[2][0] * v->z + m->m[3][0] * v->w;
+	result.y = m->m[0][1] * v->x + m->m[1][1] * v->y + m->m[2][1] * v->z + m->m[3][1] * v->w;
+	result.z = m->m[0][2] * v->x + m->m[1][2] * v->y + m->m[2][2] * v->z + m->m[3][2] * v->w;
+	result.w = m->m[0][3] * v->x + m->m[1][3] * v->y + m->m[2][3] * v->z + m->m[3][3] * v->w;
+
+	// diff approach later, to optimize
+	//result.x = dot(row[0], v);
+	//result.y = dot(row[1], v);
+	//result.z = dot(row[2], v);
+	//result.w = dot(row[3], v);
+
+	return result;
 }
 
 extern as_vec3 as_mat4_get_scale(const as_mat4* m)
@@ -343,4 +372,63 @@ as_vec3 as_quat_to_vec3(const as_quat* q)
 	yaw = atan2f(siny_cosp, cosy_cosp);
 
 	return (as_vec3) { roll, pitch, yaw };
+}
+
+void as_quat_rotate(as_quat* q, const f32 angle, const as_vec3* axis)
+{
+	f32 const a = angle / 2.0f;
+	f32 const s = sinf(a);
+
+	as_quat rotation_quat;
+	rotation_quat.w = cosf(a);
+	rotation_quat.x = axis->x * s;
+	rotation_quat.y = axis->y * s;
+	rotation_quat.z = axis->z * s;
+
+	as_quat_mul(q, &rotation_quat, q);
+}
+
+as_quat as_mat4_to_quat(const as_mat4* m)
+{
+	as_quat quat;
+
+	float trace = m->m[0][0] + m->m[1][1] + m->m[2][2];
+
+	if (trace > 0.0f)
+	{
+		float s = 0.5f / sqrtf(trace + 1.0f);
+		quat.w = 0.25f / s;
+		quat.x = (m->m[2][1] - m->m[1][2]) * s;
+		quat.y = (m->m[0][2] - m->m[2][0]) * s;
+		quat.z = (m->m[1][0] - m->m[0][1]) * s;
+	}
+	else
+	{
+		if (m->m[0][0] > m->m[1][1] && m->m[0][0] > m->m[2][2])
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[0][0] - m->m[1][1] - m->m[2][2]);
+			quat.w = (m->m[2][1] - m->m[1][2]) / s;
+			quat.x = 0.25f * s;
+			quat.y = (m->m[0][1] + m->m[1][0]) / s;
+			quat.z = (m->m[0][2] + m->m[2][0]) / s;
+		}
+		else if (m->m[1][1] > m->m[2][2])
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[1][1] - m->m[0][0] - m->m[2][2]);
+			quat.w = (m->m[0][2] - m->m[2][0]) / s;
+			quat.x = (m->m[0][1] + m->m[1][0]) / s;
+			quat.y = 0.25f * s;
+			quat.z = (m->m[1][2] + m->m[2][1]) / s;
+		}
+		else
+		{
+			float s = 2.0f * sqrtf(1.0f + m->m[2][2] - m->m[0][0] - m->m[1][1]);
+			quat.w = (m->m[1][0] - m->m[0][1]) / s;
+			quat.x = (m->m[0][2] + m->m[2][0]) / s;
+			quat.y = (m->m[1][2] + m->m[2][1]) / s;
+			quat.z = 0.25f * s;
+		}
+	}
+
+	return quat;
 }

@@ -27,7 +27,8 @@ i32 main()
 	as_shader* shader = as_shader_create(render, uniforms, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
 	as_object* object1 = as_object_create(render, shader);
 	as_object* object2 = as_object_create(render, shader);
-	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 0., 2));
+	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., -3., .5));
+	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 2., 3., -.5));
 	as_objects_1024* objects = as_objects_create();
 	as_object_add(object1, objects);
 	as_object_add(object2, objects);
@@ -39,7 +40,7 @@ i32 main()
 
 		const f32 delta_time = as_render_get_delta_time(render);
 		as_object_rotate(object1, 3. * delta_time, AS_VEC3_X_AXIS_PTR);
-		as_object_rotate(object2, 4.5 * delta_time, AS_VEC3_Z_AXIS_PTR);
+		as_object_rotate_around_pivot(object2, 4.5 * delta_time, AS_VEC3_Z_AXIS_PTR, AS_VEC_PTR(as_vec3, 5., 5., 8.));
 
 		as_render_draw_frame(render, display_context, objects);
 		as_render_end_draw_loop(render);
