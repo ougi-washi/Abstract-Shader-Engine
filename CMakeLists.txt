@@ -71,7 +71,7 @@ target_include_directories(main_module PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(main_module PUBLIC glfw ${Vulkan_LIBRARIES} shaderc_sharedd)
 
 # Executable
-add_executable(${PROJECT_NAME} main.c "src/core/as_render.c")
+add_executable(${PROJECT_NAME} main.c)
 target_link_libraries(${PROJECT_NAME} PUBLIC main_module)
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})

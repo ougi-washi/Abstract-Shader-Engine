@@ -72,7 +72,7 @@ as_mat4 as_mat4_multiply(const as_mat4* a, const as_mat4* b)
 
 as_vec3 as_mat4_get_translation(const as_mat4* m)
 {
-	return AS_VEC3(m->m[3][0], m->m[3][1], m->m[3][2]);
+	return AS_VEC(as_vec3, m->m[3][0], m->m[3][1], m->m[3][2]);
 }
 
 void as_mat4_translate(as_mat4* m, const as_vec3* translation)
@@ -197,11 +197,27 @@ as_mat4 as_mat4_rotate(const as_mat4* m, const f32 angle, const as_vec3* v)
 
 as_mat4 as_mat4_rotate_around_center(const as_mat4* m, const f32 angle, const as_vec3* v, const as_vec3* center)
 {
-	as_mat4 translate_to_origin = AS_MAT4_TRANSLATION(-center->x, -center->y, -center->z);
-	as_mat4 rotate = as_mat4_rotate(&translate_to_origin, angle, v);
-	as_mat4 translate_back = AS_MAT4_TRANSLATION(center->x, center->y, center->z);
-	as_mat4 result = as_mat4_multiply(&translate_back, &rotate);
-	return as_mat4_multiply(m, &result);
+	
+#if 1
+	AS_LOG(LV_ERROR, "as_mat4_rotate_around_center is not implemented, use as_mat4_rotate instead");
+	return as_mat4_rotate(m, angle, v);
+#endif
+
+	// Translate to the center
+	as_mat4 current_mat = *m;
+	as_mat4_translate(&current_mat, center);
+
+	as_mat4 rotate = as_mat4_rotate(&current_mat, angle, v);
+
+	// Translate back from the center
+	as_mat4_translate(&current_mat, as_vec3_negate(center));
+
+	// Combine the transformations
+	as_mat4 result;
+	result = rotate;
+	result = as_mat4_multiply(&rotate, &current_mat);
+
+	return result;
 }
 
 void as_mat4_set_rotation(as_mat4* m, const as_vec3* rotation)

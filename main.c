@@ -27,7 +27,7 @@ i32 main()
 	as_shader* shader = as_shader_create(render, uniforms, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
 	as_object* object1 = as_object_create(render, shader);
 	as_object* object2 = as_object_create(render, shader);
-	as_object_set_translation(object1, AS_VEC3_PTR(0., 0., 2));
+	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 0., 2));
 	as_objects_1024* objects = as_objects_create();
 	as_object_add(object1, objects);
 	as_object_add(object2, objects);
