@@ -9,16 +9,24 @@
 #define AS_PI 3.14159265358979323846f
 #define AS_CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
-#define AS_VEC_OP_GENERATE(_type, _operation, _size, _function_name) \
-static inline void _function_name (_type* _result, _type* _val1, _type* _val2) { \
+#define AS_VEC_GENERATE_OP(_type, _operation, _size, _function_name) \
+static inline void _function_name (_type* _result, const _type* _val1, const _type* _val2) { \
     for (u8 i = 0; i < _size; ++i) { (_result)->data[i] = (_val1)->data[i] _operation (_val2)->data[i]; }  \
 }
 
-#define AS_VEC_ALL_OP_GENERATE(_type, _size)           \
-AS_VEC_OP_GENERATE(_type, +, _size, _type##_add)       \
-AS_VEC_OP_GENERATE(_type, -, _size, _type##_sub)       \
-AS_VEC_OP_GENERATE(_type, *, _size, _type##_mul)       \
-AS_VEC_OP_GENERATE(_type, /, _size, _type##_div)       
+#define AS_VEC_GENERATE_NEGATE(_output_type, _input_type, _size, _function_name) \
+static inline _output_type* _function_name (_input_type* _val) { \
+    for (u8 i = 0; i < _size; ++i) { (_val)->data[i] = - (_val)->data[i]; } \
+    return _val;\
+}
+
+#define AS_VEC_GENERATE_ALL_OP(_type, _size)                        \
+AS_VEC_GENERATE_OP(_type, +, _size, _type##_add)                    \
+AS_VEC_GENERATE_OP(_type, -, _size, _type##_sub)                    \
+AS_VEC_GENERATE_OP(_type, *, _size, _type##_mul)                    \
+AS_VEC_GENERATE_OP(_type, /, _size, _type##_div)                    \
+AS_VEC_GENERATE_NEGATE(_type, _type, _size, _type##_cnegate)        \
+AS_VEC_GENERATE_NEGATE(const _type, _type, _size, _type##_negate)
 
 #define AS_VEC_DEFINE_VECTOR(_name, _type, _size) \
 typedef struct _name { \
@@ -32,7 +40,7 @@ typedef struct _name { \
         }; \
     }; \
 } _name; \
-AS_VEC_ALL_OP_GENERATE(_name, _size)
+AS_VEC_GENERATE_ALL_OP(_name, _size)
 
 // Define all vectors 
 AS_VEC_DEFINE_VECTOR(as_vec2, f32, 2)
@@ -86,6 +94,7 @@ as_vec3 as_quat_to_vec3(const as_quat* q);
 // Macros for performance
 #define AS_VEC(_type, ...) ( _type ) { __VA_ARGS__ }
 #define AS_VEC_PTR(_type, ...) &( _type ) { __VA_ARGS__ }
+#define AS_VEC_ZERO_PTR(_type) &( _type ) { 0 }
 
 // Macros for specific vectors
 #define AS_VEC3_X_AXIS AS_VEC(as_vec3, 1.0f, 0.0f, 0.0f)

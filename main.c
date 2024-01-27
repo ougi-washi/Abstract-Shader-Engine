@@ -38,7 +38,7 @@ i32 main()
 		as_display_context_poll_event();
 
 		const f32 delta_time = as_render_get_delta_time(render);
-		as_object_rotate(object1, 3. * delta_time, AS_VEC3_Z_AXIS_PTR);
+		as_object_rotate(object1, 3. * delta_time, AS_VEC3_X_AXIS_PTR);
 		as_object_rotate(object2, 4.5 * delta_time, AS_VEC3_Z_AXIS_PTR);
 
 		as_render_draw_frame(render, display_context, objects);

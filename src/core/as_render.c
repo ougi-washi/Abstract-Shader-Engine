@@ -1763,12 +1763,8 @@ void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
 	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
 	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
 
-
-	// If I rotate it around the 0 axis
-	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC_PTR(as_vec3, 0, 0, 0.));
-
-	//const as_vec3 current_translation = as_mat4_get_translation(&object->transform);
-	//object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, &current_translation);
+	//object->transform = as_mat4_rotate(&object->transform, angle, axis);
+	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC_PTR(as_vec3, 0, 0, 2));
 }
 
 void as_object_set_scale(as_object* object, const as_vec3* scale)
