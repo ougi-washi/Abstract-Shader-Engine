@@ -79,7 +79,9 @@ as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type
 	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = {0};
 	sprintf(cached_filename, "%s_cache", filename);
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
-	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0) 
+	if (cached_binary && 
+		cached_binary->source_size == AS_MAX_SHADER_SOURCE_SIZE &&
+		strcmp(cached_binary->source, processed_source) == 0)
 	{
 		return cached_binary;
 	}

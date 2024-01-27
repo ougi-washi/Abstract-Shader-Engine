@@ -148,6 +148,7 @@ void as_util_make_dir(const char* directory)
 	mkdir(directory, 0777);
 }
 
+
 clock_t get_current_time()
 {
 	return clock();
