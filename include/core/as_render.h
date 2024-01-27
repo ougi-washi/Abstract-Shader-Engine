@@ -5,6 +5,8 @@
 #include "as_math.h"
 #include "as_array.h"
 #include "as_utility.h"
+#include "as_threads.h"
+#include "defines/as_global.h"
 #include <vulkan/vulkan.h>
 
 #define MAX_FRAMES_IN_FLIGHT 2
@@ -84,6 +86,12 @@ typedef struct as_shader
 
 	as_uniform_buffers uniform_buffers;
 	as_shader_uniforms_32 uniforms;
+
+	char filename_vertex[AS_MAX_PATH_SIZE];
+	char filename_fragment[AS_MAX_PATH_SIZE];
+
+	u64 refresh_frame; // this will define whether or not to use the graphics_pipeline
+
 	ADD_FLAG;
 }as_shader;
 
@@ -97,6 +105,7 @@ typedef struct as_object
 	VkBuffer index_buffer;
 	VkDeviceMemory index_buffer_memory;
 	u32 indices_size;
+
 	ADD_FLAG;
 } as_object;
 AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object*);
@@ -135,7 +144,7 @@ typedef struct as_render
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;
 
-	u32 current_frame;
+	u64 current_frame;
 	
 	// move somewhere else maybe
 	f32 time;
@@ -144,32 +153,66 @@ typedef struct as_render
 	f32 current_time;
 } as_render;
 
-as_render* as_render_create(void* display_context);
-void as_render_start_draw_loop(as_render* render);
-void as_render_end_draw_loop(as_render* render);
-void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
-void as_render_destroy(as_render* render);
-f32 as_render_get_time(as_render* render);
-f32 as_render_get_remaining_time(as_render* render);
-f32 as_render_get_delta_time(as_render* render);
+typedef struct as_shader_monitored
+{
+	as_render* render;
 
-as_texture* as_texture_create(as_render* render, const char* path);
-void as_texture_destroy(as_render* render, as_texture* texture);
+	VkPipeline* graphics_pipeline;
+	VkPipelineLayout* graphics_pipeline_layout;
 
-as_shader_uniforms_32* as_uniforms_create();
+	VkDescriptorPool* descriptor_pool;
+	VkDescriptorSetLayout* descriptor_set_layout;
+	VkDescriptorSets32* descriptor_sets;
 
-sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
-sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
-as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
-void as_shader_destroy(as_render* render, as_shader* shader);
+	char filename_vertex[AS_MAX_PATH_SIZE];
+	char filename_fragment[AS_MAX_PATH_SIZE];
 
-as_object* as_object_create(as_render* render, as_shader* shader);
-sz as_object_add(as_object* object, as_objects_1024* objects);
-void as_object_set_translation(as_object* object, const as_vec3* translation);
-void as_object_set_rotation(as_object* object, const as_vec3* rotation);
-void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
-void as_object_set_scale(as_object* object, const as_vec3* scale);
-void as_object_destroy(as_render* render, as_object* object);
+	bool is_locked;
+} as_shader_monitored;
+AS_DECLARE_ARRAY(as_shaders_monitored_128, 128, as_shader_monitored);
+AS_DECLARE_ARRAY(as_shaders_monitored_256, 256, as_shader_monitored);
 
-as_objects_1024* as_objects_create();
-void as_objects_destroy(as_render* render, as_objects_1024* objects);
+typedef struct as_shader_monitor
+{
+	as_render* render;
+	as_thread threads[AS_SHADER_MONITOR_COUNT];
+	as_mutex mutex;
+	as_shaders_monitored_128 shaders;
+	bool is_running;
+	ADD_FLAG;
+} as_shader_monitor;
+
+extern as_render* as_render_create(void* display_context);
+extern void as_render_start_draw_loop(as_render* render);
+extern void as_render_end_draw_loop(as_render* render);
+extern void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
+extern void as_render_destroy(as_render* render);
+extern f32 as_render_get_time(as_render* render);
+extern f32 as_render_get_remaining_time(as_render* render);
+extern f32 as_render_get_delta_time(as_render* render);
+
+extern as_texture* as_texture_create(as_render* render, const char* path);
+extern void as_texture_destroy(as_render* render, as_texture* texture);
+
+extern as_shader_uniforms_32* as_uniforms_create();
+
+extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
+extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
+extern as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
+extern void as_shader_destroy(as_render* render, as_shader* shader);
+
+extern as_shader_monitor* as_shader_monitor_create(const u64* current_frame);
+extern void as_shader_monitored_destroy(as_shader_monitor* monitor);
+extern void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader);
+
+extern as_object* as_object_create(as_render* render, as_shader* shader);
+extern sz as_object_add(as_object* object, as_objects_1024* objects);
+extern void as_object_set_translation(as_object* object, const as_vec3* translation);
+extern void as_object_set_rotation(as_object* object, const as_vec3* rotation);
+extern void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
+extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, const as_vec3* axis, const as_vec3* pivot);
+extern void as_object_set_scale(as_object* object, const as_vec3* scale);
+extern void as_object_destroy(as_render* render, as_object* object);
+
+extern as_objects_1024* as_objects_create();
+extern void as_objects_destroy(as_render* render, as_objects_1024* objects);

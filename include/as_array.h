@@ -1,3 +1,7 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
+
+#pragma once
+
 #include "as_types.h"
 
 #define AS_DECLARE_ARRAY(_name, _capacity, _type)           \
@@ -26,8 +30,14 @@
         --(_array).size; }                                                                              \
     else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-#define AS_GET_ARRAY_ELEM(_array, _index)                                                               \
+#define AS_ARRAY_GET(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
+
+#define AS_FOREACH(_array, _element_type, _element, _body) \
+    for (sz _i = 0; _i < (_array).size; ++_i) { \
+        _element_type* _element = &(_array).data[_i]; \
+        _body }
+
 
 AS_DECLARE_ARRAY(voids32, 32, void*);
 AS_DECLARE_ARRAY(voids64, 64, void*);

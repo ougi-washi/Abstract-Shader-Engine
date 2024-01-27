@@ -3,6 +3,8 @@
 #pragma once
 
 #include "as_types.h"
+#include "as_utility.h"
+#include "as_array.h"
 
 #define AS_SHADER_TYPE_VERTEX	0
 #define AS_SHADER_TYPE_FRAGMENT	1
@@ -23,5 +25,6 @@ extern i32 as_shader_compile(as_shader_binary* binary, const char* source, const
 extern as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type);
 extern void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr);
 
+extern bool as_shader_has_changed(const char* filename);;
 extern void as_shader_binary_serialize(const as_shader_binary* data, const char* filename);
-as_shader_binary* as_shader_binary_deserialize(const char* filename);
+extern as_shader_binary* as_shader_binary_deserialize(const char* filename);
