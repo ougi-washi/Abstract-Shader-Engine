@@ -3,7 +3,7 @@
 #include "as_utility.h"
 #include "as_memory.h"
 
-char* read_file(const char* filename, size_t* size)
+char* as_util_read_file(const char* filename, sz* size)
 {
 	FILE* file = fopen(filename, "rb");
 	if (!file)
@@ -132,6 +132,20 @@ void as_util_expand_file_includes(const char* filename, char* output)
 			strncat(output, quote_end + 1, include_pos - quote_end - 1);
 		}
 	}
+}
+
+void as_util_write_file(const char* filename, const void* data, const sz size, const bool is_binary)
+{
+	FILE* file = fopen(filename, (is_binary) ? "wb" : "w");
+	AS_ASSERT(file, "Failed to open file for writing");
+	const sz written = fwrite(data, 1, size, file);
+	fclose(file);
+	AS_ASSERT(written == size, "Failed to write the entire data to file");
+}
+
+void as_util_make_dir(const char* directory)
+{
+	mkdir(directory, 0777);
 }
 
 clock_t get_current_time()

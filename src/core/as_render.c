@@ -615,8 +615,8 @@ VkShaderModule create_shader_module(VkDevice device, as_shader_binary* shader_bi
 {
 	VkShaderModuleCreateInfo create_info = {0};
 	create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	create_info.codeSize = shader_bin->size;
-	create_info.pCode = shader_bin->bin;
+	create_info.codeSize = shader_bin->binaries_size;
+	create_info.pCode = shader_bin->binaries;
 
 	VkShaderModule shader_module;
 	VkResult result = vkCreateShaderModule(device, &create_info, NULL, &shader_module);
@@ -1631,7 +1631,6 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	as_shader* shader = AS_MALLOC_SINGLE(as_shader);
 	shader->uniforms = *uniforms;
 	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, &shader->uniforms);
-
 	create_graphics_pipeline(render, &shader->graphics_pipeline, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout, vertex_shader_path, fragment_shader_path);
 	//i8 k = 0; k++; vs is bs
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
@@ -1763,8 +1762,7 @@ void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis)
 	AS_ASSERT(object, TEXT("Trying to rotate object, but object is NULL"));
 	AS_ASSERT(axis, TEXT("Trying to rotate object, but axis is NULL"));
 
-	//object->transform = as_mat4_rotate(&object->transform, angle, axis);
-	object->transform = as_mat4_rotate_around_center(&object->transform, angle, axis, AS_VEC_PTR(as_vec3, 0, 0, 2));
+	object->transform = as_mat4_rotate(&object->transform, angle, axis);
 }
 
 void as_object_set_scale(as_object* object, const as_vec3* scale)

@@ -5,6 +5,7 @@
 #include "as_utility.h"
 #include "as_memory.h"
 
+
 const char* compilation_status_texts[] =
 {	
 	"shaderc_compilation_status_success",
@@ -18,7 +19,7 @@ const char* compilation_status_texts[] =
 	"shaderc_compilation_status_configuration_error",
 };
 
-i32 as_shader_compile(const char* source, const char* entry_point, const as_shader_type shader_type, u32** spirv_code, size_t* spirv_size)
+i32 as_shader_compile(as_shader_binary* binary, const char* source, const char* entry_point, const as_shader_type shader_type)
 {
 	size_t out_size = 0;
 
@@ -63,10 +64,8 @@ i32 as_shader_compile(const char* source, const char* entry_point, const as_shad
 		return -1;
 	}
 
-	*spirv_size = shaderc_result_get_length(result);
-	*spirv_code = (u32*)AS_MALLOC(*spirv_size);
-	u32* found_binary = (u32*)shaderc_result_get_bytes(result);
-	memcpy(*spirv_code, shaderc_result_get_bytes(result), *spirv_size);
+	binary->binaries_size = shaderc_result_get_length(result);
+	memcpy(binary->binaries, shaderc_result_get_bytes(result), binary->binaries_size);
 
 	shaderc_result_release(result);
 	return 0;
@@ -74,23 +73,60 @@ i32 as_shader_compile(const char* source, const char* entry_point, const as_shad
 
 as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type)
 {
-	as_shader_binary* output = AS_MALLOC_SINGLE(as_shader_binary);
-	size_t file_size = 0;
-	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
+	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
 	as_util_expand_file_includes(filename, processed_source);
 
-	size_t spirv_size = 0;
-	i32 compile_result = as_shader_compile(processed_source, "main", shader_type, &output->bin, &output->size);
-	AS_FREE(processed_source);
-	return output;
+	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = {0};
+	sprintf(cached_filename, "%s_cache", filename);
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
+	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0) 
+	{
+		return cached_binary;
+	}
+	as_shader_destroy_binary(cached_binary, true);
+
+	as_shader_binary* ouput_binary = AS_MALLOC_SINGLE(as_shader_binary);
+	i32 compile_result = as_shader_compile(ouput_binary, processed_source, "main", shader_type);
+	
+	strcpy(ouput_binary->source, processed_source);
+	ouput_binary->source_size = AS_MAX_SHADER_SOURCE_SIZE;
+
+	as_shader_binary_serialize(ouput_binary, cached_filename);
+	return ouput_binary;
 }
 
 void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 {
-	AS_FREE(shader_bin->bin);
+	AS_FREE(shader_bin->binaries);
 	if (is_ptr)
 	{
 		AS_FREE(shader_bin);
 	}
 }
 
+
+void as_shader_binary_serialize(const as_shader_binary* data, const char* filename)
+{
+	FILE* file = fopen(filename, "wb");
+	AS_ASSERT(file, "Failed to open file for writing");
+
+	fwrite(data, sizeof(as_shader_binary), 1, file);
+
+	fclose(file);
+}
+
+as_shader_binary* as_shader_binary_deserialize(const char* filename)
+{
+	as_shader_binary* data = AS_MALLOC_SINGLE(as_shader_binary);
+	FILE* file = fopen(filename, "rb");
+	if (!file)
+	{
+		return NULL;
+	}
+
+	fread(data, sizeof(as_shader_binary), 1, file);
+
+	fclose(file);
+
+	return data;
+}
