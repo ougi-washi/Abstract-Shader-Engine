@@ -1,3 +1,5 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
+
 #include "core/as_render.h"
 #include "core/as_shader.h"
 #include "core/as_shapes.h"
@@ -666,11 +668,11 @@ void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeli
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 }
 
-void create_graphics_pipeline(as_shader* shader, const char* vertex_shader_path, const char* fragment_shader_path)
+void create_graphics_pipeline(as_shader* shader)
 {
 	// Load shader code
-	as_shader_binary* vert_shader_bin = as_shader_read_code(vertex_shader_path, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(fragment_shader_path, AS_SHADER_TYPE_FRAGMENT);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
@@ -1542,24 +1544,25 @@ extern u64* as_render_get_frame_count_ptr(as_render* render)
 	return NULL;
 }
 
-f32 as_render_get_time(as_render* render)
+f64 as_render_get_time(as_render* render)
 {
 	return render->time;
 }
 
-f32 as_render_get_remaining_time(as_render* render)
+f64 as_render_get_remaining_time(as_render* render)
 {
 	clock_t next_frame_time = get_current_time();
-	f32 elapsedTime = calculate_delta_time(render->last_frame_time, next_frame_time);
+	f64 elapsedTime = calculate_delta_time(render->last_frame_time, next_frame_time);
 	return 1.0 / TARGET_FPS - elapsedTime;
 }
 
-f32 as_render_get_delta_time(as_render* render)
+f64 as_render_get_delta_time(as_render* render)
 {
 	return render->delta_time;
 }
 
-as_texture* as_texture_create(as_render* render, const char* path)
+
+as_texture* as_texture_make(as_render* render, const char* path)
 {
 	as_texture* texture = AS_MALLOC_SINGLE(as_texture);
 	u32 tex_width, tex_height, tex_channels;
@@ -1665,29 +1668,44 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	return index;
 }
 
-as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path)
+as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	AS_ASSERT(render, "Trying to create shader, but render is NULL");
-	AS_ASSERT(uniforms, "Trying to create shader, but uniforms array is NULL");
 	AS_ASSERT(vertex_shader_path, "Trying to create shader, but vertex_shader_path is NULL");
 	AS_ASSERT(fragment_shader_path, "Trying to create shader, but fragment_shader_path is NULL");
 
 	as_shader* shader = AS_MALLOC_SINGLE(as_shader);
 	shader->device = &render->device;
 	shader->render_pass = &render->render_pass;
-	shader->uniforms = *uniforms;
 	strcpy(shader->filename_fragment, fragment_shader_path);
 	strcpy(shader->filename_vertex, vertex_shader_path);
-	create_descriptor_set_layout_from_uniforms(shader);
-	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
-	create_graphics_pipeline(shader, vertex_shader_path, fragment_shader_path);
-	create_uniform_buffers_direct(&shader->uniform_buffers, render);
-	create_descriptor_pool(render->device, &shader->descriptor_pool);
-	create_descriptor_sets_from_shader(render->device, shader);
-	//i8 k = 0; k++; vs is bs
+	as_shader_update(render, shader);
 
 	AS_SET_VALID(shader);
 	return shader;
+}
+
+extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
+{
+	AS_ASSERT(render, "Trying to set shader uniforms, but render is NULL");
+	AS_ASSERT(shader, "Trying to set shader uniforms, but shader is NULL");
+	AS_ASSERT(uniforms, "Trying to set shader uniforms, but uniforms is NULL");
+
+	shader->uniforms = *uniforms;
+	as_shader_update(render, shader);
+}
+
+void as_shader_update(as_render* render, as_shader* shader)
+{
+	AS_ASSERT(render, "Trying to update shader, but render is NULL");
+	AS_ASSERT(shader, "Trying to update shader, but shader is NULL");
+
+	create_descriptor_set_layout_from_uniforms(shader);
+	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
+	create_graphics_pipeline(shader);
+	create_uniform_buffers_direct(&shader->uniform_buffers, render);
+	create_descriptor_pool(render->device, &shader->descriptor_pool);
+	create_descriptor_sets_from_shader(render->device, shader);
 }
 
 void as_shader_destroy(as_render* render, as_shader* shader)
@@ -1737,7 +1755,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 			if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
 			{
 				as_shader_set_locked(frame_count, shader);
-				create_graphics_pipeline(shader, shader->filename_vertex, shader->filename_fragment);
+				create_graphics_pipeline(shader);
 				as_shader_set_unlocked(shader);
 			}
 		}
@@ -1785,7 +1803,7 @@ void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_sha
 	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
 }
 
-as_object* as_object_create(as_render* render, as_shader* shader)
+as_object* as_object_make(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");

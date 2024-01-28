@@ -2,7 +2,14 @@
 
 #include "core/as_render.h"
 
-// TRIANGLE
+
+typedef struct as_shape
+{
+	as_vertex vertices;
+	u16 indices;
+	sz vertices_size;
+	sz indices_size;
+} as_shape;
 
 // TRIANGLE
 extern const as_vertex as_shape_triangle_vertices[];

@@ -24,7 +24,7 @@ macro(setup_library arg_lib_name arg_source_path arg_include_path)
 								"${arg_source_path}/*.cpp"
 								"${arg_source_path}/**/*.c" 
 								"${arg_source_path}/**/*.cpp")
-	add_library(${arg_lib_name} STATIC	${CURRENT_SRC_FILES} "src/core/as_render.c")
+	add_library(${arg_lib_name} STATIC	${CURRENT_SRC_FILES})
 	target_include_directories(${arg_lib_name} PUBLIC ${arg_include_path})
 endmacro()
 

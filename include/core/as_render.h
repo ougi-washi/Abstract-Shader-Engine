@@ -153,11 +153,12 @@ typedef struct as_render
 	u64 frame_counter; // use this for frame tracking
 
 	// move somewhere else maybe
-	f32 time;
-	f32 last_frame_time;
-	f32 delta_time;
-	f32 current_time;
+	f64 time;
+	f64 last_frame_time;
+	f64 delta_time;
+	f64 current_time;
 } as_render;
+
 
 typedef struct as_shader_monitor_thread
 {
@@ -185,25 +186,27 @@ extern void as_render_draw_frame(as_render* render, void* display_context, as_ob
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
-extern f32 as_render_get_time(as_render* render);
-extern f32 as_render_get_remaining_time(as_render* render);
-extern f32 as_render_get_delta_time(as_render* render);
+extern f64 as_render_get_time(as_render* render);
+extern f64 as_render_get_remaining_time(as_render* render);
+extern f64 as_render_get_delta_time(as_render* render);
 
-extern as_texture* as_texture_create(as_render* render, const char* path);
+extern as_texture* as_texture_make(as_render* render, const char* path);
 extern void as_texture_destroy(as_render* render, as_texture* texture);
 
 extern as_shader_uniforms_32* as_uniforms_create();
 
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
 extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
-extern as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, const char* vertex_shader_path, const char* fragment_shader_path);
+extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path);
+extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
+extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
 
 extern as_shader_monitor* as_shader_monitor_create(u64* frame_count);
 extern void as_shader_monitored_destroy(as_shader_monitor* monitor);
 extern void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader);
 
-extern as_object* as_object_create(as_render* render, as_shader* shader);
+extern as_object* as_object_make(as_render* render, as_shader* shader);
 extern sz as_object_add(as_object* object, as_objects_1024* objects);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);

@@ -9,17 +9,17 @@
 #include "defines/as_errors.h"
 
 // Base types
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef float f32;
-typedef double f64;
-typedef size_t sz;
+typedef uint8_t		u8;
+typedef uint16_t	u16;
+typedef uint32_t	u32;
+typedef uint64_t	u64;
+typedef int8_t		i8;
+typedef int16_t		i16;
+typedef int32_t		i32;
+typedef int64_t		i64;
+typedef float		f32;
+typedef double		f64;
+typedef size_t		sz;
 
 
 // Platform detection
@@ -116,7 +116,7 @@ typedef enum as_flag
 
 #define ADD_FLAG as_flag obj_flag
 
-#define AS_IS_VALID(_obj)      ((u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
+#define AS_IS_VALID(_obj)      (_obj && (u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
 #define AS_IS_INVALID(_obj)    (!AS_IS_VALID(_obj))
 #define AS_IS_LOCKED(_obj)     ((u8)_obj->obj_flag >= AS_LOCKED && (u8)_obj->obj_flag < AS_MAX)
 #define AS_IS_UNLOCKED(_obj)   (!AS_IS_LOCKED(_obj))
