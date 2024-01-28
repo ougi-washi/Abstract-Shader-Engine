@@ -6,15 +6,6 @@
 #include "core/as_shader.h"
 #include "as_memory.h"
 
-typedef struct as_engine
-{
-	as_render* render;
-	as_render_queue* render_queue;
-	as_shader_monitor* monitor;
-	void* display_context;
-	as_objects_1024* objects;
-} as_engine;
-
 extern void as_engine_init();
 extern void as_engine_clear();
 extern bool as_engine_should_loop();

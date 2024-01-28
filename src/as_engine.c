@@ -2,6 +2,15 @@
 
 #include "as_engine.h"
 
+typedef struct as_engine
+{
+	as_render* render;
+	as_render_queue* render_queue;
+	as_shader_monitor* monitor;
+	void* display_context;
+	as_objects_1024* objects;
+} as_engine;
+
 static as_engine engine = { 0 };
 // static as_input* input = NULL; 
 
