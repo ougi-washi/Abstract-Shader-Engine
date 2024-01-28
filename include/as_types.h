@@ -9,17 +9,17 @@
 #include "defines/as_errors.h"
 
 // Base types
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef float f32;
-typedef double f64;
-typedef size_t sz;
+typedef uint8_t		u8;
+typedef uint16_t	u16;
+typedef uint32_t	u32;
+typedef uint64_t	u64;
+typedef int8_t		i8;
+typedef int16_t		i16;
+typedef int32_t		i32;
+typedef int64_t		i64;
+typedef float		f32;
+typedef double		f64;
+typedef size_t		sz;
 
 
 // Platform detection
@@ -105,18 +105,23 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 #define AS_ASSERT(result, text)	{};
 #endif
 
-
+// order matters
 typedef enum as_flag
 {
-	AS_INVALID	= 0x00,
-	AS_VALID	= 0x01,
-	AS_MAX		= 0x02
+	AS_INVALID,
+	AS_VALID,		// valid (overrides the invalid)
+	AS_LOCKED,		// locked, but has to be also valid
+	AS_MAX
 } as_flag;
 
 #define ADD_FLAG as_flag obj_flag
 
-#define AS_IS_VALID(_obj)		(_obj->obj_flag == AS_VALID)
-#define AS_IS_INVALID(_obj)		(!AS_IS_VALID(_obj))
+#define AS_IS_VALID(_obj)      (_obj && (u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
+#define AS_IS_INVALID(_obj)    (!AS_IS_VALID(_obj))
+#define AS_IS_LOCKED(_obj)     ((u8)_obj->obj_flag >= AS_LOCKED && (u8)_obj->obj_flag < AS_MAX)
+#define AS_IS_UNLOCKED(_obj)   (!AS_IS_LOCKED(_obj))
 
-#define AS_SET_VALID(_obj)		_obj->obj_flag = AS_VALID
-#define AS_SET_INVALID(_obj)	_obj->obj_flag = AS_INVALID
+#define AS_SET_VALID(_obj)     (_obj->obj_flag |= AS_VALID)
+#define AS_SET_INVALID(_obj)   (_obj->obj_flag &= ~AS_VALID)
+#define AS_SET_LOCKED(_obj)    (_obj->obj_flag |= AS_LOCKED)
+#define AS_SET_UNLOCKED(_obj)  (_obj->obj_flag &= ~AS_LOCKED)

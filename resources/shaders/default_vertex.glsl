@@ -23,17 +23,20 @@ layout(location = 1) out vec2 fragTexCoord;
 
 void main() 
 {
-    vec3 gridSpacing = vec3(1.3, 1.3, 1.3); 
-    ivec3 gridSize = ivec3(100, 100, 100); 
+    vec3 gridSpacing = vec3(1.1, 1.1, 1.1); 
+    ivec3 gridSize = ivec3(5, 5, 5); 
 
     int instanceIndexX = gl_InstanceIndex % gridSize.x;
     int instanceIndexY = (gl_InstanceIndex / gridSize.x) % gridSize.y;
     int instanceIndexZ = gl_InstanceIndex / (gridSize.x * gridSize.y);
 
     vec3 new_pos = inPosition + vec3(
-        float(instanceIndexX) * gridSpacing.x,
-        float(instanceIndexY) * gridSpacing.y,
-        float(instanceIndexZ) * gridSpacing.z
+        float(instanceIndexX) * gridSpacing.x + cos(ps.time * (instanceIndexX + instanceIndexY)) 
+        * sin(ps.time * (instanceIndexX + instanceIndexY)) * -0.5 ,
+        float(instanceIndexY) * gridSpacing.y + cos(ps.time * (instanceIndexX + instanceIndexY)) 
+        * sin(ps.time * (instanceIndexX + instanceIndexY)) * -.5 ,
+        float(instanceIndexZ) * gridSpacing.z + cos(ps.time * (instanceIndexX + instanceIndexY)) 
+        * sin(ps.time * (instanceIndexX + instanceIndexY)) * 0.5 
     );
 
     gl_Position = ubo.proj * ubo.view * ps.transform * vec4(new_pos, 1.0);

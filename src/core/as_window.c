@@ -14,6 +14,7 @@ void* as_display_context_create(const i32 x, const i32 y, const char* title, voi
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 	GLFWwindow* display_context = glfwCreateWindow(x, y, title, NULL, NULL);
+	AS_ASSERT(display_context, "invalid display context");
 	if (display_context)
 	{
 		glfwSetKeyCallback(display_context, key_callback);
