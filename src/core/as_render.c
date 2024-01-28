@@ -560,7 +560,7 @@ void as_shader_set_unlocked(as_shader* shader)
 
 bool as_shader_is_unlocked(const u64 frame_count, as_shader* shader)
 {
-	return shader->refresh_frame + 2 < frame_count && AS_IS_UNLOCKED(shader);
+	return shader->refresh_frame + 10 < frame_count && AS_IS_UNLOCKED(shader);
 }
 
 void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) // TODO: Remove later 
@@ -1759,7 +1759,6 @@ as_shader_monitor* as_shader_monitor_create(u64* frame_count)
 void as_shader_monitored_destroy(as_shader_monitor* monitor)
 {
 	if (!monitor || AS_IS_INVALID(monitor)) { return; }
-	monitor->is_running = false;
 	as_mutex_destroy(&monitor->mutex);
 	for (sz i = 0; i < monitor->threads.size; i++)
 	{

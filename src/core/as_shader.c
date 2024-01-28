@@ -110,7 +110,7 @@ bool as_shader_has_changed(const char* filename)
 	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
 	sprintf(cached_filename, "%s_cache", filename);
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
-	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source);
+	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;
 	AS_FREE(cached_binary);
 	return !is_same;
 }

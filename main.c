@@ -50,7 +50,10 @@ i32 main()
 		translate_value.x = cos(as_radians(current_time * 5.) * 10.f) * 5.f;
 		translate_value.y = sin(as_radians(current_time * 5.) * 10.f) * 5.f;
 		translate_value.z = 0.;
-		as_object_set_instance_count(object2, ++instance_count);
+		if (instance_count < 125)
+		{
+			as_object_set_instance_count(object2, ++instance_count);
+		}
 		as_mat4_set_translation(&object2->transform, &translate_value);
 		as_vec3 translation = as_mat4_get_translation(&object2->transform);
 		as_quat rotation = as_mat4_get_rotation(&object2->transform);
