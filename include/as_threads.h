@@ -16,6 +16,7 @@ typedef pthread_t as_thread;
 typedef pid_t as_thread_id;
 #endif
 
+
 extern as_thread as_thread_create(void* (*func)(void*), void* arg);
 extern void as_thread_join(as_thread thread);
 extern as_thread_id as_thread_get_id();

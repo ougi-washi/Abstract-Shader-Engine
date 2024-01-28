@@ -9,5 +9,3 @@
 #define AS_TEXTURES_PATH "../resources/textures/"
 #define AS_CACHED_PATH "../cached/"
 
-// Shader
-#define AS_SHADER_MONITOR_COUNT 8

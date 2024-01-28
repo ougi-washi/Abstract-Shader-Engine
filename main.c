@@ -20,13 +20,13 @@ i32 main()
 	AS_ASSERT(display_context, "invalid display context");
 
 	as_render* render = as_render_create(display_context);
-	as_shader_monitor* monitor = as_shader_monitor_create(&render->current_frame);
+	as_shader_monitor* monitor = as_shader_monitor_create(&render->frame_counter);
 
 	as_shader_uniforms_32* uniforms = as_uniforms_create();
 	as_texture* texture = as_texture_create(render, "../resources/textures/default_texture.png");
 	as_shader_add_uniform_texture(uniforms, texture);
 	as_shader* shader = as_shader_create(render, uniforms, "../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
-	//as_shader_monitor_add(render, monitor, shader);
+	as_shader_monitor_add(render, monitor, shader);
 	as_object* object1 = as_object_create(render, shader);
 	as_object* object2 = as_object_create(render, shader);
 	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 0., 0.));
@@ -35,7 +35,7 @@ i32 main()
 	as_object_add(object1, objects);
 	as_object_add(object2, objects);
 	//as_mat4_translate(&object2->transform, AS_VEC_PTR(as_vec3, 0., -3., -3.));
-
+	u32 instance_count = 1;
 	while (!as_display_context_should_close(display_context))
 	{
 		as_render_start_draw_loop(render);
@@ -50,6 +50,7 @@ i32 main()
 		translate_value.x = cos(as_radians(current_time * 5.) * 10.f) * 5.f;
 		translate_value.y = sin(as_radians(current_time * 5.) * 10.f) * 5.f;
 		translate_value.z = 0.;
+		as_object_set_instance_count(object2, ++instance_count);
 		as_mat4_set_translation(&object2->transform, &translate_value);
 		as_vec3 translation = as_mat4_get_translation(&object2->transform);
 		as_quat rotation = as_mat4_get_rotation(&object2->transform);

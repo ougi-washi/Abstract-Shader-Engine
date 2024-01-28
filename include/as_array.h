@@ -38,6 +38,7 @@
         _element_type* _element = &(_array).data[_i]; \
         _body }
 
+#define AS_CLEAR_ARRAY(_array) { (_array).size = 0; }
 
 AS_DECLARE_ARRAY(voids32, 32, void*);
 AS_DECLARE_ARRAY(voids64, 64, void*);

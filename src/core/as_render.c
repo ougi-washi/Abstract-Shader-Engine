@@ -547,6 +547,21 @@ void create_render_pass(as_render* render)
 		"Failed to create render pass");
 }
 
+void as_shader_set_locked(const u64 frame_count, as_shader* shader)
+{
+	shader->refresh_frame = frame_count;
+	AS_SET_LOCKED(shader);
+}
+
+void as_shader_set_unlocked(as_shader* shader)
+{
+	AS_SET_UNLOCKED(shader);
+}
+
+bool as_shader_is_unlocked(const u64 frame_count, as_shader* shader)
+{
+	return shader->refresh_frame + 2 < frame_count && AS_IS_UNLOCKED(shader);
+}
 
 void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) // TODO: Remove later 
 {
@@ -574,11 +589,11 @@ void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descri
 		"Failed to create descriptor set layout!");
 }
 
-void create_descriptor_set_layout_from_uniforms(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout, as_shader_uniforms_32* uniforms) 
+void create_descriptor_set_layout_from_uniforms(as_shader* shader) 
 {
-	AS_ASSERT(uniforms, "Cannot create_descriptor_set_layout_from_uniforms, NULL uniforms");
+	AS_ASSERT(&shader->uniforms, "Cannot create_descriptor_set_layout_from_uniforms, NULL uniforms");
 
-	const sz bindings_count = (uniforms->size + 1); // ubo + uniforms
+	const sz bindings_count = (shader->uniforms.size + 1); // ubo + uniforms
 	VkDescriptorSetLayoutBinding* bindings = AS_MALLOC(sizeof(VkDescriptorSetLayoutBinding) * bindings_count);
 
 	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
@@ -590,9 +605,9 @@ void create_descriptor_set_layout_from_uniforms(VkDevice device, VkDescriptorSet
 
 	bindings[ubo_layout_binding.binding] = ubo_layout_binding;
 
-	for (sz i = 0 ; i < uniforms->size ; i++)
+	for (sz i = 0 ; i < shader->uniforms.size ; i++)
 	{
-		as_shader_uniform* uniform = AS_ARRAY_GET(*uniforms, i);
+		as_shader_uniform* uniform = AS_ARRAY_GET(shader->uniforms, i);
 		VkDescriptorSetLayoutBinding uniform_layout_binding = { 0 };
 		uniform_layout_binding.binding = i + 1; // ubo is 0, so + 1
 		uniform_layout_binding.descriptorCount = 1;
@@ -608,7 +623,7 @@ void create_descriptor_set_layout_from_uniforms(VkDevice device, VkDescriptorSet
 	layout_info.bindingCount = bindings_count;
 	layout_info.pBindings = bindings;
 
-	AS_ASSERT(vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout) == VK_SUCCESS,
+	AS_ASSERT(vkCreateDescriptorSetLayout(*shader->device, &layout_info, NULL, &shader->descriptor_set_layout) == VK_SUCCESS,
 		"Failed to create descriptor set layout!");
 }
 
@@ -651,15 +666,20 @@ void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeli
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 }
 
-void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout, const char* vertex_shader_path, const char* fragment_shader_path)
+void create_graphics_pipeline(as_shader* shader, const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	// Load shader code
-	as_shader_binary* vert_shader_code = as_shader_read_code(vertex_shader_path, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_code = as_shader_read_code(fragment_shader_path, AS_SHADER_TYPE_FRAGMENT);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(vertex_shader_path, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(fragment_shader_path, AS_SHADER_TYPE_FRAGMENT);
+
+	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
+	{
+		return;
+	}
 
 	// Create shader modules
-	VkShaderModule vert_shader_module = create_shader_module(render->device, vert_shader_code);
-	VkShaderModule frag_shader_module = create_shader_module(render->device, frag_shader_code);
+	VkShaderModule vert_shader_module = create_shader_module(*shader->device, vert_shader_bin);
+	VkShaderModule frag_shader_module = create_shader_module(*shader->device, frag_shader_bin);
 
 	// Shader stage info
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
@@ -763,24 +783,24 @@ void create_graphics_pipeline(as_render* render, VkPipeline* graphics_pipeline, 
 	pipeline_info.pDepthStencilState = &depth_stencil;
 	pipeline_info.pColorBlendState = &color_blending;
 	pipeline_info.pDynamicState = &dynamic_state;
-	pipeline_info.layout = *pipeline_layout;
-	pipeline_info.renderPass = render->render_pass;
+	pipeline_info.layout = shader->graphics_pipeline_layout;
+	pipeline_info.renderPass = *shader->render_pass;
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-	if (graphics_pipeline != VK_NULL_HANDLE)
-	{
-		// it's better to mark to destroy for next frame and set it as invalid instead of destroying it here. could be called from the draw side
-		vkDestroyPipeline(render->device, *graphics_pipeline, NULL);
-	}
-	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(render->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, graphics_pipeline);
+	//if (graphics_pipeline != VK_NULL_HANDLE)
+	//{
+	//	// it's better to mark to destroy for next frame and set it as invalid instead of destroying it here. could be called from the draw side
+	//	vkDestroyPipeline(render->device, *graphics_pipeline, NULL);
+	//}
+	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
 	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
 
-	vkDestroyShaderModule(render->device, frag_shader_module, NULL);
-	vkDestroyShaderModule(render->device, vert_shader_module, NULL);
+	vkDestroyShaderModule(*shader->device, frag_shader_module, NULL);
+	vkDestroyShaderModule(*shader->device, vert_shader_module, NULL);
 
-	as_shader_destroy_binary(frag_shader_code, true);
-	as_shader_destroy_binary(vert_shader_code, true);
+	as_shader_destroy_binary(frag_shader_bin, true);
+	as_shader_destroy_binary(vert_shader_bin, true);
 
 	AS_FREE(attribute_descriptions);
 }
@@ -1179,16 +1199,15 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				as_object* object = objects->data[obj_index];
 				as_shader* shader = object->shader;
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
-				if (!shader || !shader->graphics_pipeline) { continue; }
+				if (!shader || !shader->graphics_pipeline || !as_shader_is_unlocked(render->frame_counter, shader)) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);
-				vkCmdDrawIndexed(command_buffer, object->indices_size, 1, 0, 0, 0);
+				vkCmdDrawIndexed(command_buffer, object->indices_size, object->instance_count, 0, 0, 0);
 			}
 		}
-
 	}
 	vkCmdEndRenderPass(command_buffer);
 
@@ -1472,6 +1491,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	}
 
 	render->current_frame = (render->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+	render->frame_counter++;
 }
 
 void as_render_destroy(as_render* render)
@@ -1502,6 +1522,24 @@ void as_render_destroy(as_render* render)
 	vkDestroyInstance(render->instance, NULL);
 
 	AS_FREE(render);
+}
+
+u64 as_render_get_frame_count(as_render* render)
+{
+	if (render)
+	{
+		return render->frame_counter;
+	}
+	return 0;
+}
+
+extern u64* as_render_get_frame_count_ptr(as_render* render)
+{
+	if (render)
+	{
+		return &render->frame_counter;
+	}
+	return NULL;
 }
 
 f32 as_render_get_time(as_render* render)
@@ -1582,7 +1620,7 @@ as_texture* as_texture_create(as_render* render, const char* path)
 void as_texture_destroy(as_render* render, as_texture* texture)
 {
 	AS_ASSERT(render, "Trying to destroy texture but render is NULL");
-	if (!texture | AS_IS_INVALID(texture)) { return; }
+	if (!texture || AS_IS_INVALID(texture)) { return; }
 
 	vkDestroyImage(render->device, texture->image, NULL);
 	vkDestroyImageView(render->device, texture->image_view, NULL);
@@ -1635,12 +1673,14 @@ as_shader* as_shader_create(as_render* render, as_shader_uniforms_32* uniforms, 
 	AS_ASSERT(fragment_shader_path, "Trying to create shader, but fragment_shader_path is NULL");
 
 	as_shader* shader = AS_MALLOC_SINGLE(as_shader);
+	shader->device = &render->device;
+	shader->render_pass = &render->render_pass;
 	shader->uniforms = *uniforms;
 	strcpy(shader->filename_fragment, fragment_shader_path);
 	strcpy(shader->filename_vertex, vertex_shader_path);
-	create_descriptor_set_layout_from_uniforms(render->device, &shader->descriptor_set_layout, &shader->uniforms);
+	create_descriptor_set_layout_from_uniforms(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
-	create_graphics_pipeline(render, &shader->graphics_pipeline, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout, vertex_shader_path, fragment_shader_path);
+	create_graphics_pipeline(shader, vertex_shader_path, fragment_shader_path);
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);
@@ -1683,23 +1723,22 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	AS_FREE(shader);
 }
 
-void* as_shader_monitor_run(as_shader_monitor* monitor)
+
+void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 {
-	AS_ASSERT(monitor && AS_IS_VALID(monitor), "cannot run as_shader_monitor_run, monitor invalid");
-	while (monitor->is_running)
+	AS_ASSERT(thread_data, "cannot execute as_shader_monitor_thread_run, params nullptr");
+	AS_ASSERT(thread_data->frame_count, "cannot execute as_shader_monitor_thread_run, frame count invalid");
+	while (thread_data->is_running)
 	{
-		for (sz i = 0; i < monitor->shaders.size; i++)
+		const u64 frame_count = *thread_data->frame_count;
+		as_shader* shader = thread_data->shader;
+		if (shader && as_shader_is_unlocked(frame_count, shader))
 		{
-			as_shader_monitored* shader = AS_ARRAY_GET(monitor->shaders, i);
-			if (shader && !shader->is_locked)
+			if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
 			{
-				shader->is_locked = true;
-				if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
-				{
-					create_graphics_pipeline(shader->render, shader->graphics_pipeline, shader->graphics_pipeline_layout,
-						shader->descriptor_set_layout, shader->filename_vertex, shader->filename_fragment);
-				}
-				shader->is_locked = false;
+				as_shader_set_locked(frame_count, shader);
+				create_graphics_pipeline(shader, shader->filename_vertex, shader->filename_fragment);
+				as_shader_set_unlocked(shader);
 			}
 		}
 		sleep_seconds(.1f); // wait time 100ms
@@ -1707,15 +1746,12 @@ void* as_shader_monitor_run(as_shader_monitor* monitor)
 	return NULL;
 }
 
-as_shader_monitor* as_shader_monitor_create(const u64* current_frame)
+as_shader_monitor* as_shader_monitor_create(u64* frame_count)
 {
 	as_shader_monitor* monitor = AS_MALLOC_SINGLE(as_shader_monitor);
 	monitor->is_running = true;
+	monitor->frame_count = frame_count;
 	as_mutex_init(&monitor->mutex);
-	for(sz i = 0 ; i < AS_SHADER_MONITOR_COUNT; i++)
-	{
-		monitor->threads[i] = as_thread_create(as_shader_monitor_run, monitor);
-	};
 	AS_SET_VALID(monitor);
 	return monitor;
 }
@@ -1725,10 +1761,12 @@ void as_shader_monitored_destroy(as_shader_monitor* monitor)
 	if (!monitor || AS_IS_INVALID(monitor)) { return; }
 	monitor->is_running = false;
 	as_mutex_destroy(&monitor->mutex);
-	for (sz i = 0; i < AS_SHADER_MONITOR_COUNT; i++)
+	for (sz i = 0; i < monitor->threads.size; i++)
 	{
-		as_thread_join(monitor->threads[i]);
-	};
+		monitor->threads.data[i].is_running = false;
+		as_thread_join(monitor->threads.data[i].thread);
+	}
+	AS_CLEAR_ARRAY(monitor->threads);
 	AS_SET_INVALID(monitor);
 	AS_FREE(monitor);
 }
@@ -1737,18 +1775,15 @@ void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_sha
 {
 	AS_ASSERT(monitor, "cannot add shader to monitor, invalid monitor");
 	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
-	
-	as_shader_monitored shader_to_add = { 0 };
-	shader_to_add.render = render;
-	shader_to_add.graphics_pipeline = &shader->graphics_pipeline;
-	shader_to_add.graphics_pipeline_layout = &shader->graphics_pipeline_layout;
-	shader_to_add.descriptor_pool = &shader->descriptor_pool;
-	shader_to_add.descriptor_set_layout = &shader->descriptor_set_layout;
-	shader_to_add.descriptor_sets = &shader->descriptor_sets;
-	strcpy(shader_to_add.filename_fragment, shader->filename_fragment);
-	strcpy(shader_to_add.filename_vertex, shader->filename_vertex);
-	
-	AS_PUSH_BACK_ARRAY(monitor->shaders, shader_to_add);
+
+	as_shader_monitor_thread thread_data /*= AS_MALLOC_SINGLE(as_shader_monitor_thread)*/ = { 0 };
+	AS_PUSH_BACK_ARRAY(monitor->threads, thread_data);
+	as_shader_monitor_thread* thread = AS_ARRAY_GET(monitor->threads, monitor->threads.size - 1);
+	AS_ASSERT(thread, "Could not add valid thread data to the monitor threads");
+	thread->is_running = true;
+	thread->frame_count = &render->frame_counter;
+	thread->shader = shader;
+	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
 }
 
 as_object* as_object_create(as_render* render, as_shader* shader)
@@ -1758,6 +1793,7 @@ as_object* as_object_create(as_render* render, as_shader* shader)
 
 	as_object* object = AS_MALLOC_SINGLE(as_object);
 	as_mat4_set_identity(&object->transform);
+	object->instance_count = 1;
 	// vertex buffer
 
 	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
@@ -1816,6 +1852,13 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 
 	AS_INSERT_AT_ARRAY((*objects), objects->size, object);
 	return objects->size - 1;
+}
+
+void as_object_set_instance_count(as_object* object, const u32 instance_count)
+{
+	AS_ASSERT(object, "Trying to set instance count object, but object is NULL");
+
+	object->instance_count = instance_count;
 }
 
 void as_object_set_translation(as_object* object, const as_vec3* translation)
