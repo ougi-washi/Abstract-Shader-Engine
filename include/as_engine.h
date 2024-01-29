@@ -2,7 +2,6 @@
 
 #include "core/as_window.h"
 #include "core/as_render.h"
-#include "core/as_render_queue.h"
 #include "core/as_shader.h"
 #include "as_memory.h"
 

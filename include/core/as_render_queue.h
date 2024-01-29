@@ -4,6 +4,7 @@
 
 #include "as_types.h"
 #include "as_threads.h"
+#include "core/as_render.h"
 
 #define AS_RENDER_QUEUE_WAIT_TIME 0.0001 // wait 1ms when there is nothing to process
 
@@ -23,6 +24,20 @@ typedef struct as_render_queue
 	ADD_FLAG;
 } as_render_queue;
 
-extern as_render_queue* as_render_queue_create();
-extern void as_render_queue_destroy(as_render_queue* render_queue);
-extern void as_render_queue_submit(as_render_queue* render_queue, void* func_ptr(void*), void* arg);
+extern as_render_queue* as_rq_create();
+extern void as_rq_destroy(as_render_queue* render_queue);
+extern void as_rq_submit(as_render_queue* render_queue, void* func_ptr(void*), void* arg);
+
+extern void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render);
+extern void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render);
+extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_objects_1024* objects);
+extern void as_rq_render_destroy(as_render_queue* render_queue, as_render* render);
+
+extern void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render);
+extern void as_rq_texture_destroy(as_render_queue* render_queue, as_render* render, as_texture* texture);
+
+extern void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
+extern void as_rq_shader_update(as_render_queue* render_queue, as_render* render, as_shader* shader);
+extern void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader);
+
+extern void as_rq_objects_destroy(as_render_queue* render_queue, as_render* render, as_objects_1024* objects);

@@ -1,6 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_engine.h"
+#include "core/as_shader_monitor.h"
+#include "core/as_render_queue.h"
 
 typedef struct as_engine
 {
@@ -28,7 +30,7 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.monitor = as_shader_monitor_create(&engine.render->frame_counter);
-	engine.render_queue = as_render_queue_create();
+	engine.render_queue = as_rq_create();
 	engine.objects = as_objects_create();
 }
 
@@ -40,7 +42,7 @@ void as_engine_clear()
 	as_shader_monitored_destroy(engine.monitor);
 	as_objects_destroy(engine.render, engine.objects);
 	as_render_destroy(engine.render);
-	as_render_queue_destroy(engine.render_queue);
+	as_rq_destroy(engine.render_queue);
 	AS_LOG_MEMORY();
 }
 
@@ -70,13 +72,15 @@ f64 as_get_delta_time()
 
 as_texture* as_texture_create(const char* texture_path)
 {
-	return as_texture_make(engine.render, texture_path);
+	as_texture* texture = as_texture_make(texture_path);
+	as_texture_update(engine.render, texture);
+	return texture;
 }
 
 as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
-	as_shader_monitor_add(engine.render, engine.monitor, shader);
+	as_shader_monitor_add(&engine.render->frame_counter, engine.monitor, shader);
 	return shader;
 }
 

@@ -790,11 +790,6 @@ void create_graphics_pipeline(as_shader* shader)
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-	//if (graphics_pipeline != VK_NULL_HANDLE)
-	//{
-	//	// it's better to mark to destroy for next frame and set it as invalid instead of destroying it here. could be called from the draw side
-	//	vkDestroyPipeline(render->device, *graphics_pipeline, NULL);
-	//}
 	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
 	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
 
@@ -1561,12 +1556,21 @@ f64 as_render_get_delta_time(as_render* render)
 	return render->delta_time;
 }
 
-
-as_texture* as_texture_make(as_render* render, const char* path)
+as_texture* as_texture_make(const char* path)
 {
 	as_texture* texture = AS_MALLOC_SINGLE(as_texture);
+	strcpy(texture->filename, path);
+	AS_SET_VALID(texture);
+	return texture;
+}
+
+extern void as_texture_update(as_render* render, as_texture* texture)
+{
+	AS_ASSERT(render, "Trying to update texture but texture is NULL");
+	AS_ASSERT(render, "Trying to update texture but render is NULL");
+
 	u32 tex_width, tex_height, tex_channels;
-	stbi_uc* pixels = stbi_load(path, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load(texture->filename, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 	AS_ASSERT(pixels, "Failed to load texture image!");
 
 	VkDeviceSize image_size = tex_width * tex_height * 4;
@@ -1615,9 +1619,6 @@ as_texture* as_texture_make(as_render* render, const char* path)
 
 	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &texture->sampler);
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
-	
-	AS_SET_VALID(texture);
-	return texture;
 }
 
 void as_texture_destroy(as_render* render, as_texture* texture)
@@ -1679,7 +1680,6 @@ as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, con
 	shader->render_pass = &render->render_pass;
 	strcpy(shader->filename_fragment, fragment_shader_path);
 	strcpy(shader->filename_vertex, vertex_shader_path);
-	as_shader_update(render, shader);
 
 	AS_SET_VALID(shader);
 	return shader;
@@ -1739,68 +1739,6 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 
 	AS_SET_INVALID(shader);
 	AS_FREE(shader);
-}
-
-
-void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
-{
-	AS_ASSERT(thread_data, "cannot execute as_shader_monitor_thread_run, params nullptr");
-	AS_ASSERT(thread_data->frame_count, "cannot execute as_shader_monitor_thread_run, frame count invalid");
-	while (thread_data->is_running)
-	{
-		const u64 frame_count = *thread_data->frame_count;
-		as_shader* shader = thread_data->shader;
-		if (shader && as_shader_is_unlocked(frame_count, shader))
-		{
-			if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
-			{
-				as_shader_set_locked(frame_count, shader);
-				create_graphics_pipeline(shader);
-				as_shader_set_unlocked(shader);
-			}
-		}
-		sleep_seconds(.1f); // wait time 100ms
-	}
-	return NULL;
-}
-
-as_shader_monitor* as_shader_monitor_create(u64* frame_count)
-{
-	as_shader_monitor* monitor = AS_MALLOC_SINGLE(as_shader_monitor);
-	monitor->is_running = true;
-	monitor->frame_count = frame_count;
-	as_mutex_init(&monitor->mutex);
-	AS_SET_VALID(monitor);
-	return monitor;
-}
-
-void as_shader_monitored_destroy(as_shader_monitor* monitor)
-{
-	if (!monitor || AS_IS_INVALID(monitor)) { return; }
-	as_mutex_destroy(&monitor->mutex);
-	for (sz i = 0; i < monitor->threads.size; i++)
-	{
-		monitor->threads.data[i].is_running = false;
-		as_thread_join(monitor->threads.data[i].thread);
-	}
-	AS_CLEAR_ARRAY(monitor->threads);
-	AS_SET_INVALID(monitor);
-	AS_FREE(monitor);
-}
-
-void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader)
-{
-	AS_ASSERT(monitor, "cannot add shader to monitor, invalid monitor");
-	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
-
-	as_shader_monitor_thread thread_data /*= AS_MALLOC_SINGLE(as_shader_monitor_thread)*/ = { 0 };
-	AS_PUSH_BACK_ARRAY(monitor->threads, thread_data);
-	as_shader_monitor_thread* thread = AS_ARRAY_GET(monitor->threads, monitor->threads.size - 1);
-	AS_ASSERT(thread, "Could not add valid thread data to the monitor threads");
-	thread->is_running = true;
-	thread->frame_count = &render->frame_counter;
-	thread->shader = shader;
-	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
 }
 
 as_object* as_object_make(as_render* render, as_shader* shader)

@@ -136,3 +136,4 @@ as_shader_binary* as_shader_binary_deserialize(const char* filename)
 	fclose(file);
 	return data;
 }
+

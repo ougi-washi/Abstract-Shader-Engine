@@ -21,6 +21,7 @@ typedef struct as_shader_binary
 	sz binaries_size;
 } as_shader_binary;
 
+
 extern i32 as_shader_compile(as_shader_binary* binary, const char* source, const char* entry_point, const as_shader_type shader_type);
 extern as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type);
 extern void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr);
@@ -28,3 +29,4 @@ extern void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is
 extern bool as_shader_has_changed(const char* filename);;
 extern void as_shader_binary_serialize(const as_shader_binary* data, const char* filename);
 extern as_shader_binary* as_shader_binary_deserialize(const char* filename);
+
