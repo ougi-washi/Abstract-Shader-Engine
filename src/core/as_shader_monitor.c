@@ -7,6 +7,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 {
 	AS_ASSERT(thread_data, "cannot execute as_shader_monitor_thread_run, params nullptr");
 	AS_ASSERT(thread_data->frame_count, "cannot execute as_shader_monitor_thread_run, frame count invalid");
+	AS_ASSERT(thread_data->shader_update_func, "cannot execute as_shader_monitor_thread_run, shader update function invalid");
 	while (thread_data->is_running)
 	{
 		const u64 frame_count = *thread_data->frame_count;
@@ -16,7 +17,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 			if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
 			{
 				as_shader_set_locked(frame_count, shader);
-				create_graphics_pipeline(shader);
+				thread_data->shader_update_func(shader);
 				as_shader_set_unlocked(shader);
 			}
 		}
@@ -25,11 +26,15 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 	return NULL;
 }
 
-as_shader_monitor* as_shader_monitor_create(u64* frame_count)
+as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update_func(as_shader*))
 {
+	AS_ASSERT(frame_count, "Cannot create shader monitor, frame_count is null");
+	AS_ASSERT(shader_update_func, "Cannot create shader monitor, shader_update_func is null");
+
 	as_shader_monitor* monitor = AS_MALLOC_SINGLE(as_shader_monitor);
 	monitor->is_running = true;
 	monitor->frame_count = frame_count;
+	monitor->shader_update_func = shader_update_func;
 	as_mutex_init(&monitor->mutex);
 	AS_SET_VALID(monitor);
 	return monitor;
@@ -61,6 +66,7 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	AS_ASSERT(thread, "Could not add valid thread data to the monitor threads");
 	thread->is_running = true;
 	thread->frame_count = frame_counter;
+	thread->shader_update_func = monitor->shader_update_func;
 	thread->shader = shader;
 	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
 }

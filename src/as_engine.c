@@ -29,7 +29,7 @@ void as_engine_init()
 	AS_LOG(LV_LOG, "Initializing the engine");
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
-	engine.monitor = as_shader_monitor_create(&engine.render->frame_counter);
+	engine.monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_create_graphics_pipeline);
 	engine.render_queue = as_rq_create();
 	engine.objects = as_objects_create();
 }

@@ -668,140 +668,6 @@ void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeli
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
 }
 
-void create_graphics_pipeline(as_shader* shader)
-{
-	// Load shader code
-	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
-
-	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
-	{
-		return;
-	}
-
-	// Create shader modules
-	VkShaderModule vert_shader_module = create_shader_module(*shader->device, vert_shader_bin);
-	VkShaderModule frag_shader_module = create_shader_module(*shader->device, frag_shader_bin);
-
-	// Shader stage info
-	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
-	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vert_shader_stage_info.module = vert_shader_module;
-	vert_shader_stage_info.pName = "main";
-
-	VkPipelineShaderStageCreateInfo frag_shader_stage_info = { 0 };
-	frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	frag_shader_stage_info.module = frag_shader_module;
-	frag_shader_stage_info.pName = "main";
-
-	VkPipelineShaderStageCreateInfo shader_stages[] = { vert_shader_stage_info, frag_shader_stage_info };
-
-	// Vertex input state
-	VkPipelineVertexInputStateCreateInfo vertex_input_info = { 0 };
-	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-	VkVertexInputBindingDescription binding_description = as_get_binding_description();
-	VkVertexInputAttributeDescription* attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
-	as_get_attribute_descriptions(attribute_descriptions);
-	vertex_input_info.vertexBindingDescriptionCount = 1;
-	vertex_input_info.vertexAttributeDescriptionCount = AS_VERTEX_VAR_COUNT;
-	vertex_input_info.pVertexBindingDescriptions = &binding_description;
-	vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions;
-
-	// Input assembly state
-	VkPipelineInputAssemblyStateCreateInfo input_assembly = { 0 };
-	input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	input_assembly.primitiveRestartEnable = VK_FALSE;
-
-	// Viewport state
-	VkPipelineViewportStateCreateInfo viewport_state = { 0 };
-	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewport_state.viewportCount = 1;
-	viewport_state.scissorCount = 1;
-
-	// Rasterization state
-	VkPipelineRasterizationStateCreateInfo rasterizer = { 0 };
-	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_NONE;
-	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	rasterizer.depthBiasEnable = VK_FALSE;
-
-	// Multi-sample state
-	VkPipelineMultisampleStateCreateInfo multisampling = { 0 };
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineDepthStencilStateCreateInfo depth_stencil = { 0 };
-	depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depth_stencil.depthTestEnable = VK_TRUE;
-	depth_stencil.depthWriteEnable = VK_TRUE;
-	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
-	depth_stencil.depthBoundsTestEnable = VK_FALSE;
-	depth_stencil.stencilTestEnable = VK_FALSE;
-
-	// Color blend attachment state
-	VkPipelineColorBlendAttachmentState color_blend_attachment = { 0 };
-	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment.blendEnable = VK_FALSE;
-
-	// Color blend state
-	VkPipelineColorBlendStateCreateInfo color_blending = { 0 };
-	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	color_blending.logicOpEnable = VK_FALSE;
-	color_blending.logicOp = VK_LOGIC_OP_COPY;
-	color_blending.attachmentCount = 1;
-	color_blending.pAttachments = &color_blend_attachment;
-	color_blending.blendConstants[0] = 0.0f;
-	color_blending.blendConstants[1] = 0.0f;
-	color_blending.blendConstants[2] = 0.0f;
-	color_blending.blendConstants[3] = 0.0f;
-
-
-	// Dynamic state
-	VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamic_state = { 0 };
-	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
-	dynamic_state.pDynamicStates = dynamic_states;
-
-	// Graphics pipeline
-	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
-	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipeline_info.stageCount = 2;
-	pipeline_info.pStages = shader_stages;
-	pipeline_info.pVertexInputState = &vertex_input_info;
-	pipeline_info.pInputAssemblyState = &input_assembly;
-	pipeline_info.pViewportState = &viewport_state;
-	pipeline_info.pRasterizationState = &rasterizer;
-	pipeline_info.pMultisampleState = &multisampling;
-	pipeline_info.pDepthStencilState = &depth_stencil;
-	pipeline_info.pColorBlendState = &color_blending;
-	pipeline_info.pDynamicState = &dynamic_state;
-	pipeline_info.layout = shader->graphics_pipeline_layout;
-	pipeline_info.renderPass = *shader->render_pass;
-	pipeline_info.subpass = 0;
-	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
-
-	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
-	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
-
-	vkDestroyShaderModule(*shader->device, frag_shader_module, NULL);
-	vkDestroyShaderModule(*shader->device, vert_shader_module, NULL);
-
-	as_shader_destroy_binary(frag_shader_bin, true);
-	as_shader_destroy_binary(vert_shader_bin, true);
-
-	AS_FREE(attribute_descriptions);
-}
-
 void create_framebuffers(as_render* render)
 {
 	render->swap_chain_framebuffers.size = render->swap_chain_image_views.size;
@@ -1639,6 +1505,140 @@ as_shader_uniforms_32* as_uniforms_create()
 	return AS_MALLOC_SINGLE(as_shader_uniforms_32);
 }
 
+void as_create_graphics_pipeline(as_shader* shader)
+{
+	// Load shader code
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+
+	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
+	{
+		return;
+	}
+
+	// Create shader modules
+	VkShaderModule vert_shader_module = create_shader_module(*shader->device, vert_shader_bin);
+	VkShaderModule frag_shader_module = create_shader_module(*shader->device, frag_shader_bin);
+
+	// Shader stage info
+	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
+	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vert_shader_stage_info.module = vert_shader_module;
+	vert_shader_stage_info.pName = "main";
+
+	VkPipelineShaderStageCreateInfo frag_shader_stage_info = { 0 };
+	frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	frag_shader_stage_info.module = frag_shader_module;
+	frag_shader_stage_info.pName = "main";
+
+	VkPipelineShaderStageCreateInfo shader_stages[] = { vert_shader_stage_info, frag_shader_stage_info };
+
+	// Vertex input state
+	VkPipelineVertexInputStateCreateInfo vertex_input_info = { 0 };
+	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+	VkVertexInputBindingDescription binding_description = as_get_binding_description();
+	VkVertexInputAttributeDescription* attribute_descriptions = (VkVertexInputAttributeDescription*)AS_MALLOC(sizeof(VkVertexInputAttributeDescription) * AS_VERTEX_VAR_COUNT);
+	as_get_attribute_descriptions(attribute_descriptions);
+	vertex_input_info.vertexBindingDescriptionCount = 1;
+	vertex_input_info.vertexAttributeDescriptionCount = AS_VERTEX_VAR_COUNT;
+	vertex_input_info.pVertexBindingDescriptions = &binding_description;
+	vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions;
+
+	// Input assembly state
+	VkPipelineInputAssemblyStateCreateInfo input_assembly = { 0 };
+	input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	input_assembly.primitiveRestartEnable = VK_FALSE;
+
+	// Viewport state
+	VkPipelineViewportStateCreateInfo viewport_state = { 0 };
+	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewport_state.viewportCount = 1;
+	viewport_state.scissorCount = 1;
+
+	// Rasterization state
+	VkPipelineRasterizationStateCreateInfo rasterizer = { 0 };
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.depthClampEnable = VK_FALSE;
+	rasterizer.rasterizerDiscardEnable = VK_FALSE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.0f;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.depthBiasEnable = VK_FALSE;
+
+	// Multi-sample state
+	VkPipelineMultisampleStateCreateInfo multisampling = { 0 };
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.sampleShadingEnable = VK_FALSE;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	VkPipelineDepthStencilStateCreateInfo depth_stencil = { 0 };
+	depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil.depthTestEnable = VK_TRUE;
+	depth_stencil.depthWriteEnable = VK_TRUE;
+	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil.depthBoundsTestEnable = VK_FALSE;
+	depth_stencil.stencilTestEnable = VK_FALSE;
+
+	// Color blend attachment state
+	VkPipelineColorBlendAttachmentState color_blend_attachment = { 0 };
+	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	color_blend_attachment.blendEnable = VK_FALSE;
+
+	// Color blend state
+	VkPipelineColorBlendStateCreateInfo color_blending = { 0 };
+	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	color_blending.logicOpEnable = VK_FALSE;
+	color_blending.logicOp = VK_LOGIC_OP_COPY;
+	color_blending.attachmentCount = 1;
+	color_blending.pAttachments = &color_blend_attachment;
+	color_blending.blendConstants[0] = 0.0f;
+	color_blending.blendConstants[1] = 0.0f;
+	color_blending.blendConstants[2] = 0.0f;
+	color_blending.blendConstants[3] = 0.0f;
+
+
+	// Dynamic state
+	VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	VkPipelineDynamicStateCreateInfo dynamic_state = { 0 };
+	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
+	dynamic_state.pDynamicStates = dynamic_states;
+
+	// Graphics pipeline
+	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
+	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipeline_info.stageCount = 2;
+	pipeline_info.pStages = shader_stages;
+	pipeline_info.pVertexInputState = &vertex_input_info;
+	pipeline_info.pInputAssemblyState = &input_assembly;
+	pipeline_info.pViewportState = &viewport_state;
+	pipeline_info.pRasterizationState = &rasterizer;
+	pipeline_info.pMultisampleState = &multisampling;
+	pipeline_info.pDepthStencilState = &depth_stencil;
+	pipeline_info.pColorBlendState = &color_blending;
+	pipeline_info.pDynamicState = &dynamic_state;
+	pipeline_info.layout = shader->graphics_pipeline_layout;
+	pipeline_info.renderPass = *shader->render_pass;
+	pipeline_info.subpass = 0;
+	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+
+	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
+	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
+
+	vkDestroyShaderModule(*shader->device, frag_shader_module, NULL);
+	vkDestroyShaderModule(*shader->device, vert_shader_module, NULL);
+
+	as_shader_destroy_binary(frag_shader_bin, true);
+	as_shader_destroy_binary(vert_shader_bin, true);
+
+	AS_FREE(attribute_descriptions);
+}
+
 sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
 {
 	AS_ASSERT(uniforms, "Trying to add float uniform but uniforms array is NULL");
@@ -1702,7 +1702,7 @@ void as_shader_update(as_render* render, as_shader* shader)
 
 	create_descriptor_set_layout_from_uniforms(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
-	create_graphics_pipeline(shader);
+	as_create_graphics_pipeline(shader);
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);

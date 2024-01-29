@@ -9,6 +9,7 @@ typedef struct as_shader_monitor_thread
 	as_shader* shader;
 	u64* frame_count;
 	as_thread thread;
+	void (*shader_update_func)(as_shader*);
 } as_shader_monitor_thread;
 
 AS_DECLARE_ARRAY(as_shader_monitor_threads_256, 256, as_shader_monitor_thread);
@@ -20,9 +21,10 @@ typedef struct as_shader_monitor
 	as_mutex mutex;
 	bool is_running;
 	u64* frame_count;
+	void (*shader_update_func)(as_shader*);
 	ADD_FLAG;
 } as_shader_monitor;
 
-extern as_shader_monitor* as_shader_monitor_create(u64* frame_count);
+extern as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update_func(as_shader*));
 extern void as_shader_monitored_destroy(as_shader_monitor* monitor);
 extern void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_shader* shader);
