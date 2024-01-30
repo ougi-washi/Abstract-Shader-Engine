@@ -108,10 +108,10 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 // order matters
 typedef enum as_flag
 {
-	AS_INVALID,
-	AS_VALID,		// valid (overrides the invalid)
-	AS_LOCKED,		// locked, but has to be also valid
-	AS_MAX
+	AS_INVALID	= 0,
+	AS_VALID	= 1,		// valid (overrides the invalid)
+	AS_LOCKED	= 2,		// locked, but has to be also valid
+	AS_MAX		= 3
 } as_flag;
 
 #define ADD_FLAG as_flag obj_flag

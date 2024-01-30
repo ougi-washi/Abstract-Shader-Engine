@@ -1228,8 +1228,9 @@ void recreate_swap_chain(as_render* render, void* display_context)
 
 	while (width == 0 || height == 0)
 	{
-		glfwGetFramebufferSize(display_context, &width, &height);
-		glfwWaitEvents();
+		return; // I think this is useless and locks the app because it has to be on the main thread, while here it's being executed on the render thread
+		/*glfwGetFramebufferSize(display_context, &width, &height);
+		glfwWaitEvents();*/
 	}
 
 	vkDeviceWaitIdle(render->device);
@@ -1272,7 +1273,7 @@ void as_render_end_draw_loop(as_render* render)
 	const f32 remaining_time = as_render_get_remaining_time(render);
 	if (remaining_time > 0)
 	{
-		sleep_seconds(remaining_time);
+		//sleep_seconds(remaining_time);
 	}
 	render->delta_time = calculate_delta_time(render->last_frame_time, get_current_time());
 	render->last_frame_time = get_current_time();
@@ -1627,6 +1628,12 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	pipeline_info.renderPass = *shader->render_pass;
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+
+	// IDK IF NEEDED, TODO: figure this out
+	//if (shader->graphics_pipeline == VK_NULL_HANDLE)
+	//{
+	//	vkDestroyPipeline(*shader->device, shader->graphics_pipeline, NULL);
+	//}
 
 	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
 	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");

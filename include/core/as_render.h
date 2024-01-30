@@ -12,7 +12,7 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define TARGET_FPS 1000
+#define TARGET_FPS 60
 
 // Arrays
 

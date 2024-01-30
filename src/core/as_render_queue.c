@@ -21,7 +21,7 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 		}
 		else
 		{
-			sleep_seconds(AS_RENDER_QUEUE_WAIT_TIME);
+			sleep_seconds(AS_RENDER_QUEUE_REST_TIME);
 		}
 	}
 	return NULL;
@@ -55,6 +55,7 @@ void as_rq_wait_queue(as_render_queue* render_queue)
 {
 	while (as_rq_get_queue_size(render_queue) > 0)
 	{
+		sleep_seconds(AS_RENDER_QUEUE_WAIT_TIME);
 		// wait for queue to be empty
 	}
 }
@@ -64,10 +65,16 @@ void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg
 	AS_ASSERT(render_queue, "Cannot submit to renderer queue, render_queue is null");
 	AS_ASSERT(func_ptr, "Cannot submit to renderer queue, func_ptr is null");
 
+	AS_WAIT_AND_LOCK(render_queue);
 	as_render_command command = { 0 };
 	command.func_ptr = func_ptr;
 	memcpy(command.arg, arg, AS_RENDER_QUEUE_MAX_ARG_SIZE);
 	AS_INSERT_AT_ARRAY(render_queue->commands, 0, command);
+	if (render_queue->commands.size > 1000)
+	{
+		AS_LOG(LV_ERROR, "WUT");
+	}
+	AS_SET_UNLOCKED(render_queue);
 }
 
 void as_render_start_draw_loop_func(as_render* render) 
@@ -106,7 +113,7 @@ void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 }
 void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_objects_1024* objects)
 {
-	as_render_draw_frame_arg draw_frame_arg = {0}; //= AS_MALLOC_SINGLE(as_render_draw_frame_arg);
+	as_render_draw_frame_arg draw_frame_arg = {0};
 	draw_frame_arg.render = render;
 	draw_frame_arg.display_context = display_context;
 	draw_frame_arg.objects = objects;

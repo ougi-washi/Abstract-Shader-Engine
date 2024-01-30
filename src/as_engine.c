@@ -43,8 +43,8 @@ void as_engine_clear()
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_rq_destroy(engine.render_queue);
 
-	as_rq_objects_destroy(engine.render_queue, engine.render, engine.objects);
-	as_rq_render_destroy(engine.render_queue, engine.render);
+	as_objects_destroy(engine.render, engine.objects);
+	as_render_destroy(engine.render);
 
 	as_display_context_destroy(engine.display_context);
 	as_display_context_terminate();
