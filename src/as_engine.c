@@ -1,12 +1,14 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_engine.h"
+#include "core/as_shader_monitor.h"
+#include "core/as_render_queue.h"
 
 typedef struct as_engine
 {
 	as_render* render;
 	as_render_queue* render_queue;
-	as_shader_monitor* monitor;
+	as_shader_monitor* shader_monitor;
 	void* display_context;
 	as_objects_1024* objects;
 } as_engine;
@@ -27,34 +29,41 @@ void as_engine_init()
 	AS_LOG(LV_LOG, "Initializing the engine");
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
-	engine.monitor = as_shader_monitor_create(&engine.render->frame_counter);
-	engine.render_queue = as_render_queue_create();
+	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
 	engine.objects = as_objects_create();
+	engine.render_queue = as_rq_create();
+
+	while (AS_IS_INVALID(engine.render)) {};
 }
 
 void as_engine_clear()
 {
 	AS_LOG(LV_LOG, "Clearing the engine");
-	as_display_context_destroy(engine.display_context);
-	as_display_context_terminate();
-	as_shader_monitored_destroy(engine.monitor);
+
+	as_shader_monitored_destroy(engine.shader_monitor);
+	as_rq_destroy(engine.render_queue);
+
 	as_objects_destroy(engine.render, engine.objects);
 	as_render_destroy(engine.render);
-	as_render_queue_destroy(engine.render_queue);
+
+	as_display_context_destroy(engine.display_context);
+	as_display_context_terminate();
+
 	AS_LOG_MEMORY();
 }
 
 bool as_engine_should_loop()
 {
 	bool should_loop = !as_display_context_should_close(engine.display_context);
-	as_render_start_draw_loop(engine.render);
 	as_display_context_poll_event();
+	as_rq_render_start_draw_loop(engine.render_queue, engine.render);
 	return should_loop;
 }
 
 void as_engine_draw()
 {
-	as_render_draw_frame(engine.render, engine.display_context, engine.objects);
+	as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.objects);
+	as_rq_wait_queue(engine.render_queue);
 	as_render_end_draw_loop(engine.render);
 }
 
@@ -70,16 +79,17 @@ f64 as_get_delta_time()
 
 as_texture* as_texture_create(const char* texture_path)
 {
-	return as_texture_make(engine.render, texture_path);
+	as_texture* texture = as_texture_make(texture_path);
+	as_texture_update(engine.render, texture);
+	return texture;
 }
 
 as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
-	as_shader_monitor_add(engine.render, engine.monitor, shader);
+	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
 	return shader;
 }
-
 
 as_object* as_object_create(as_shader* shader)
 {

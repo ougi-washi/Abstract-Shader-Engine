@@ -12,7 +12,7 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define TARGET_FPS 1000
+#define TARGET_FPS 60
 
 // Arrays
 
@@ -65,6 +65,9 @@ typedef struct as_texture
 	VkDeviceMemory memory;
 	VkImageView image_view;
 	VkSampler sampler;
+
+	char filename[AS_MAX_PATH_SIZE];
+
 	ADD_FLAG;
 } as_texture;
 
@@ -157,27 +160,10 @@ typedef struct as_render
 	f64 last_frame_time;
 	f64 delta_time;
 	f64 current_time;
+
+	ADD_FLAG;
 } as_render;
 
-
-typedef struct as_shader_monitor_thread
-{
-	bool is_running;
-	as_shader* shader;
-	u64* frame_count;
-	as_thread thread;
-} as_shader_monitor_thread;
-AS_DECLARE_ARRAY(as_shader_monitor_threads_256, 256, as_shader_monitor_thread);
-
-typedef struct as_shader_monitor
-{
-	as_shader_monitor_threads_256 threads;
-
-	as_mutex mutex;
-	bool is_running;
-	u64* frame_count;
-	ADD_FLAG;
-} as_shader_monitor;
 
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
@@ -190,21 +176,19 @@ extern f64 as_render_get_time(as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);
 
-extern as_texture* as_texture_make(as_render* render, const char* path);
+extern as_texture* as_texture_make(const char* path);
+extern void as_texture_update(as_render* render, as_texture* texture);
 extern void as_texture_destroy(as_render* render, as_texture* texture);
 
 extern as_shader_uniforms_32* as_uniforms_create();
 
+void as_shader_create_graphics_pipeline(as_shader* shader);
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
 extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
 extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path);
 extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
 extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
-
-extern as_shader_monitor* as_shader_monitor_create(u64* frame_count);
-extern void as_shader_monitored_destroy(as_shader_monitor* monitor);
-extern void as_shader_monitor_add(as_render* render, as_shader_monitor* monitor, as_shader* shader);
 
 extern as_object* as_object_make(as_render* render, as_shader* shader);
 extern sz as_object_add(as_object* object, as_objects_1024* objects);
