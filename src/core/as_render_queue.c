@@ -44,7 +44,7 @@ void as_rq_destroy(as_render_queue* render_queue)
 	AS_FREE(render_queue);
 }
 
-void as_rq_submit(as_render_queue* render_queue, void* func_ptr(void*), void* arg)
+void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg)
 {
 	AS_ASSERT(render_queue, "Cannot submit to renderer queue, render_queue is null");
 	AS_ASSERT(func_ptr, "Cannot submit to renderer queue, func_ptr is null");
@@ -55,20 +55,18 @@ void as_rq_submit(as_render_queue* render_queue, void* func_ptr(void*), void* ar
 	AS_INSERT_AT_ARRAY(render_queue->commands, 0, command);
 }
 
-void* as_render_start_draw_loop_func(as_render* render) 
+void as_render_start_draw_loop_func(as_render* render) 
 { 
 	as_render_start_draw_loop(render); 
-	return NULL;
 };
 void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render)
 {
 	 as_rq_submit(render_queue, &as_render_start_draw_loop_func, render);
 }
 
-void* as_render_end_draw_loop_func(as_render* render)
+void as_render_end_draw_loop_func(as_render* render)
 {
 	as_render_end_draw_loop(render);
-	return NULL;
 }
 void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render)
 {
@@ -81,11 +79,10 @@ typedef struct as_render_draw_frame_arg
 	void* display_context;
 	as_objects_1024* objects;
 } as_render_draw_frame_arg;
-void* as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
+void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
 	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->objects);
 	AS_FREE(draw_frame_arg);
-	return NULL;
 }
 void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_objects_1024* objects)
 {
@@ -96,10 +93,9 @@ void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, v
 	as_rq_submit(render_queue, &as_render_draw_frame_func, draw_frame_arg);
 }
 
-void* as_render_destroy_func(as_render* render)
+void as_render_destroy_func(as_render* render)
 {
 	as_render_destroy(render);
-	return NULL;
 }
 void as_rq_render_destroy(as_render_queue* render_queue, as_render* render)
 {
@@ -111,13 +107,12 @@ typedef struct as_texture_update_arg
 	as_texture* texture;
 	as_render* render;
 } as_texture_update_arg;
-void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
+void as_texture_update_func(as_texture_update_arg* texture_update_arg)
 {
 	as_texture_update(texture_update_arg->render, texture_update_arg->texture);
 	AS_FREE(texture_update_arg);
-	return NULL;
 }
- void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render)
+void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render)
 {
 	 as_texture_update_arg* texture_update_arg = AS_MALLOC_SINGLE(as_texture_update_arg);
 	 texture_update_arg->render = render;
@@ -130,11 +125,10 @@ void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
 	 as_texture* texture;
 	 as_render* render;
  } as_texture_destroy_arg;
- void* as_texture_destroy_func(as_texture_destroy_arg* texture_destroy_arg)
+ void as_texture_destroy_func(as_texture_destroy_arg* texture_destroy_arg)
  {
 	 as_texture_destroy(texture_destroy_arg->render, texture_destroy_arg->texture);
 	 AS_FREE(texture_destroy_arg);
-	 return NULL;
  }
  void as_rq_texture_destroy(as_render_queue* render_queue, as_render* render, as_texture* texture)
 {
@@ -150,11 +144,10 @@ void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
 	 as_shader* shader;
 	 as_shader_uniforms_32* uniforms;
  } as_shader_set_uniforms_arg;
- void* as_shader_set_uniforms_func(as_shader_set_uniforms_arg* shader_set_uniforms_arg)
+ void as_shader_set_uniforms_func(as_shader_set_uniforms_arg* shader_set_uniforms_arg)
  {
 	 as_shader_set_uniforms(shader_set_uniforms_arg->render, shader_set_uniforms_arg->shader, shader_set_uniforms_arg->uniforms);
 	 AS_FREE(shader_set_uniforms_arg);
-	 return NULL;
  }
  void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
 {
@@ -170,11 +163,10 @@ void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
 	 as_render* render;
 	 as_shader* shader;
  } as_shader_update_arg;
- void* as_shader_update_func(as_shader_update_arg* shader_update_arg)
+ void as_shader_update_func(as_shader_update_arg* shader_update_arg)
  {
 	 as_shader_update(shader_update_arg->render, shader_update_arg->shader);
 	 AS_FREE(shader_update_arg);
-	 return NULL;
  }
  void as_rq_shader_update(as_render_queue* render_queue, as_render* render, as_shader* shader)
 {
@@ -184,16 +176,24 @@ void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
 	 as_rq_submit(render_queue, &as_shader_update_func, shader_update_arg);
 }
 
+ void as_shader_create_graphics_pipeline_func(as_shader* shader)
+ {
+	 as_shader_create_graphics_pipeline(shader);
+ }
+ extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader)
+ {
+	 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, shader);
+ }
+
  typedef struct as_shader_destroy_arg
  {
 	 as_render* render;
 	 as_shader* shader;
  } as_shader_destroy_arg;
- void* as_shader_destroy_func(as_shader_destroy_arg* shader_destroy_arg)
+ void as_shader_destroy_func(as_shader_destroy_arg* shader_destroy_arg)
  {
 	 as_shader_destroy(shader_destroy_arg->render, shader_destroy_arg->shader);
 	 AS_FREE(shader_destroy_arg);
-	 return NULL;
  }
  void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader)
 {
@@ -208,11 +208,10 @@ void* as_texture_update_func(as_texture_update_arg* texture_update_arg)
 	 as_render* render;
 	 as_objects_1024* objects;
  } as_objects_destroy_arg;
- void* as_objects_destroy_func(as_objects_destroy_arg* objects_destroy_arg)
+ void as_objects_destroy_func(as_objects_destroy_arg* objects_destroy_arg)
  {
 	 as_objects_destroy(objects_destroy_arg->render, objects_destroy_arg->objects);
 	 AS_FREE(objects_destroy_arg);
-	 return NULL;
  }
  void as_rq_objects_destroy(as_render_queue* render_queue, as_render* render, as_objects_1024* objects)
 {

@@ -1505,7 +1505,7 @@ as_shader_uniforms_32* as_uniforms_create()
 	return AS_MALLOC_SINGLE(as_shader_uniforms_32);
 }
 
-void as_create_graphics_pipeline(as_shader* shader)
+void as_shader_create_graphics_pipeline(as_shader* shader)
 {
 	// Load shader code
 	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
@@ -1702,7 +1702,7 @@ void as_shader_update(as_render* render, as_shader* shader)
 
 	create_descriptor_set_layout_from_uniforms(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
-	as_create_graphics_pipeline(shader);
+	as_shader_create_graphics_pipeline(shader);
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);

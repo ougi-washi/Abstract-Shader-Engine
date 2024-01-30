@@ -180,7 +180,7 @@ extern void as_texture_destroy(as_render* render, as_texture* texture);
 
 extern as_shader_uniforms_32* as_uniforms_create();
 
-void as_create_graphics_pipeline(as_shader* shader);
+void as_shader_create_graphics_pipeline(as_shader* shader);
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
 extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
 extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path);
