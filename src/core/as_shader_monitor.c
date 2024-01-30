@@ -12,12 +12,13 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 	{
 		const u64 frame_count = *thread_data->frame_count;
 		as_shader* shader = thread_data->shader;
+		as_render_queue* render_queue = thread_data->render_queue;
 		if (shader && as_shader_is_unlocked(frame_count, shader))
 		{
 			if (as_shader_has_changed(shader->filename_fragment) || as_shader_has_changed(shader->filename_vertex))
 			{
 				as_shader_set_locked(frame_count, shader);
-				thread_data->shader_update_func(shader);
+				thread_data->shader_update_func(render_queue, shader);
 				as_shader_set_unlocked(shader);
 			}
 		}
@@ -26,7 +27,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 	return NULL;
 }
 
-as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update_func(as_shader*))
+as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update_func(as_render_queue*, as_shader*), as_render_queue* render_queue)
 {
 	AS_ASSERT(frame_count, "Cannot create shader monitor, frame_count is null");
 	AS_ASSERT(shader_update_func, "Cannot create shader monitor, shader_update_func is null");
@@ -35,6 +36,7 @@ as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update
 	monitor->is_running = true;
 	monitor->frame_count = frame_count;
 	monitor->shader_update_func = shader_update_func;
+	monitor->render_queue = render_queue;
 	as_mutex_init(&monitor->mutex);
 	AS_SET_VALID(monitor);
 	return monitor;
@@ -67,6 +69,7 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	thread->is_running = true;
 	thread->frame_count = frame_counter;
 	thread->shader_update_func = monitor->shader_update_func;
+	thread->render_queue = monitor->render_queue;
 	thread->shader = shader;
 	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
 }

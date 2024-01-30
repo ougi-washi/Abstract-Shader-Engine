@@ -7,13 +7,15 @@
 #include "core/as_render.h"
 
 #define AS_RENDER_QUEUE_WAIT_TIME 0.0001 // wait 1ms when there is nothing to process
+#define AS_RENDER_QUEUE_SIZE 1024
+#define AS_RENDER_QUEUE_MAX_ARG_SIZE 64
 
 typedef struct as_render_command
 {
 	void (*func_ptr)(void*);
-	void* arg;
+	void* arg[AS_RENDER_QUEUE_MAX_ARG_SIZE];
 } as_render_command;
-AS_DECLARE_ARRAY(as_render_commands_1024, 1024, as_render_command);
+AS_DECLARE_ARRAY(as_render_commands_1024, AS_RENDER_QUEUE_SIZE, as_render_command);
 
 typedef struct as_render_queue
 {
@@ -26,6 +28,8 @@ typedef struct as_render_queue
 
 extern as_render_queue* as_rq_create();
 extern void as_rq_destroy(as_render_queue* render_queue);
+extern sz as_rq_get_queue_size(as_render_queue* render_queue);
+extern void as_rq_wait_queue(as_render_queue* render_queue);
 extern void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg);
 
 extern void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render);

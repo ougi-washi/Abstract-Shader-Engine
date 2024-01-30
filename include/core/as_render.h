@@ -66,7 +66,7 @@ typedef struct as_texture
 	VkImageView image_view;
 	VkSampler sampler;
 
-	const char filename[AS_MAX_PATH_SIZE];
+	char filename[AS_MAX_PATH_SIZE];
 
 	ADD_FLAG;
 } as_texture;
@@ -160,6 +160,8 @@ typedef struct as_render
 	f64 last_frame_time;
 	f64 delta_time;
 	f64 current_time;
+
+	ADD_FLAG;
 } as_render;
 
 

@@ -1256,7 +1256,7 @@ as_render* as_render_create(void* display_context)
 	create_command_pool(render);
 	create_command_buffers(render);
 	create_sync_objects(render);
-
+	AS_SET_VALID(render);
 	return render;
 }
 
@@ -1384,6 +1384,7 @@ void as_render_destroy(as_render* render)
 	vkDestroySurfaceKHR(render->instance, render->surface, NULL);
 	vkDestroyInstance(render->instance, NULL);
 
+	AS_IS_INVALID(render);
 	AS_FREE(render);
 }
 

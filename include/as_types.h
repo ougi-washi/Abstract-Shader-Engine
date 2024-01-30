@@ -125,3 +125,5 @@ typedef enum as_flag
 #define AS_SET_INVALID(_obj)   (_obj->obj_flag &= ~AS_VALID)
 #define AS_SET_LOCKED(_obj)    (_obj->obj_flag |= AS_LOCKED)
 #define AS_SET_UNLOCKED(_obj)  (_obj->obj_flag &= ~AS_LOCKED)
+
+#define AS_WAIT_AND_LOCK(_obj) 	while (AS_IS_LOCKED(_obj)) {}; AS_SET_LOCKED(_obj)
