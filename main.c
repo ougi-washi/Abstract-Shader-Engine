@@ -6,8 +6,9 @@ i32 main()
 {
 	as_engine_init();
 
-	as_texture* texture = as_texture_create("../resources/textures/default_texture.png");
-	as_shader* shader = as_shader_create("../resources/shaders/default_vertex.glsl", "../resources/shaders/default_fragment.glsl");
+	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
+	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
+	
 	as_assign_texture_to_shader(shader, texture);
 	as_object* object1 = as_object_create(shader);
 	as_object* object2 = as_object_create(shader);
