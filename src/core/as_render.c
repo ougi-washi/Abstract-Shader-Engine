@@ -995,12 +995,24 @@ void create_sync_objects(as_render* render)
 	}
 }
 
-void update_shader_uniform_buffer(as_render* render, as_shader* shader, const u32 current_image)
+as_mat4 as_get_camera_view_matrix(as_camera* camera) 
+{
+	return as_mat4_look_at(&camera->position, &camera->target, &camera->up);
+}
+
+void update_shader_uniform_buffer(as_render* render, as_shader* shader, as_camera* camera, const u32 current_image)
 {
 	as_uniform_buffer_object ubo = { 0 };
 	as_mat4_set_identity(&ubo.model);
-	ubo.view = as_mat4_look_at(&(as_vec3) { 9., 9., 9. }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
-	ubo.proj = as_mat4_perspective(as_radians(45.0f), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
+	if (camera)
+	{
+		ubo.view = as_get_camera_view_matrix(camera);
+	}
+	else
+	{
+		ubo.view = as_mat4_look_at(&(as_vec3) { 10.f, 10.f, 10.f }, & (as_vec3) { 0.0f, 0.0f, 0.0f }, & (as_vec3) { 0.0f, 0.0f, 1.0f });
+	}
+	ubo.proj = as_mat4_perspective(as_radians(camera->fov), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
 	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
@@ -1273,17 +1285,17 @@ void as_render_end_draw_loop(as_render* render)
 	const f32 remaining_time = as_render_get_remaining_time(render);
 	if (remaining_time > 0)
 	{
-		//sleep_seconds(remaining_time);
+		sleep_seconds(remaining_time);
 	}
 	render->delta_time = calculate_delta_time(render->last_frame_time, get_current_time());
 	render->last_frame_time = get_current_time();
 }
 
-void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects)
+void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects)
 {
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
-	u32 image_index;
+	u32 image_index = 0;
 	VkResult result = vkAcquireNextImageKHR(render->device, render->swap_chain, UINT64_MAX, render->image_available_semaphores.data[render->current_frame], VK_NULL_HANDLE, &image_index);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
@@ -1302,7 +1314,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 			as_object* object = objects->data[obj_index];
 			if (!object) { continue; }
 			as_shader* shader = object->shader;
-			update_shader_uniform_buffer(render, shader, render->current_frame);
+			update_shader_uniform_buffer(render, shader, camera, render->current_frame);
 		}
 	}
 	
@@ -1326,7 +1338,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores.data[render->current_frame] };
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = signal_semaphores;
-
+	
 	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences.data[render->current_frame]) == VK_SUCCESS, 
 		"Failed to submit draw command buffer!");
 
@@ -1339,7 +1351,6 @@ void as_render_draw_frame(as_render* render, void* display_context, as_objects_1
 	VkSwapchainKHR swap_chains[] = { render->swap_chain };
 	present_info.swapchainCount = 1;
 	present_info.pSwapchains = swap_chains;
-
 	present_info.pImageIndices = &image_index;
 
 	result = vkQueuePresentKHR(render->present_queue, &present_info);
@@ -1415,8 +1426,8 @@ f64 as_render_get_time(as_render* render)
 f64 as_render_get_remaining_time(as_render* render)
 {
 	clock_t next_frame_time = get_current_time();
-	f64 elapsedTime = calculate_delta_time(render->last_frame_time, next_frame_time);
-	return 1.0 / TARGET_FPS - elapsedTime;
+	f64 elapsed_time = calculate_delta_time(render->last_frame_time, next_frame_time);
+	return (1. / AS_TARGET_FPS) - elapsed_time;
 }
 
 f64 as_render_get_delta_time(as_render* render)
@@ -1747,6 +1758,21 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 
 	AS_SET_INVALID(shader);
 	AS_FREE(shader);
+}
+
+as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
+{
+	AS_ASSERT(position, "Trying to create camera, but position is NULL");
+	AS_ASSERT(target, "Trying to create camera, but target is NULL");
+
+	as_camera* camera = AS_MALLOC_SINGLE(as_camera);
+	camera->position = *position;
+	camera->target = *target;
+	camera->up = AS_VEC(as_vec3, 0.f, 0.f, 1.f);
+	camera->fov = 45.f;
+	camera->movement_speed = 50.;
+	AS_IS_VALID(camera);
+	return camera;
 }
 
 as_object* as_object_make(as_render* render, as_shader* shader)

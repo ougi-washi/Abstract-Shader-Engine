@@ -24,5 +24,5 @@ extern void as_util_make_path(char* output, const char* base_path, const char* f
 
 // time
 extern clock_t get_current_time();
-extern f32 calculate_delta_time(clock_t start, clock_t end);
+extern f64 calculate_delta_time(clock_t start, clock_t end);
 extern void sleep_seconds(const f64 seconds);

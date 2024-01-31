@@ -8,7 +8,7 @@
     typedef struct {                                        \
         _type data[_capacity];                              \
         sz size;                                            \
-    } _name
+    } _name;
 
 #define AS_PUSH_BACK_ARRAY(_array, _element)                                    \
     if ((_array).size < AS_ARRAY_SIZE(_array.data)){                            \
