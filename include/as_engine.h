@@ -3,6 +3,7 @@
 #include "core/as_window.h"
 #include "core/as_render.h"
 #include "core/as_shader.h"
+#include "defines/as_global.h"
 #include "as_memory.h"
 
 extern void as_engine_init();

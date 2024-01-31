@@ -3,6 +3,11 @@
 #include "as_utility.h"
 #include "as_memory.h"
 
+void as_i32_to_str(const i32 integer, char* out_str)
+{
+	sprintf(out_str, "%d", integer);
+}
+
 char* as_util_read_file(const char* filename, sz* size)
 {
 	FILE* file = fopen(filename, "rb");
@@ -148,6 +153,10 @@ void as_util_make_dir(const char* directory)
 	mkdir(directory, 0777);
 }
 
+extern void as_util_make_path(char* output, const char* base_path, const char* file_path)
+{
+	sprintf(output, "%s%s", base_path, file_path);
+}
 
 clock_t get_current_time()
 {
@@ -159,7 +168,7 @@ f32 calculate_delta_time(clock_t start, clock_t end)
 	return ((f32)(end - start)) / (f64)CLOCKS_PER_SEC;
 }
 
-void sleep_seconds(f64 seconds)
+void sleep_seconds(const f64 seconds)
 {
 #ifdef _WIN32
 	Sleep((DWORD)(seconds * 1000));
