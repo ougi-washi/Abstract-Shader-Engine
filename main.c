@@ -28,8 +28,8 @@ i32 main()
 		as_object_rotate(object1, 3. * delta_time, AS_VEC3_X_AXIS_PTR);
 
 		// move around object 2
-		f32 x = cos(as_radians(current_time * 5.) * 10.f) * 5.f;
-		f32 y = sin(as_radians(current_time * 5.) * 10.f) * 5.f;
+		f32 x = cos(as_radians(current_time * 5.) * 10.f) * 15.f;
+		f32 y = sin(as_radians(current_time * 5.) * 10.f) * 15.f;
 		as_mat4_set_translation(&object2->transform, AS_VEC_PTR(as_vec3, x, y));
 
 		as_engine_draw();
