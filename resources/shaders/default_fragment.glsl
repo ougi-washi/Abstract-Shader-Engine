@@ -10,7 +10,7 @@ layout(location = 0) out vec4 outColor;
   
 void main() 
 {
-    float sphere_mask = 1. - (length(fragTexCoord - .5) - .1) * 3.;
+    float sphere_mask = 1. - (length(fragTexCoord - .5) - 0.03) * 5.;
     if (sphere_mask < .5)
     {
         discard;
