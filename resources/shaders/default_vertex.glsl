@@ -7,12 +7,8 @@ layout(binding = 0) uniform uniform_buffer_object
     mat4 proj;
 } ubo;
 
-layout(push_constant) uniform const_vertex_buffer
-{
-	mat4 transform;
-	vec4 mouse_data;
-	float time;
-} ps;
+
+#include "as_common.glsl"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;

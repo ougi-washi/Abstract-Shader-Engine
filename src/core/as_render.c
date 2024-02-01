@@ -650,19 +650,24 @@ void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 
 void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout)
 {
-	// Pipeline layout constant
-	VkPushConstantRange push_constant_range = { 0 };
-	push_constant_range.offset = 0;
-	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
+	VkPushConstantRange push_constant_range_vert = { 0 };
+	push_constant_range_vert.offset = 0;
+	push_constant_range_vert.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range_vert.size = sizeof(as_push_const_vertex_buffer);
 
-	// Pipeline layout
+	VkPushConstantRange push_constant_range_frag = { 0 };
+	push_constant_range_frag.offset = 0;
+	push_constant_range_frag.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	push_constant_range_frag.size = sizeof(as_push_const_vertex_buffer);
+
+	VkPushConstantRange ranges[] = {push_constant_range_vert, push_constant_range_frag};
+
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
 	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
-	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
-	pipeline_layout_info.pushConstantRangeCount = 1;
+	pipeline_layout_info.pPushConstantRanges = ranges;
+	pipeline_layout_info.pushConstantRangeCount = 2;
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
@@ -1076,7 +1081,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
 				if (!shader || !shader->graphics_pipeline || !as_shader_is_unlocked(render->frame_counter, shader)) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
-				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
+				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);

@@ -1,6 +1,7 @@
 #version 450
 #include "as_common.glsl"
 
+
 layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) in vec3 fragColor;
@@ -15,5 +16,5 @@ void main()
     {
         discard;
     }
-    outColor = .5 * sphere_mask* vec4(fragTexCoord.x, fragTexCoord.y, 1., 0.) * texture(texSampler, fragTexCoord);
+    outColor = .5 * sphere_mask* vec4(fragTexCoord.x, fragTexCoord.y, cos(ps.time * 5.) * 50., 0.) * texture(texSampler, fragTexCoord);
 }
