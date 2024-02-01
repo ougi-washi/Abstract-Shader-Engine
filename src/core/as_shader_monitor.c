@@ -51,7 +51,7 @@ void as_shader_monitored_destroy(as_shader_monitor* monitor)
 		monitor->threads.data[i].is_running = false;
 		as_thread_join(monitor->threads.data[i].thread);
 	}
-	AS_CLEAR_ARRAY(monitor->threads);
+	AS_ARRAY_CLEAR(monitor->threads);
 	AS_SET_INVALID(monitor);
 	AS_FREE(monitor);
 }
@@ -63,7 +63,7 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	AS_ASSERT(frame_counter, "cannot add shader to monitor, invalid frame_counter");
 
 	as_shader_monitor_thread thread_data /*= AS_MALLOC_SINGLE(as_shader_monitor_thread)*/ = { 0 };
-	AS_PUSH_BACK_ARRAY(monitor->threads, thread_data);
+	AS_ARRAY_PUSH_BACK(monitor->threads, thread_data);
 	as_shader_monitor_thread* thread = AS_ARRAY_GET(monitor->threads, monitor->threads.size - 1);
 	AS_ASSERT(thread, "Could not add valid thread data to the monitor threads");
 	thread->is_running = true;

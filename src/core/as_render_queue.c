@@ -17,7 +17,7 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 			{
 				command->func_ptr(command->arg);
 			}
-			AS_REMOVE_AT_ARRAY(queue->commands, queue_size - 1);
+			AS_ARRAY_REMOVE_AT(queue->commands, queue_size - 1);
 			AS_SET_UNLOCKED(queue);
 		}
 		else
@@ -73,7 +73,7 @@ void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg
 	as_render_command command = { 0 };
 	command.func_ptr = func_ptr;
 	memcpy(command.arg, arg, arg_size);
-	AS_INSERT_AT_ARRAY(render_queue->commands, 0, command);
+	AS_ARRAY_INSERT_AT(render_queue->commands, 0, command);
 	if (render_queue->commands.size > AS_RENDER_QUEUE_SIZE)
 	{
 		AS_LOG(LV_ERROR, "Overflowing render queue, please check your update/submission rates, potential crash.");

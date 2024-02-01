@@ -1664,7 +1664,7 @@ sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
 	AS_ASSERT(value, "Trying to add float uniform but flaot value is NULL");
 
 	as_shader_uniform shader_uniform = { 0 };
-	AS_INSERT_AT_ARRAY((*uniforms), uniforms->size, shader_uniform);
+	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 	uniforms->data[index].data = AS_MALLOC(sizeof(f32));
@@ -1679,7 +1679,7 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	AS_ASSERT(texture, "Trying to add texture uniform but texture is NULL");
 
 	as_shader_uniform shader_uniform = {0};
-	AS_INSERT_AT_ARRAY((*uniforms), uniforms->size, shader_uniform);
+	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	uniforms->data[index].data = AS_MALLOC_SINGLE(as_texture);
@@ -1839,7 +1839,7 @@ sz as_object_add(as_object* object, as_objects_1024* objects)
 	AS_ASSERT(object, "Trying to add object, but object is NULL");
 	AS_ASSERT(objects, "Trying to add object, but objects array is NULL");
 
-	AS_INSERT_AT_ARRAY((*objects), objects->size, object);
+	AS_ARRAY_INSERT_AT((*objects), objects->size, object);
 	return objects->size - 1;
 }
 

@@ -29,7 +29,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 	// TODO: Move to camera updater
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)
 	{
-		const f32 deltaTime = as_get_delta_time(); 
+		const f32 delta_time = as_get_delta_time(); 
 		if (action == AS_PRESS || action == AS_REPEAT)
 		{
 			switch (key)
@@ -39,7 +39,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 				as_vec3 movement_vector = { 0 };
 				as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 				as_vec3_normalize(&movement_vector);
-				as_vec3_mul_scalar(&movement_vector, &movement_vector, deltaTime);
+				as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
 				as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
 				as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
 				break;
@@ -49,7 +49,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 				as_vec3 movement_vector = { 0 };
 				as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 				as_vec3_normalize(&movement_vector);
-				as_vec3_mul_scalar(&movement_vector, &movement_vector, deltaTime);
+				as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
 				as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
 				as_vec3_sub(&engine.camera->position, &engine.camera->position, &movement_vector);
 				break;
@@ -60,7 +60,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 				as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 				as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
 				as_vec3_normalize(&forward_vec);
-				as_vec3_mul_scalar(&forward_vec, &forward_vec, deltaTime);
+				as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 				as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
 				as_vec3_sub(&engine.camera->position, &engine.camera->position, &forward_vec);
 				break;
@@ -71,7 +71,7 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 				as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 				as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
 				as_vec3_normalize(&forward_vec);
-				as_vec3_mul_scalar(&forward_vec, &forward_vec, deltaTime);
+				as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 				as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
 				as_vec3_add(&engine.camera->position, &engine.camera->position, &forward_vec);
 				break;
