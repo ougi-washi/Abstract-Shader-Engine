@@ -6,6 +6,9 @@ i32 main()
 {
 	as_engine_init();
 
+	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, 10.f, 10.f, 10.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 0.f));
+	as_camera_set_view(camera, AS_CAMERA_FREE);
+
 	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	

@@ -107,22 +107,23 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 // order matters
 typedef enum as_flag
 {
-	AS_INVALID	= 0,
-	AS_VALID	= 1,		// valid (overrides the invalid)
-	AS_LOCKED	= 2,		// locked, but has to be also valid
-	AS_MAX		= 3
+	AS_INVALID			= 0b000,
+	AS_VALID			= 0b001,	// valid (overrides the invalid)
+	AS_LOCKED			= 0b010,	// locked, but has to be also valid
+	AS_VALID_LOCKED		= 0b011,
+	AS_MAX				= 0b100,
 } as_flag;
 
 #define ADD_FLAG as_flag obj_flag
 
 #define AS_IS_VALID(_obj)      (_obj && (u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
 #define AS_IS_INVALID(_obj)    (!AS_IS_VALID(_obj))
-#define AS_IS_LOCKED(_obj)     ((u8)_obj->obj_flag >= AS_LOCKED && (u8)_obj->obj_flag < AS_MAX)
-#define AS_IS_UNLOCKED(_obj)   (!AS_IS_LOCKED(_obj))
+#define AS_IS_LOCKED(_obj)     (AS_IS_VALID(_obj) && (u8)_obj->obj_flag >= AS_LOCKED && (u8)_obj->obj_flag < AS_MAX)
+#define AS_IS_UNLOCKED(_obj)   ((u8)_obj->obj_flag == AS_VALID)
 
-#define AS_SET_VALID(_obj)     (_obj->obj_flag |= AS_VALID)
-#define AS_SET_INVALID(_obj)   (_obj->obj_flag &= ~AS_VALID)
-#define AS_SET_LOCKED(_obj)    (_obj->obj_flag |= AS_LOCKED)
-#define AS_SET_UNLOCKED(_obj)  (_obj->obj_flag &= ~AS_LOCKED)
+#define AS_SET_VALID(_obj)     if(AS_IS_INVALID(_obj))	_obj->obj_flag = _obj->obj_flag + 0b001 
+#define AS_SET_INVALID(_obj)   if(AS_IS_VALID(_obj))	_obj->obj_flag = _obj->obj_flag - 0b001
+#define AS_SET_LOCKED(_obj)    if(AS_IS_UNLOCKED(_obj))	_obj->obj_flag = _obj->obj_flag + 0b010
+#define AS_SET_UNLOCKED(_obj)  if(AS_IS_LOCKED(_obj))	_obj->obj_flag = _obj->obj_flag - 0b010
 
 #define AS_WAIT_AND_LOCK(_obj) 	while (AS_IS_LOCKED(_obj)) {}; AS_SET_LOCKED(_obj)

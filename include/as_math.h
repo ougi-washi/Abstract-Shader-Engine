@@ -15,6 +15,11 @@ static inline void _function_name (_type* _result, const _type* _val1, const _ty
     for (u8 i = 0; i < _size; ++i) { (_result)->data[i] = (_val1)->data[i] _operation (_val2)->data[i]; }  \
 }
 
+#define AS_VEC_SCALAR_GENERATE_OP(_type, _operation, _size, _function_name) \
+static inline void _function_name (_type* _result, const _type* _val1, const f64 _val2) { \
+    for (u8 i = 0; i < _size; ++i) { (_result)->data[i] = (_val1)->data[i] _operation _val2; }  \
+}
+
 #define AS_VEC_GENERATE_NEGATE(_output_type, _input_type, _size, _function_name) \
 static inline _output_type* _function_name (_input_type* _val) { \
     for (u8 i = 0; i < _size; ++i) { (_val)->data[i] = - (_val)->data[i]; } \
@@ -26,7 +31,10 @@ AS_VEC_GENERATE_OP(_type, +, _size, _type##_add)                    \
 AS_VEC_GENERATE_OP(_type, -, _size, _type##_sub)                    \
 AS_VEC_GENERATE_OP(_type, *, _size, _type##_mul)                    \
 AS_VEC_GENERATE_OP(_type, /, _size, _type##_div)                    \
-AS_VEC_GENERATE_NEGATE(_type, _type, _size, _type##_negate)        \
+AS_VEC_SCALAR_GENERATE_OP(_type, +, _size, _type##_add_scalar)      \
+AS_VEC_SCALAR_GENERATE_OP(_type, -, _size, _type##_sub_scalar)      \
+AS_VEC_SCALAR_GENERATE_OP(_type, *, _size, _type##_mul_scalar)      \
+AS_VEC_GENERATE_NEGATE(_type, _type, _size, _type##_negate)         \
 AS_VEC_GENERATE_NEGATE(const _type, _type, _size, _type##_cnegate)
 
 #define AS_VEC_DEFINE_VECTOR(_name, _type, _size) \
@@ -65,6 +73,7 @@ extern f32 as_radians(const f32 degrees);
 extern void as_vec3_normalize(as_vec3* v);
 extern f32 as_vec3_dot(const as_vec3* a, const as_vec3* b);
 extern as_vec3 as_vec3_unit_z();
+extern as_vec3 as_vec3_cross(const as_vec3* a, const as_vec3* b);
 
 // mat4
 extern as_mat4 as_mat4_identity();

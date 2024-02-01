@@ -30,6 +30,17 @@ as_vec3 as_vec3_unit_z()
 	return result;
 }
 
+as_vec3 as_vec3_cross(const as_vec3* a, const as_vec3* b)
+{
+	as_vec3 result;
+
+	result.x = a->y * b->z - a->z * b->y;
+	result.y = a->z * b->x - a->x * b->z;
+	result.z = a->x * b->y - a->y * b->x;
+
+	return result;
+}
+
 as_mat4 as_mat4_identity()
 {
 	as_mat4 result = { 0 };

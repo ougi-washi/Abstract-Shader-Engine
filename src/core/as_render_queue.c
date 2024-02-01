@@ -6,22 +6,23 @@
 void* as_render_queue_thread_run(as_render_queue* queue)
 {
 	if (AS_IS_INVALID(queue)) { return NULL; }
-
 	while (queue->is_running)
 	{
 		const sz queue_size = queue->commands.size;
 		if (queue_size > 0)
 		{
+			AS_WAIT_AND_LOCK(queue);
 			as_render_command* command = &queue->commands.data[queue_size - 1];
 			if (command)
 			{
 				command->func_ptr(command->arg);
 			}
 			AS_REMOVE_AT_ARRAY(queue->commands, queue_size - 1);
+			AS_SET_UNLOCKED(queue);
 		}
 		else
 		{
-			sleep_seconds(AS_RENDER_QUEUE_REST_TIME);
+			//sleep_seconds(AS_RENDER_QUEUE_REST_TIME);
 		}
 	}
 	return NULL;
@@ -33,6 +34,7 @@ as_render_queue* as_rq_create()
 	AS_SET_VALID(queue);
 	queue->is_running = true;
 	queue->thread = as_thread_create(&as_render_queue_thread_run, queue);
+	as_thread_set_priority(queue->thread, 2);
 	return queue;
 }
 
@@ -53,14 +55,16 @@ sz as_rq_get_queue_size(as_render_queue* render_queue)
 
 void as_rq_wait_queue(as_render_queue* render_queue)
 {
-	while (as_rq_get_queue_size(render_queue) > 0)
+	u32 iteration_counter = 0;
+	while (as_rq_get_queue_size(render_queue) > 0 && iteration_counter < AS_RENDER_QUEUE_SIZE)
 	{
 		sleep_seconds(AS_RENDER_QUEUE_WAIT_TIME);
+		//iteration_counter++;
 		// wait for queue to be empty
 	}
 }
 
-void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg)
+void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg, const u64 arg_size)
 {
 	AS_ASSERT(render_queue, "Cannot submit to renderer queue, render_queue is null");
 	AS_ASSERT(func_ptr, "Cannot submit to renderer queue, func_ptr is null");
@@ -68,11 +72,11 @@ void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg
 	AS_WAIT_AND_LOCK(render_queue);
 	as_render_command command = { 0 };
 	command.func_ptr = func_ptr;
-	memcpy(command.arg, arg, AS_RENDER_QUEUE_MAX_ARG_SIZE);
+	memcpy(command.arg, arg, arg_size);
 	AS_INSERT_AT_ARRAY(render_queue->commands, 0, command);
-	if (render_queue->commands.size > 1000)
+	if (render_queue->commands.size > AS_RENDER_QUEUE_SIZE)
 	{
-		AS_LOG(LV_ERROR, "WUT");
+		AS_LOG(LV_ERROR, "Overflowing render queue, please check your update/submission rates, potential crash.");
 	}
 	AS_SET_UNLOCKED(render_queue);
 }
@@ -85,7 +89,7 @@ void as_render_start_draw_loop_func(as_render* render)
 };
 void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render)
 {
-	 as_rq_submit(render_queue, &as_render_start_draw_loop_func, render);
+	 as_rq_submit(render_queue, &as_render_start_draw_loop_func, render, sizeof(render));
 }
 
 void as_render_end_draw_loop_func(as_render* render)
@@ -96,28 +100,32 @@ void as_render_end_draw_loop_func(as_render* render)
 }
 void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render)
 {
-	as_rq_submit(render_queue, &as_render_end_draw_loop_func, render);
+	as_rq_submit(render_queue, &as_render_end_draw_loop_func, render, sizeof(render));
 }
 
 typedef struct as_render_draw_frame_arg
 {
 	as_render* render;
 	void* display_context;
+	as_camera* camera;
 	as_objects_1024* objects;
 } as_render_draw_frame_arg;
 void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
 	AS_WAIT_AND_LOCK(draw_frame_arg->render);
-	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->objects);
+	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->objects);
 	AS_SET_UNLOCKED(draw_frame_arg->render);
 }
-void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_objects_1024* objects)
+void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects)
 {
-	as_render_draw_frame_arg draw_frame_arg = {0};
+	AS_WAIT_AND_LOCK(render);
+	as_render_draw_frame_arg draw_frame_arg = { 0 };
 	draw_frame_arg.render = render;
 	draw_frame_arg.display_context = display_context;
 	draw_frame_arg.objects = objects;
-	as_rq_submit(render_queue, &as_render_draw_frame_func, &draw_frame_arg);
+	draw_frame_arg.camera = camera;
+	as_rq_submit(render_queue, &as_render_draw_frame_func, &draw_frame_arg, sizeof(draw_frame_arg));
+	AS_SET_UNLOCKED(render);
 }
 
 void as_render_destroy_func(as_render* render)
@@ -127,7 +135,7 @@ void as_render_destroy_func(as_render* render)
 }
 void as_rq_render_destroy(as_render_queue* render_queue, as_render* render)
 {
-	as_rq_submit(render_queue, &as_render_destroy_func, render);
+	as_rq_submit(render_queue, &as_render_destroy_func, render, sizeof(render));
 }
 
 typedef struct as_texture_update_arg
@@ -146,7 +154,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	as_texture_update_arg texture_update_arg = { 0 };
 	texture_update_arg.render = render;
 	texture_update_arg.texture = texture;
-	as_rq_submit(render_queue, &as_texture_update_func, &texture_update_arg);
+	as_rq_submit(render_queue, &as_texture_update_func, &texture_update_arg, sizeof(texture_update_arg));
 }
 
  typedef struct as_texture_destroy_arg
@@ -165,7 +173,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_texture_destroy_arg texture_destroy_arg = { 0 };
 	 texture_destroy_arg.render = render;
 	 texture_destroy_arg.texture = texture;
-	 as_rq_submit(render_queue, &as_texture_destroy_func, &texture_destroy_arg);
+	 as_rq_submit(render_queue, &as_texture_destroy_func, &texture_destroy_arg, sizeof(texture_destroy_arg));
 }
 
  typedef struct as_shader_set_uniforms_arg
@@ -186,7 +194,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 shader_set_uniforms_arg->render = render;
 	 shader_set_uniforms_arg->shader = shader;
 	 shader_set_uniforms_arg->uniforms = uniforms;
-	 as_rq_submit(render_queue, &as_shader_set_uniforms_func, shader_set_uniforms_arg);
+	 as_rq_submit(render_queue, &as_shader_set_uniforms_func, shader_set_uniforms_arg, sizeof(shader_set_uniforms_arg));
 }
 
  typedef struct as_shader_update_arg
@@ -205,7 +213,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_shader_update_arg shader_update_arg = { 0 };
 	 shader_update_arg.render = render;
 	 shader_update_arg.shader = shader;
-	 as_rq_submit(render_queue, &as_shader_update_func, &shader_update_arg);
+	 as_rq_submit(render_queue, &as_shader_update_func, &shader_update_arg, sizeof(shader_update_arg));
 }
 
  void as_shader_create_graphics_pipeline_func(as_shader* shader)
@@ -218,7 +226,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 if (render_queue)
 	 {
-		 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, shader);
+		 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, shader, sizeof(shader));
 	 }
 	 else
 	 {
@@ -242,7 +250,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_shader_destroy_arg shader_destroy_arg = { 0 };
 	 shader_destroy_arg.render = render;
 	 shader_destroy_arg.shader = shader;
-	 as_rq_submit(render_queue, &as_shader_destroy_func, &shader_destroy_arg);
+	 as_rq_submit(render_queue, &as_shader_destroy_func, &shader_destroy_arg, sizeof(shader_destroy_arg));
 }
 
  typedef struct as_objects_destroy_arg
@@ -261,5 +269,5 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_objects_destroy_arg objects_destroy_arg = { 0 };
 	 objects_destroy_arg.render = render;
 	 objects_destroy_arg.objects = objects;
-	 as_rq_submit(render_queue, &as_objects_destroy_func, &objects_destroy_arg);
+	 as_rq_submit(render_queue, &as_objects_destroy_func, &objects_destroy_arg, sizeof(objects_destroy_arg));
 }

@@ -163,9 +163,9 @@ clock_t get_current_time()
 	return clock();
 }
 
-f32 calculate_delta_time(clock_t start, clock_t end)
+f64 calculate_delta_time(clock_t start, clock_t end)
 {
-	return ((f32)(end - start)) / (f64)CLOCKS_PER_SEC;
+	return ((f64)(end - start)) / (f64)CLOCKS_PER_SEC;
 }
 
 void sleep_seconds(const f64 seconds)

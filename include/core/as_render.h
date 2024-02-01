@@ -12,7 +12,7 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define TARGET_FPS 60
+#define AS_TARGET_FPS 1000.
 
 // Arrays
 
@@ -118,6 +118,22 @@ typedef struct as_object
 } as_object;
 AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object*);
 
+typedef enum as_camera_type
+{
+	AS_CAMERA_FREE = 0,
+	AS_CAMERA_LOCK = 1
+} as_camera_type;
+typedef struct as_camera
+{
+	as_vec3 position;
+	as_vec3 target;
+	as_vec3 up;
+	f32 fov;
+	as_camera_type type;
+	f64 movement_speed;
+	ADD_FLAG;
+} as_camera;
+
 typedef struct as_render
 {
 	VkInstance instance;
@@ -168,7 +184,7 @@ typedef struct as_render
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
-extern void as_render_draw_frame(as_render* render, void* display_context, as_objects_1024* objects);
+extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
@@ -189,6 +205,8 @@ extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_pa
 extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
 extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
+
+extern as_camera* as_camera_create(const as_vec3* position, const as_vec3* target);
 
 extern as_object* as_object_make(as_render* render, as_shader* shader);
 extern sz as_object_add(as_object* object, as_objects_1024* objects);
