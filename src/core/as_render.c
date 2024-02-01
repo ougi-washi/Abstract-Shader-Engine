@@ -1601,6 +1601,12 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	VkPipelineColorBlendAttachmentState color_blend_attachment = { 0 };
 	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	color_blend_attachment.blendEnable = VK_FALSE;
+	color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+	color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+	color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
 
 	// Color blend state
 	VkPipelineColorBlendStateCreateInfo color_blending = { 0 };
