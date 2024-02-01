@@ -10,12 +10,12 @@
         sz size;                                            \
     } _name;
 
-#define AS_PUSH_BACK_ARRAY(_array, _element)                                    \
+#define AS_ARRAY_PUSH_BACK(_array, _element)                                    \
     if ((_array).size < AS_ARRAY_SIZE(_array.data)){                            \
         (_array).data[(_array).size++] = _element; }                            \
     else { AS_LOG(LV_ERROR,"Array overflow"); }
 
-#define AS_INSERT_AT_ARRAY(_array, _index, _element)                                                    \
+#define AS_ARRAY_INSERT_AT(_array, _index, _element)                                                    \
     if ((_index) >= 0 && (_index) <= (_array).size) {                                                   \
         if ((_array).size < AS_ARRAY_SIZE(_array.data)) {                                               \
             for (sz i = (_array).size; i > (_index); --i) { (_array).data[i] = (_array).data[i - 1];}   \
@@ -24,7 +24,7 @@
         else { AS_LOG(LV_ERROR,"Array overflow"); }                                                     \
     } else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-#define AS_REMOVE_AT_ARRAY(_array, _index)                                                              \
+#define AS_ARRAY_REMOVE_AT(_array, _index)                                                              \
     if ((_index) >= 0 && (_index) < (_array).size) {                                                    \
          for (sz i = (_index); i < (_array).size - 1; ++i) { (_array).data[i] = (_array).data[i + 1]; } \
         --(_array).size; }                                                                              \
@@ -33,12 +33,10 @@
 #define AS_ARRAY_GET(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
 
-#define AS_FOREACH(_array, _element_type, _element, _body) \
-    for (sz _i = 0; _i < (_array).size; ++_i) { \
-        _element_type* _element = &(_array).data[_i]; \
-        _body }
+#define AS_ARRAY_GET_SIZE(_array) (_array).size
+#define AS_ARRAY_GET_LAST_INDEX(_array) _array.size - 1
 
-#define AS_CLEAR_ARRAY(_array) { (_array).size = 0; }
+#define AS_ARRAY_CLEAR(_array) { (_array).size = 0; }
 
 AS_DECLARE_ARRAY(voids32, 32, void*);
 AS_DECLARE_ARRAY(voids64, 64, void*);
