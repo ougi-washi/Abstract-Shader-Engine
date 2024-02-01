@@ -126,4 +126,7 @@ typedef enum as_flag
 #define AS_SET_LOCKED(_obj)    if(AS_IS_UNLOCKED(_obj))	_obj->obj_flag = _obj->obj_flag + 0b010
 #define AS_SET_UNLOCKED(_obj)  if(AS_IS_LOCKED(_obj))	_obj->obj_flag = _obj->obj_flag - 0b010
 
-#define AS_WAIT_AND_LOCK(_obj) 	while (AS_IS_LOCKED(_obj)) {}; AS_SET_LOCKED(_obj)
+#define AS_WAIT_AND_LOCK(_obj) 														\
+u64 loop_counter = 0; 																\
+while (AS_IS_LOCKED(_obj) && loop_counter < UINT64_MAX) { loop_counter++; };		\
+AS_SET_LOCKED(_obj)

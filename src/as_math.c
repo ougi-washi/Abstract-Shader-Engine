@@ -41,6 +41,11 @@ as_vec3 as_vec3_cross(const as_vec3* a, const as_vec3* b)
 	return result;
 }
 
+f32 as_vec3_length(const as_vec3* v) 
+{
+    return sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+}
+
 as_mat4 as_mat4_identity()
 {
 	as_mat4 result = { 0 };

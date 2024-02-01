@@ -26,19 +26,22 @@ void main()
     vec3 gridSpacing = vec3(1.1, 1.1, 1.1); 
     ivec3 gridSize = ivec3(50, 50, 50); 
 
-    int instanceIndexX = gl_InstanceIndex % gridSize.x;
-    int instanceIndexY = (gl_InstanceIndex / gridSize.x) % gridSize.y;
-    int instanceIndexZ = gl_InstanceIndex / (gridSize.x * gridSize.y);
+    int instance_index_x = gl_InstanceIndex % gridSize.x;
+    int instance_index_y = (gl_InstanceIndex / gridSize.x) % gridSize.y;
+    int instance_index_z = gl_InstanceIndex / (gridSize.x * gridSize.y);
+
+    int movement_frequency_xy = int(mod(instance_index_x + instance_index_y, 3));
+    int movement_frequency_xz = int(mod(instance_index_x + instance_index_y, 3));
+    int movement_frequency_yz = int(mod(instance_index_x + instance_index_y, 3));
 
     vec3 new_pos = inPosition + vec3(
-        float(instanceIndexX) * gridSpacing.x + cos(ps.time * (instanceIndexX + instanceIndexY)) 
-        * sin(ps.time * mod((instanceIndexX + instanceIndexY), 3)) * -.2 ,
-        float(instanceIndexY) * gridSpacing.y + cos(ps.time * (instanceIndexX + instanceIndexY)) 
-        * sin(ps.time * mod((instanceIndexX + instanceIndexY), 3)) * -.2 ,
-        float(instanceIndexZ) * gridSpacing.z + cos(ps.time * (instanceIndexX + instanceIndexY)) 
-        * sin(ps.time * mod((instanceIndexX + instanceIndexZ), 3)) * 0.2 
+        float(instance_index_x) * gridSpacing.x + cos(ps.time * movement_frequency_xy) 
+        * sin(ps.time * movement_frequency_xy) * -.2 ,
+        float(instance_index_y) * gridSpacing.y + cos(ps.time * movement_frequency_xz) 
+        * sin(ps.time * movement_frequency_xz) * -.2 ,
+        float(instance_index_z) * gridSpacing.z + cos(ps.time * movement_frequency_yz) 
+        * sin(ps.time * movement_frequency_yz) * 0.2 
     );
-
     gl_Position = ubo.proj * ubo.view * ps.transform * vec4(new_pos, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;

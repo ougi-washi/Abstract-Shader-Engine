@@ -12,13 +12,11 @@ void as_input_add(as_input_buffer* buffer, const i32 key, const i32 action)
     new_key.key = key;
     new_key.action = action;
     
-    // AS_WAIT_AND_LOCK(buffer);
     AS_ARRAY_INSERT_AT(buffer->keys, 0, new_key);
     if(AS_ARRAY_GET_SIZE(buffer->keys) > AS_MAX_INPUT_BUFFER_SIZE)
     {
         AS_ARRAY_REMOVE_AT(buffer->keys, AS_ARRAY_GET_LAST_INDEX(buffer->keys));
     }
-    // AS_SET_UNLOCKED(buffer);
     if(buffer->on_add)
     {    
         buffer->on_add(AS_ARRAY_GET(buffer->keys, 0));
@@ -28,7 +26,6 @@ void as_input_add(as_input_buffer* buffer, const i32 key, const i32 action)
 bool as_input_is_pressed(as_input_buffer* buffer, const i32 key)
 {
     AS_ASSERT(buffer, "Trying to read buffer, but buffer is NULL");
-    // AS_WAIT_AND_LOCK(buffer);
     for(sz i = 0 ; i < buffer->keys.size ; i++)
     {
         as_input_key* current_key = AS_ARRAY_GET(buffer->keys, i);
@@ -37,7 +34,6 @@ bool as_input_is_pressed(as_input_buffer* buffer, const i32 key)
             return (current_key->action == AS_PRESS || current_key->action == AS_REPEAT);
         }
     }
-    // AS_SET_UNLOCKED(buffer);
     return false;
 }
 

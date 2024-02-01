@@ -7,84 +7,20 @@
 
 typedef struct as_engine
 {
-	as_render* render;
-	as_render_queue* render_queue;
-	as_shader_monitor* shader_monitor;
-	void* display_context;
-	as_camera* camera;
-	as_objects_1024* objects;
-	as_input_buffer* input_buffer;
+	as_render *render;
+	as_render_queue *render_queue;
+	as_shader_monitor *shader_monitor;
+	void *display_context;
+	as_camera *camera;
+	as_objects_1024 *objects;
+	as_input_buffer *input_buffer;
 } as_engine;
 
-static as_engine engine = { 0 };
+static as_engine engine = {0};
 
-void key_callback(void* window, const i32 key, const i32 scancode, const i32 action, const i32 mods)
+void key_callback(void *window, const i32 key, const i32 scancode, const i32 action, const i32 mods)
 {
 	as_input_add(engine.input_buffer, key, action);
-
-	// if (as_is_pressed(AS_KEY_ESCAPE))
-	// {
-
-	// }
-
-	// if (key == AS_KEY_ESCAPE && action == AS_PRESS)
-	// {
-	// 	glfwSetWindowShouldClose(window, true);
-	// }
-
-	// // TODO: Move to camera updater
-	// if (engine.camera && engine.camera->type == AS_CAMERA_FREE)
-	// {
-	// 	const f32 delta_time = as_get_delta_time(); 
-	// 	if (action == AS_PRESS || action == AS_REPEAT)
-	// 	{
-	// 		switch (key)
-	// 		{
-	// 		case AS_KEY_W:
-	// 		{
-	// 			as_vec3 movement_vector = { 0 };
-	// 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
-	// 			as_vec3_normalize(&movement_vector);
-	// 			as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
-	// 			as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
-	// 			as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
-	// 			break;
-	// 		}
-	// 		case AS_KEY_S:
-	// 		{
-	// 			as_vec3 movement_vector = { 0 };
-	// 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
-	// 			as_vec3_normalize(&movement_vector);
-	// 			as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
-	// 			as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
-	// 			as_vec3_sub(&engine.camera->position, &engine.camera->position, &movement_vector);
-	// 			break;
-	// 		}
-	// 		case AS_KEY_A:
-	// 		{
-	// 			as_vec3 movement_vector = { 0 };
-	// 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
-	// 			as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
-	// 			as_vec3_normalize(&forward_vec);
-	// 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
-	// 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-	// 			as_vec3_sub(&engine.camera->position, &engine.camera->position, &forward_vec);
-	// 			break;
-	// 		}
-	// 		case AS_KEY_D:
-	// 		{
-	// 			as_vec3 movement_vector = { 0 };
-	// 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
-	// 			as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
-	// 			as_vec3_normalize(&forward_vec);
-	// 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
-	// 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-	// 			as_vec3_add(&engine.camera->position, &engine.camera->position, &forward_vec);
-	// 			break;
-	// 		}
-	// 		}
-	// 	}
-	// }
 }
 
 void as_engine_init()
@@ -96,7 +32,9 @@ void as_engine_init()
 	engine.objects = as_objects_create();
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
-	while (AS_IS_INVALID(engine.render)) {};
+	while (AS_IS_INVALID(engine.render))
+	{
+	};
 }
 
 void as_engine_clear()
@@ -143,36 +81,36 @@ f64 as_get_delta_time()
 	return as_render_get_delta_time(engine.render);
 }
 
-as_texture* as_texture_create(const char* texture_path)
+as_texture *as_texture_create(const char *texture_path)
 {
-	as_texture* texture = as_texture_make(texture_path);
+	as_texture *texture = as_texture_make(texture_path);
 	as_texture_update(engine.render, texture);
 	return texture;
 }
 
-as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
+as_shader *as_shader_create(const char *vertex_shader_path, const char *fragment_shader_path)
 {
-	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
+	as_shader *shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
 	return shader;
 }
 
-as_object* as_object_create(as_shader* shader)
+as_object *as_object_create(as_shader *shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object* object = as_object_make(engine.render, shader);
+	as_object *object = as_object_make(engine.render, shader);
 	as_object_add(object, engine.objects);
 	return object;
 }
 
-void as_camera_set_view(as_camera* camera, const as_camera_type type)
+void as_camera_set_view(as_camera *camera, const as_camera_type type)
 {
 	AS_ASSERT(camera, "Trying to set camera as view, but camera is NULL");
 	engine.camera = camera;
 	engine.camera->type = type;
 }
 
-sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)
+sz as_assign_texture_to_shader(as_shader *shader, as_texture *texture)
 {
 	sz index = as_shader_add_uniform_texture(&shader->uniforms, texture);
 	as_shader_update(engine.render, shader);
@@ -193,19 +131,32 @@ void as_input_loop_tick()
 
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)
 	{
-		const f32 delta_time = as_get_delta_time(); 
+		const f32 delta_time = as_get_delta_time();
 		if (as_is_pressed(AS_KEY_W))
 		{
-			as_vec3 movement_vector = { 0 };
+			as_vec3 movement_vector;
 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
+			f32 distance_to_target = as_vec3_length(&movement_vector);
 			as_vec3_normalize(&movement_vector);
-			as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
-			as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
-			as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
+
+			const f32 threshold_distance = 1.f;
+			const f32 max_movement_distance = distance_to_target - threshold_distance;
+			if (distance_to_target > threshold_distance)
+			{
+				as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
+				as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
+				const f32 movement_length = as_vec3_length(&movement_vector);
+				if (movement_length > max_movement_distance)
+				{
+					f32 scale = max_movement_distance / movement_length;
+					as_vec3_mul_scalar(&movement_vector, &movement_vector, scale);
+				}
+				as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
+			}
 		}
 		else if (as_is_pressed(AS_KEY_S))
 		{
-			as_vec3 movement_vector = { 0 };
+			as_vec3 movement_vector = {0};
 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 			as_vec3_normalize(&movement_vector);
 			as_vec3_mul_scalar(&movement_vector, &movement_vector, delta_time);
@@ -214,7 +165,7 @@ void as_input_loop_tick()
 		}
 		if (as_is_pressed(AS_KEY_A))
 		{
-			as_vec3 movement_vector = { 0 };
+			as_vec3 movement_vector = {0};
 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 			as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
 			as_vec3_normalize(&forward_vec);
@@ -224,7 +175,7 @@ void as_input_loop_tick()
 		}
 		else if (as_is_pressed(AS_KEY_D))
 		{
-			as_vec3 movement_vector = { 0 };
+			as_vec3 movement_vector = {0};
 			as_vec3_sub(&movement_vector, &engine.camera->target, &engine.camera->position);
 			as_vec3 forward_vec = as_vec3_cross(&engine.camera->up, &movement_vector);
 			as_vec3_normalize(&forward_vec);
@@ -232,5 +183,34 @@ void as_input_loop_tick()
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
 			as_vec3_add(&engine.camera->position, &engine.camera->position, &forward_vec);
 		}
-	}	
+
+		const bool pressed_e = as_is_pressed(AS_KEY_E);
+		const bool pressed_q = as_is_pressed(AS_KEY_Q);
+		if (pressed_e || pressed_q)
+		{
+			as_vec3 movement_vector = {0};
+			as_vec3_mul_scalar(&movement_vector, AS_VEC_PTR(as_vec3, 0.f, 0.f, 1.f), delta_time);
+			as_vec3_mul_scalar(&movement_vector, &movement_vector, engine.camera->movement_speed);
+
+			as_vec3 target_vector;
+			as_vec3_sub(&target_vector, &engine.camera->target, &engine.camera->position);
+			const f32 distance_to_target = as_vec3_length(&target_vector);
+			const f32 threshold_distance = 1.0f;
+
+			if (as_is_pressed(AS_KEY_E))
+			{
+				if (distance_to_target > threshold_distance)
+				{
+					as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
+				}
+			}
+			else if (as_is_pressed(AS_KEY_Q))
+			{
+				if (distance_to_target < (distance_to_target + threshold_distance))
+				{
+					as_vec3_sub(&engine.camera->position, &engine.camera->position, &movement_vector);
+				}
+			}
+		}
+	}
 }
