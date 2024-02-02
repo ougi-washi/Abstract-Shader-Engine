@@ -627,6 +627,7 @@ void create_descriptor_set_layout_from_uniforms(as_shader* shader)
 
 	AS_ASSERT(vkCreateDescriptorSetLayout(*shader->device, &layout_info, NULL, &shader->descriptor_set_layout) == VK_SUCCESS,
 		"Failed to create descriptor set layout!");
+	AS_FREE(bindings);
 }
 
 VkShaderModule create_shader_module(VkDevice device, as_shader_binary* shader_bin)
@@ -650,19 +651,24 @@ void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 
 void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout)
 {
-	// Pipeline layout constant
-	VkPushConstantRange push_constant_range = { 0 };
-	push_constant_range.offset = 0;
-	push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	push_constant_range.size = sizeof(as_push_const_vertex_buffer);
+	VkPushConstantRange push_constant_range_vert = { 0 };
+	push_constant_range_vert.offset = 0;
+	push_constant_range_vert.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range_vert.size = sizeof(as_push_const_vertex_buffer);
 
-	// Pipeline layout
+	VkPushConstantRange push_constant_range_frag = { 0 };
+	push_constant_range_frag.offset = 0;
+	push_constant_range_frag.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	push_constant_range_frag.size = sizeof(as_push_const_vertex_buffer);
+
+	VkPushConstantRange ranges[] = {push_constant_range_vert, push_constant_range_frag};
+
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
 	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
-	pipeline_layout_info.pPushConstantRanges = &push_constant_range;
-	pipeline_layout_info.pushConstantRangeCount = 1;
+	pipeline_layout_info.pPushConstantRanges = ranges;
+	pipeline_layout_info.pushConstantRangeCount = 2;
 
 	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, pipeline_layout);
 	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
@@ -956,6 +962,7 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 			}
 		}
 		vkUpdateDescriptorSets(device, descriptor_writes_count, descriptor_writes, 0, NULL);
+		AS_FREE(descriptor_writes);
 	}
 }
 
@@ -1024,7 +1031,7 @@ as_push_const_vertex_buffer get_push_const_vertex_buffer(const as_object* object
 	return output_buffer;
 }
 
-void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_objects_1024* objects)
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1067,16 +1074,16 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 		scissor.extent = render->swap_chain_extent;
 		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-		if (objects)
+		if (scene)
 		{
-			for (sz obj_index = 0 ; obj_index < objects->size ; obj_index++)
+			for (sz obj_index = 0 ; obj_index < scene->objects.size ; obj_index++)
 			{
-				as_object* object = objects->data[obj_index];
+				as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
 				as_shader* shader = object->shader;
 				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
 				if (!shader || !shader->graphics_pipeline || !as_shader_is_unlocked(render->frame_counter, shader)) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
-				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_const), &push_const);
+				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);
@@ -1291,7 +1298,7 @@ void as_render_end_draw_loop(as_render* render)
 	render->last_frame_time = get_current_time();
 }
 
-void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects)
+void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene)
 {
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
@@ -1307,11 +1314,11 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 	update_time(render);
 
-	if (objects)
+	if (scene)
 	{
-		for (sz obj_index = 0; obj_index < objects->size; obj_index++)
+		for (sz obj_index = 0; obj_index < scene->objects.size; obj_index++)
 		{
-			as_object* object = objects->data[obj_index];
+			as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
 			if (!object) { continue; }
 			as_shader* shader = object->shader;
 			update_shader_uniform_buffer(render, shader, camera, render->current_frame);
@@ -1321,7 +1328,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
-	record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, objects);
+	record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene);
 
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1646,12 +1653,14 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
+	
 	// IDK IF NEEDED, TODO: figure this out
-	//if (shader->graphics_pipeline == VK_NULL_HANDLE)
-	//{
-	//	vkDestroyPipeline(*shader->device, shader->graphics_pipeline, NULL);
-	//}
-
+	if (shader->graphics_pipeline != VK_NULL_HANDLE)
+	{
+		vkDeviceWaitIdle(*shader->device);
+		vkDestroyPipeline(*shader->device, shader->graphics_pipeline, NULL);
+	}
+	vkDeviceWaitIdle(*shader->device);
 	VkResult create_graphics_pipeline_result = vkCreateGraphicsPipelines(*shader->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &shader->graphics_pipeline);
 	AS_ASSERT(create_graphics_pipeline_result == VK_SUCCESS, "Failed to create graphics pipeline");
 
@@ -1688,7 +1697,7 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	uniforms->data[index].data = AS_MALLOC_SINGLE(as_texture);
+	// uniforms->data[index].data = AS_MALLOC_SINGLE(as_texture); // Not needed
 	uniforms->data[index].data = texture;
 
 	return index;
@@ -1766,12 +1775,12 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	AS_FREE(shader);
 }
 
-as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
+as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec3* target)
 {
 	AS_ASSERT(position, "Trying to create camera, but position is NULL");
 	AS_ASSERT(target, "Trying to create camera, but target is NULL");
 
-	as_camera* camera = AS_MALLOC_SINGLE(as_camera);
+	as_camera* camera = AS_ARRAY_INCREMENT(scene->cameras);
 	camera->position = *position;
 	camera->target = *target;
 	camera->up = AS_VEC(as_vec3, 0.f, 0.f, 1.f);
@@ -1781,14 +1790,16 @@ as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
 	return camera;
 }
 
-as_object* as_object_make(as_render* render, as_shader* shader)
+as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 {
-	AS_ASSERT(render, "Trying to add object, but render is NULL");
+   	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
+	AS_ASSERT(scene, "Trying to add object, but scene is NULL");
 
-	as_object* object = AS_MALLOC_SINGLE(as_object);
+	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
 	as_mat4_set_identity(&object->transform);
 	object->instance_count = 1;
+	
 	// vertex buffer
 
 	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
@@ -1838,15 +1849,6 @@ as_object* as_object_make(as_render* render, as_shader* shader)
 	object->shader = shader;
 	AS_SET_VALID(object);
 	return object;
-}
-
-sz as_object_add(as_object* object, as_objects_1024* objects)
-{
-	AS_ASSERT(object, "Trying to add object, but object is NULL");
-	AS_ASSERT(objects, "Trying to add object, but objects array is NULL");
-
-	AS_ARRAY_INSERT_AT((*objects), objects->size, object);
-	return objects->size - 1;
 }
 
 void as_object_set_instance_count(as_object* object, const u32 instance_count)
@@ -1913,22 +1915,23 @@ void as_object_destroy(as_render* render, as_object* object)
 	AS_SET_INVALID(object);
 }
 
-as_objects_1024* as_objects_create()
+as_scene* as_scene_create()
 {
-	return AS_MALLOC_SINGLE(as_objects_1024);
+	return AS_MALLOC_SINGLE(as_scene);
 }
 
-void as_objects_destroy(as_render* render, as_objects_1024* objects)
+
+void as_scene_destroy(as_render *render, as_scene *scene)
 {
 	AS_ASSERT(render, "Trying to delete objects, but object is NULL");
-	if (!objects) { return; }
+	if (!scene) { return; }
 
 	vkDeviceWaitIdle(render->device);
 
-	for (sz i = 0; i < objects->size; i++)
+	for (sz i = 0; i < scene->objects.size; i++)
 	{
-		as_object_destroy(render, objects->data[i]);
+		as_object_destroy(render, &scene->objects.data[i]);
 	}
 
-	AS_FREE(objects);
+	AS_FREE(scene);
 }

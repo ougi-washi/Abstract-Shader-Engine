@@ -4,12 +4,15 @@
 
 #include "as_types.h"
 
-#define AS_DECLARE_ARRAY(_name, _capacity, _type)           \
+#define AS_ARRAY_DECLARE(_name, _capacity, _type)           \
     typedef struct {                                        \
         _type data[_capacity];                              \
         sz size;                                            \
     } _name;
 
+#define AS_ARRAY_INCREMENT(_array) \
+    ((_array).size < AS_ARRAY_SIZE((_array).data) ? &((_array).data[(_array).size++]) : NULL)
+    
 #define AS_ARRAY_PUSH_BACK(_array, _element)                                    \
     if ((_array).size < AS_ARRAY_SIZE(_array.data)){                            \
         (_array).data[(_array).size++] = _element; }                            \
@@ -35,12 +38,11 @@
 
 #define AS_ARRAY_GET_SIZE(_array) (_array).size
 #define AS_ARRAY_GET_LAST_INDEX(_array) _array.size - 1
-
 #define AS_ARRAY_CLEAR(_array) { (_array).size = 0; }
 
-AS_DECLARE_ARRAY(voids32, 32, void*);
-AS_DECLARE_ARRAY(voids64, 64, void*);
-AS_DECLARE_ARRAY(voids128, 128, void*);
-AS_DECLARE_ARRAY(voids256, 256, void*);
-AS_DECLARE_ARRAY(voids512, 512, void*);
-AS_DECLARE_ARRAY(voids1024, 1024, void*);
+AS_ARRAY_DECLARE(voids32, 32, void*);
+AS_ARRAY_DECLARE(voids64, 64, void*);
+AS_ARRAY_DECLARE(voids128, 128, void*);
+AS_ARRAY_DECLARE(voids256, 256, void*);
+AS_ARRAY_DECLARE(voids512, 512, void*);
+AS_ARRAY_DECLARE(voids1024, 1024, void*);

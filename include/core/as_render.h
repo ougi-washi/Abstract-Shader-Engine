@@ -16,17 +16,17 @@
 
 // Arrays
 
-AS_DECLARE_ARRAY(VkImages64, 64, VkImage);
-AS_DECLARE_ARRAY(VkImageViews32, 32, VkImageView);
-AS_DECLARE_ARRAY(VkFramebuffers32, 32, VkFramebuffer);
-AS_DECLARE_ARRAY(VkSemaphores32, 32, VkSemaphore);
-AS_DECLARE_ARRAY(VkFences32, 32, VkFence);
-AS_DECLARE_ARRAY(VkCommandBuffers32, 32, VkCommandBuffer);
-AS_DECLARE_ARRAY(VkDescriptorSets32, 32, VkDescriptorSet);
-AS_DECLARE_ARRAY(VkBuffers32, 32, VkBuffer);
-AS_DECLARE_ARRAY(VkDeviceMemories32, 32, VkDeviceMemory);
-AS_DECLARE_ARRAY(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
-AS_DECLARE_ARRAY(VkPresentModeKHR32, 32, VkPresentModeKHR);
+AS_ARRAY_DECLARE(VkImages64, 64, VkImage);
+AS_ARRAY_DECLARE(VkImageViews32, 32, VkImageView);
+AS_ARRAY_DECLARE(VkFramebuffers32, 32, VkFramebuffer);
+AS_ARRAY_DECLARE(VkSemaphores32, 32, VkSemaphore);
+AS_ARRAY_DECLARE(VkFences32, 32, VkFence);
+AS_ARRAY_DECLARE(VkCommandBuffers32, 32, VkCommandBuffer);
+AS_ARRAY_DECLARE(VkDescriptorSets32, 32, VkDescriptorSet);
+AS_ARRAY_DECLARE(VkBuffers32, 32, VkBuffer);
+AS_ARRAY_DECLARE(VkDeviceMemories32, 32, VkDeviceMemory);
+AS_ARRAY_DECLARE(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
+AS_ARRAY_DECLARE(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
 typedef struct as_uniform_buffer_object
@@ -76,7 +76,7 @@ typedef struct as_shader_uniform
 	VkDescriptorType type;
 	void* data;
 } as_shader_uniform;
-AS_DECLARE_ARRAY(as_shader_uniforms_32, 32, as_shader_uniform);
+AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
 
 typedef struct as_shader
 {
@@ -100,7 +100,7 @@ typedef struct as_shader
 	
 	ADD_FLAG;
 }as_shader;
-AS_DECLARE_ARRAY(as_shaders_ptr_256, 256, as_shader*);
+AS_ARRAY_DECLARE(as_shaders_ptr_256, 256, as_shader*);
 
 typedef struct as_object
 {
@@ -116,7 +116,15 @@ typedef struct as_object
 
 	ADD_FLAG;
 } as_object;
-AS_DECLARE_ARRAY(as_objects_1024, 1024, as_object*);
+AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
+
+typedef struct as_light
+{
+	as_vec3 position;
+	as_vec3 color;
+	f32 radius;
+} as_light;
+AS_ARRAY_DECLARE(as_lights_1024, 1024, as_light);
 
 typedef enum as_camera_type
 {
@@ -133,6 +141,14 @@ typedef struct as_camera
 	f64 movement_speed;
 	ADD_FLAG;
 } as_camera;
+AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
+
+typedef struct as_scene
+{
+	as_objects_1024 objects;
+	as_lights_1024 lights;
+	as_camera_128 cameras;
+} as_scene;
 
 typedef struct as_render
 {
@@ -184,7 +200,7 @@ typedef struct as_render
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
-extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects);
+extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
@@ -206,10 +222,9 @@ extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shad
 extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
 
-extern as_camera* as_camera_create(const as_vec3* position, const as_vec3* target);
+extern as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec3* target);
 
-extern as_object* as_object_make(as_render* render, as_shader* shader);
-extern sz as_object_add(as_object* object, as_objects_1024* objects);
+extern as_object* as_object_make(as_render* render, as_scene* scene, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);
 extern void as_object_set_rotation(as_object* object, const as_vec3* rotation);
@@ -218,5 +233,5 @@ extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, co
 extern void as_object_set_scale(as_object* object, const as_vec3* scale);
 extern void as_object_destroy(as_render* render, as_object* object);
 
-extern as_objects_1024* as_objects_create();
-extern void as_objects_destroy(as_render* render, as_objects_1024* objects);
+extern as_scene* as_scene_create();
+extern void as_scene_destroy(as_render* render, as_scene* scene);

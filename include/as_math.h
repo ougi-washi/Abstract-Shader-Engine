@@ -74,6 +74,7 @@ extern void as_vec3_normalize(as_vec3* v);
 extern f32 as_vec3_dot(const as_vec3* a, const as_vec3* b);
 extern as_vec3 as_vec3_unit_z();
 extern as_vec3 as_vec3_cross(const as_vec3* a, const as_vec3* b);
+extern f32 as_vec3_length(const as_vec3* v);
 
 // mat4
 extern as_mat4 as_mat4_identity();

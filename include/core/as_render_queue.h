@@ -16,7 +16,7 @@ typedef struct as_render_command
 	void (*func_ptr)(void*);
 	void* arg[AS_RENDER_QUEUE_MAX_ARG_SIZE];
 } as_render_command;
-AS_DECLARE_ARRAY(as_render_commands_1024, AS_RENDER_QUEUE_SIZE, as_render_command);
+AS_ARRAY_DECLARE(as_render_commands_1024, AS_RENDER_QUEUE_SIZE, as_render_command);
 
 typedef struct as_render_queue
 {
@@ -35,7 +35,7 @@ extern void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), vo
 
 extern void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render);
 extern void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render);
-extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects);
+extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_scene* scene);
 extern void as_rq_render_destroy(as_render_queue* render_queue, as_render* render);
 
 extern void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render);
@@ -46,4 +46,4 @@ extern void as_rq_shader_update(as_render_queue* render_queue, as_render* render
 extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader);
 extern void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader);
 
-extern void as_rq_objects_destroy(as_render_queue* render_queue, as_render* render, as_objects_1024* objects);
+extern void as_rq_scene_destroy(as_render_queue* render_queue, as_render* render, as_scene* scene);

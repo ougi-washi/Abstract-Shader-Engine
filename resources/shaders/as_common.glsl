@@ -1,5 +1,7 @@
 
-void test_fn(int i)
+layout(push_constant) uniform const_vertex_buffer
 {
-	i++;
-}
+	mat4 transform;
+	vec4 mouse_data;
+	float time;
+} ps;
