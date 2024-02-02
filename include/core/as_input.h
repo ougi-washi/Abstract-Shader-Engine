@@ -12,7 +12,7 @@ typedef struct as_input_key
     i32 key;
     i32 action;
 } as_input_key;
-AS_DECLARE_ARRAY(as_input_keys_128, 128, as_input_key);
+AS_ARRAY_DECLARE(as_input_keys_128, 128, as_input_key);
 
 typedef struct as_input_buffer
 {

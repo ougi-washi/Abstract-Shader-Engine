@@ -22,7 +22,7 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 		}
 		else
 		{
-			//sleep_seconds(AS_RENDER_QUEUE_REST_TIME);
+			sleep_seconds(AS_RENDER_QUEUE_REST_TIME);
 		}
 	}
 	return NULL;
@@ -108,21 +108,21 @@ typedef struct as_render_draw_frame_arg
 	as_render* render;
 	void* display_context;
 	as_camera* camera;
-	as_objects_1024* objects;
+	as_scene* scene;
 } as_render_draw_frame_arg;
 void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
 	AS_WAIT_AND_LOCK(draw_frame_arg->render);
-	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->objects);
+	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->scene);
 	AS_SET_UNLOCKED(draw_frame_arg->render);
 }
-void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_objects_1024* objects)
+void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene)
 {
 	AS_WAIT_AND_LOCK(render);
 	as_render_draw_frame_arg draw_frame_arg = { 0 };
 	draw_frame_arg.render = render;
 	draw_frame_arg.display_context = display_context;
-	draw_frame_arg.objects = objects;
+	draw_frame_arg.scene = scene;
 	draw_frame_arg.camera = camera;
 	as_rq_submit(render_queue, &as_render_draw_frame_func, &draw_frame_arg, sizeof(draw_frame_arg));
 	AS_SET_UNLOCKED(render);
@@ -253,21 +253,21 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_rq_submit(render_queue, &as_shader_destroy_func, &shader_destroy_arg, sizeof(shader_destroy_arg));
 }
 
- typedef struct as_objects_destroy_arg
+ typedef struct as_scene_destroy_arg
  {
-	 as_render* render;
-	 as_objects_1024* objects;
- } as_objects_destroy_arg;
- void as_objects_destroy_func(as_objects_destroy_arg* objects_destroy_arg)
+	as_render* render;
+	as_scene* scene;
+ } as_scene_destroy_arg;
+ void as_scene_destroy_func(as_scene_destroy_arg* scene_destroy_arg)
  {
-	 AS_WAIT_AND_LOCK(objects_destroy_arg->render);
-	 as_objects_destroy(objects_destroy_arg->render, objects_destroy_arg->objects);
-	 AS_SET_UNLOCKED(objects_destroy_arg->render);
- }
- void as_rq_objects_destroy(as_render_queue* render_queue, as_render* render, as_objects_1024* objects)
+	AS_WAIT_AND_LOCK(scene_destroy_arg->render);
+	as_scene_destroy(scene_destroy_arg->render, scene_destroy_arg->scene);
+	AS_SET_UNLOCKED(scene_destroy_arg->render);
+}
+void as_rq_scene_destroy(as_render_queue* render_queue, as_render* render, as_scene* scene)
 {
-	 as_objects_destroy_arg objects_destroy_arg = { 0 };
-	 objects_destroy_arg.render = render;
-	 objects_destroy_arg.objects = objects;
-	 as_rq_submit(render_queue, &as_objects_destroy_func, &objects_destroy_arg, sizeof(objects_destroy_arg));
+	as_scene_destroy_arg scene_destroy_arg = { 0 };
+	scene_destroy_arg.render = render;
+	scene_destroy_arg.scene = scene;
+	as_rq_submit(render_queue, &as_scene_destroy_func, &scene_destroy_arg, sizeof(scene_destroy_arg));
 }

@@ -16,5 +16,5 @@ void main()
     {
         discard;
     }
-    outColor = .5 * sphere_mask* vec4(fragTexCoord.x, fragTexCoord.y, cos(ps.time * 5.) * 50., 0.) * texture(texSampler, fragTexCoord);
+    outColor = 1.5 * sphere_mask* vec4(fragTexCoord.x, fragTexCoord.y, cos(ps.time * 5.) * 50., 0.) * texture(texSampler, fragTexCoord);
 }

@@ -14,7 +14,7 @@ typedef struct as_shader_monitor_thread
 	void (*shader_update_func)(as_render_queue*, as_shader*);
 } as_shader_monitor_thread;
 
-AS_DECLARE_ARRAY(as_shader_monitor_threads_256, 256, as_shader_monitor_thread);
+AS_ARRAY_DECLARE(as_shader_monitor_threads_256, 256, as_shader_monitor_thread);
 
 typedef struct as_shader_monitor
 {

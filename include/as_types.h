@@ -128,5 +128,5 @@ typedef enum as_flag
 
 #define AS_WAIT_AND_LOCK(_obj) 														\
 u64 loop_counter = 0; 																\
-while (AS_IS_LOCKED(_obj) && loop_counter < UINT64_MAX) { loop_counter++; };		\
+while (AS_IS_LOCKED(_obj) && loop_counter < 1000) { loop_counter++; };				\
 AS_SET_LOCKED(_obj)

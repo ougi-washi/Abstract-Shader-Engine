@@ -12,7 +12,7 @@ typedef struct as_engine
 	as_shader_monitor *shader_monitor;
 	void *display_context;
 	as_camera *camera;
-	as_objects_1024 *objects;
+	as_scene *scene;
 	as_input_buffer *input_buffer;
 } as_engine;
 
@@ -29,12 +29,10 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
-	engine.objects = as_objects_create();
+	engine.scene = as_scene_create();
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
-	while (AS_IS_INVALID(engine.render))
-	{
-	};
+	while (AS_IS_INVALID(engine.render)) {};
 }
 
 void as_engine_clear()
@@ -46,7 +44,7 @@ void as_engine_clear()
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_rq_destroy(engine.render_queue);
 
-	as_objects_destroy(engine.render, engine.objects);
+	as_scene_destroy(engine.render, engine.scene);
 	as_render_destroy(engine.render);
 
 	as_display_context_destroy(engine.display_context);
@@ -66,7 +64,7 @@ bool as_engine_should_loop()
 
 void as_engine_draw()
 {
-	as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.objects);
+	as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene);
 	as_rq_wait_queue(engine.render_queue);
 	as_render_end_draw_loop(engine.render);
 }
@@ -98,9 +96,13 @@ as_shader *as_shader_create(const char *vertex_shader_path, const char *fragment
 as_object *as_object_create(as_shader *shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object *object = as_object_make(engine.render, shader);
-	as_object_add(object, engine.objects);
+	as_object *object = as_object_make(engine.render, engine.scene, shader);
 	return object;
+}
+
+as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
+{
+	return as_camera_make(engine.scene, position, target);
 }
 
 void as_camera_set_view(as_camera *camera, const as_camera_type type)
