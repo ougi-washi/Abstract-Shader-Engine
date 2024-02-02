@@ -145,6 +145,7 @@ AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
 typedef struct as_scene
 {
+	char path[AS_MAX_PATH_SIZE];
 	as_objects_1024 objects;
 	as_lights_1024 lights;
 	as_camera_128 cameras;
@@ -233,5 +234,7 @@ extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, co
 extern void as_object_set_scale(as_object* object, const as_vec3* scale);
 extern void as_object_destroy(as_render* render, as_object* object);
 
-extern as_scene* as_scene_create();
+extern as_scene* as_scene_create(const char* scene_path);
+extern as_scene* as_scene_load(const char* scene_path);
+
 extern void as_scene_destroy(as_render* render, as_scene* scene);

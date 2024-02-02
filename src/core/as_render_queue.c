@@ -56,10 +56,10 @@ sz as_rq_get_queue_size(as_render_queue* render_queue)
 void as_rq_wait_queue(as_render_queue* render_queue)
 {
 	u32 iteration_counter = 0;
-	while (as_rq_get_queue_size(render_queue) > 0 && iteration_counter < AS_RENDER_QUEUE_SIZE)
+	while (as_rq_get_queue_size(render_queue) > 0 && iteration_counter < AS_RENDER_QUEUE_MAX_WAIT_ITERATION)
 	{
 		sleep_seconds(AS_RENDER_QUEUE_WAIT_TIME);
-		//iteration_counter++;
+		iteration_counter++;
 		// wait for queue to be empty
 	}
 }

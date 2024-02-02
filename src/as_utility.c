@@ -180,3 +180,29 @@ void sleep_seconds(const f64 seconds)
 #endif
 }
 
+
+void as_serialize(void* data, const sz size, const char* filename)
+{
+    FILE* file = fopen(filename, "wb");
+	AS_ASSERT(file, "Failed to open file for writing"); 
+	fwrite(data, size, 1, file); 
+    fclose(file); 
+}
+
+void* as_deserialize(const sz size, const char* filename)
+{
+	void* data = (void*)AS_MALLOC(size); 
+    FILE* file = fopen(filename, "rb"); 
+    if (file) 
+	{ 
+        fread(data, size, 1, file);
+        fclose(file); 
+        data; 
+    } 
+	else 
+	{ 
+        AS_FREE(data); 
+        return NULL; 
+    } 
+	return data;
+}

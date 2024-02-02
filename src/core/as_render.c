@@ -1300,6 +1300,8 @@ void as_render_end_draw_loop(as_render* render)
 
 void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene)
 {
+	if (AS_IS_INVALID(render)){ return;};
+	
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index = 0;
@@ -1349,17 +1351,17 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 	AS_ASSERT(vkQueueSubmit(render->graphics_queue, 1, &submit_info, render->in_flight_fences.data[render->current_frame]) == VK_SUCCESS, 
 		"Failed to submit draw command buffer!");
 
+	VkSwapchainKHR swap_chains[] = { render->swap_chain };
+
 	VkPresentInfoKHR present_info = { 0 };
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
 	present_info.waitSemaphoreCount = 1;
 	present_info.pWaitSemaphores = signal_semaphores;
-
-	VkSwapchainKHR swap_chains[] = { render->swap_chain };
 	present_info.swapchainCount = 1;
 	present_info.pSwapchains = swap_chains;
 	present_info.pImageIndices = &image_index;
-
+	
+	vkDeviceWaitIdle(render->device);
 	result = vkQueuePresentKHR(render->present_queue, &present_info);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || render->framebuffer_resized) 
@@ -1915,11 +1917,25 @@ void as_object_destroy(as_render* render, as_object* object)
 	AS_SET_INVALID(object);
 }
 
-as_scene* as_scene_create()
+as_scene* as_scene_create(const char* scene_path)
 {
-	return AS_MALLOC_SINGLE(as_scene);
+	as_scene* scene = AS_MALLOC_SINGLE(as_scene);
+	strcpy(scene->path, scene_path);
+	return scene;
 }
 
+as_scene* as_scene_load(const char* scene_path)
+{
+	AS_ASSERT(scene_path, "Cannot load scene, scene_path NULL");
+
+	as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
+	if(!scene)
+	{
+		AS_LOG(LV_LOG, "Could not find scene to load, creating a new one")
+		scene = as_scene_create(scene_path);
+	}
+	return scene;
+}
 
 void as_scene_destroy(as_render *render, as_scene *scene)
 {

@@ -26,3 +26,9 @@ extern void as_util_make_path(char* output, const char* base_path, const char* f
 extern clock_t get_current_time();
 extern f64 calculate_delta_time(clock_t start, clock_t end);
 extern void sleep_seconds(const f64 seconds);
+
+void as_serialize(void* data, const sz size, const char* filename);
+#define AS_SERIALIZE(_type, _data, _filename) as_serialize(_data, sizeof(_type), _filename)
+
+void* as_deserialize(const sz size, const char* filename);
+#define AS_DESERIALIZE(_type, _filename) (_type*)as_deserialize(sizeof(_type), _filename)
