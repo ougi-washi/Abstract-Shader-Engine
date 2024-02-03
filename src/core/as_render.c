@@ -2,9 +2,9 @@
 
 #include "core/as_render.h"
 #include "core/as_shader.h"
-#include "core/as_shapes.h"
 #include "as_memory.h"
 #include "as_threads.h"
+#include "core/as_shapes.h"
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -1435,7 +1435,7 @@ extern u64* as_render_get_frame_count_ptr(as_render* render)
 	return NULL;
 }
 
-f64 as_render_get_time(as_render* render)
+f64 as_render_get_time(const as_render* render)
 {
 	return render->time;
 }
@@ -1858,10 +1858,11 @@ void as_camera_set_target(as_camera* camera, const as_vec3* target)
 	camera->target = *target;
 	as_camera_update_direction(camera);
 }
-as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
+as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, as_shader *shader)
 {
    	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
+	AS_ASSERT(shape, "Trying to add object, but shape is NULL");
 	AS_ASSERT(scene, "Trying to add object, but scene is NULL");
 
 	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
@@ -1870,7 +1871,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 	
 	// vertex buffer
 
-	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
+	VkDeviceSize vertex_buffer_size = sizeof(shape->vertices[0]) * shape->vertices_size;
 	VkBuffer vertex_staging_buffer;
 	VkDeviceMemory vertex_staging_buffer_memory;
 	create_buffer(render, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1879,7 +1880,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 
 	void* data;
 	vkMapMemory(render->device, vertex_staging_buffer_memory, 0, vertex_buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_vertices, (sz)vertex_buffer_size);
+	memcpy(data, shape->vertices, (sz)vertex_buffer_size);
 	vkUnmapMemory(render->device, vertex_staging_buffer_memory);
 
 	create_buffer(render, vertex_buffer_size,
@@ -1893,8 +1894,8 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 
 	// index buffer
 
-	VkDeviceSize index_buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
-	object->indices_size = as_shape_quad_indices_size;
+	VkDeviceSize index_buffer_size = sizeof(shape->indices[0]) * shape->indices_size;
+	object->indices_size = shape->indices_size;
 	VkBuffer index_staging_buffer;
 	VkDeviceMemory index_staging_buffer_memory;
 	create_buffer(render, index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1902,7 +1903,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 		&index_staging_buffer, &index_staging_buffer_memory);
 
 	vkMapMemory(render->device, index_staging_buffer_memory, 0, index_buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_indices, (sz)index_buffer_size);
+	memcpy(data, shape->indices, (sz)index_buffer_size);
 	vkUnmapMemory(render->device, index_staging_buffer_memory);
 
 	create_buffer(render, index_buffer_size,

@@ -115,17 +115,17 @@ as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment
 	return shader;
 }
 
-as_object* as_object_create(as_shader* shader)
+as_object* as_object_create(as_shape* shape, as_shader* shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object* object = as_object_make(engine.render, engine.scene, shader);
+	as_object* object = as_object_make(engine.render, engine.scene, shape, shader);
 	return object;
 }
 
-as_object* as_object_create_with_tick(as_shader* shader, void tick_func_ptr(as_object*, const f64))
+as_object* as_object_create_with_tick(as_shape* shape, as_shader* shader, void tick_func_ptr(as_object*, const f64))
 {
 	AS_ASSERT(tick_func_ptr, "Cannot create ticking object, invalid function ptr");
-	as_object* object = as_object_create(shader);
+	as_object* object = as_object_create(shape, shader);
 	as_tick_handle* handle = as_tick_handle_create(engine.tick_system);
  	handle->func_ptr = &tick_func_ptr;
 	handle->arg = object;

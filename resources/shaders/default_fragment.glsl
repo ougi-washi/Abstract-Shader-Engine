@@ -14,13 +14,13 @@ layout(location = 0) out vec4 out_color;
 void main() 
 {
     float sphere_mask = 1. - (length(frag_tex_coord - .5) - 0.03) * 5.;
-    if (sphere_mask < .5)
-    {
-        discard;
-    }
-    out_color =  
+    // if (sphere_mask < .5)
+    // {
+    //     discard;
+    // }
+    out_color = 2. *
                 sphere_mask * 
                 vec4(frag_tex_coord.x, frag_tex_coord.y, cos(ps.current_time * 1. * mod(instance_id, 3)) * 10., 0.) * 
-                texture(tex_sampler, frag_tex_coord);
+                1.;// texture(tex_sampler, frag_tex_coord);
 }
 

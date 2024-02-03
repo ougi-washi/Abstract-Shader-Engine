@@ -16,7 +16,7 @@ void as_editor_set_default_scene()
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
 	as_assign_texture_to_shader(shader, texture);
-	as_object* object1 = as_object_create_with_tick(shader, &as_rotate_object);
-	as_object* object2 = as_object_create(shader);
+	as_object* object1 = as_object_create_with_tick(&shape_sphere_10, shader, &as_rotate_object);
+	as_object* object2 = as_object_create(&shape_sphere_10, shader);
 	as_object_set_instance_count(object2, 10000);
 }
