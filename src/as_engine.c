@@ -4,21 +4,23 @@
 #include "core/as_shader_monitor.h"
 #include "core/as_render_queue.h"
 #include "core/as_input.h"
+#include "core/as_tick.h"
 
 typedef struct as_engine
 {
-	as_render *render;
-	as_render_queue *render_queue;
-	as_shader_monitor *shader_monitor;
-	void *display_context;
-	as_camera *camera;
-	as_scene *scene;
-	as_input_buffer *input_buffer;
+	as_render* render;
+	as_render_queue* render_queue;
+	as_shader_monitor* shader_monitor;
+	void* display_context;
+	as_camera* camera;
+	as_scene* scene;
+	as_input_buffer* input_buffer;
+	as_tick_system* tick_system;
 } as_engine;
 
 static as_engine engine = {0};
 
-void key_callback(void *window, const i32 key, const i32 scancode, const i32 action, const i32 mods)
+void key_callback(void* window, const i32 key, const i32 scancode, const i32 action, const i32 mods)
 {
 	as_input_add(engine.input_buffer, key, action);
 }
@@ -29,9 +31,10 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
-	engine.scene = as_scene_create();
+	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
+	engine.tick_system = as_tick_system_create();
 	while (AS_IS_INVALID(engine.render)) {};
 }
 
@@ -44,6 +47,7 @@ void as_engine_clear()
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_rq_destroy(engine.render_queue);
 
+	as_tick_system_destroy(engine.tick_system);
 	as_scene_destroy(engine.render, engine.scene);
 	as_render_destroy(engine.render);
 
@@ -59,6 +63,7 @@ bool as_engine_should_loop()
 	as_input_loop_tick();
 	as_display_context_poll_event();
 	as_rq_render_start_draw_loop(engine.render_queue, engine.render);
+	as_tick_system_execute(engine.tick_system, as_get_delta_time());
 	return should_loop;
 }
 
@@ -67,6 +72,23 @@ void as_engine_draw()
 	as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene);
 	as_rq_wait_queue(engine.render_queue);
 	as_render_end_draw_loop(engine.render);
+}
+
+void as_engine_set_scene(as_scene* scene)
+{
+	// TODO: maybe it's better to defer to the next frame by storing current scene and next frame scene
+	AS_ASSERT(scene, "Cannot set engine scene, invalid scene");
+	AS_WAIT_AND_LOCK(engine.render);
+	engine.scene = scene;
+	AS_UNLOCK(engine.render);
+}
+
+void as_engine_reset_scene()
+{
+	AS_WAIT_AND_LOCK(engine.render);
+	as_scene_destroy(engine.render, engine.scene);
+	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
+	AS_UNLOCK(engine.render);
 }
 
 f64 as_get_time()
@@ -79,24 +101,34 @@ f64 as_get_delta_time()
 	return as_render_get_delta_time(engine.render);
 }
 
-as_texture *as_texture_create(const char *texture_path)
+as_texture* as_texture_create(const char* texture_path)
 {
-	as_texture *texture = as_texture_make(texture_path);
+	as_texture* texture = as_texture_make(texture_path);
 	as_texture_update(engine.render, texture);
 	return texture;
 }
 
-as_shader *as_shader_create(const char *vertex_shader_path, const char *fragment_shader_path)
+as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
 {
-	as_shader *shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
+	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
 	return shader;
 }
 
-as_object *as_object_create(as_shader *shader)
+as_object* as_object_create(as_shader* shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object *object = as_object_make(engine.render, engine.scene, shader);
+	as_object* object = as_object_make(engine.render, engine.scene, shader);
+	return object;
+}
+
+as_object* as_object_create_with_tick(as_shader* shader, void tick_func_ptr(as_object*, const f64))
+{
+	AS_ASSERT(tick_func_ptr, "Cannot create ticking object, invalid function ptr");
+	as_object* object = as_object_create(shader);
+	as_tick_handle* handle = as_tick_handle_create(engine.tick_system);
+ 	handle->func_ptr = &tick_func_ptr;
+	handle->arg = object;
 	return object;
 }
 
@@ -105,14 +137,14 @@ as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
 	return as_camera_make(engine.scene, position, target);
 }
 
-void as_camera_set_view(as_camera *camera, const as_camera_type type)
+void as_camera_set_view(as_camera* camera, const as_camera_type type)
 {
 	AS_ASSERT(camera, "Trying to set camera as view, but camera is NULL");
 	engine.camera = camera;
 	engine.camera->type = type;
 }
 
-sz as_assign_texture_to_shader(as_shader *shader, as_texture *texture)
+sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)
 {
 	sz index = as_shader_add_uniform_texture(&shader->uniforms, texture);
 	as_shader_update(engine.render, shader);
@@ -129,6 +161,12 @@ void as_input_loop_tick()
 	if (as_is_pressed(AS_KEY_ESCAPE))
 	{
 		glfwSetWindowShouldClose(engine.display_context, true);
+	}
+
+	if (as_is_pressed(AS_KEY_LEFT_CONTROL) && as_is_pressed(AS_KEY_S))
+	{
+		AS_SERIALIZE(as_scene, engine.scene, AS_PATH_DEFAULT_SCENE);
+		return;
 	}
 
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)

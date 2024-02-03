@@ -9,6 +9,7 @@
 #define AS_RENDER_QUEUE_WAIT_TIME 1./100000. 
 #define AS_RENDER_QUEUE_REST_TIME 1./1000000. // wait 1ms when there is nothing to process
 #define AS_RENDER_QUEUE_SIZE 1024
+#define AS_RENDER_QUEUE_MAX_WAIT_ITERATION 10000
 #define AS_RENDER_QUEUE_MAX_ARG_SIZE 512
 
 typedef struct as_render_command
@@ -24,7 +25,7 @@ typedef struct as_render_queue
 	as_thread thread;
 	as_render_commands_1024 commands;
 
-	ADD_FLAG;
+	AS_FLAG;
 } as_render_queue;
 
 extern as_render_queue* as_rq_create();

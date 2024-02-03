@@ -36,6 +36,30 @@
 #define AS_ARRAY_GET(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
 
+#define AS_ARRAY_SWAP(_type, _array, _index1, _index2) \
+    if ((_index1) >= 0 && (_index1) < (_array).size && \
+        (_index2) >= 0 && (_index2) < (_array).size) { \
+        _type temp = (_array).data[(_index1)]; \
+        (_array).data[(_index1)] = (_array).data[(_index2)]; \
+        (_array).data[(_index2)] = temp; \
+    } else { AS_LOG(LV_ERROR, "Invalid indices for array swap"); }
+
+#define AS_ARRAY_FIND(_array, _element, _found_index) \
+for (sz _i = 0; _i < (_array).size; ++_i) { \
+    if ((_array).data[_i] == (_element)) { \
+        (_found_index) = _i; \
+        break; \
+    } \
+}
+
+#define AS_ARRAY_FIND_PTR(_array, _element_ptr, _found_index) \
+for (sz _i = 0; _i < (_array).size; ++_i) { \
+    if (&(_array).data[_i] == (_element_ptr)) { \
+        (_found_index) = _i; \
+        break; \
+    } \
+}
+
 #define AS_ARRAY_GET_SIZE(_array) (_array).size
 #define AS_ARRAY_GET_LAST_INDEX(_array) _array.size - 1
 #define AS_ARRAY_CLEAR(_array) { (_array).size = 0; }
