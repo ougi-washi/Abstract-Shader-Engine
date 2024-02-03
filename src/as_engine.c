@@ -142,6 +142,7 @@ void as_camera_set_view(as_camera* camera, const as_camera_type type)
 	AS_ASSERT(camera, "Trying to set camera as view, but camera is NULL");
 	engine.camera = camera;
 	engine.camera->type = type;
+	as_camera_set_main(engine.scene, camera);
 }
 
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)

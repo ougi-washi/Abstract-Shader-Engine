@@ -236,6 +236,7 @@ extern void as_camera_set_target(as_camera* camera, const as_vec3* target);
 extern as_object* as_object_make(as_render* render, as_scene* scene, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);
+extern void as_object_translate(as_object* object, const as_vec3* translation);
 extern void as_object_set_rotation(as_object* object, const as_vec3* rotation);
 extern void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
 extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, const as_vec3* axis, const as_vec3* pivot);

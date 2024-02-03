@@ -1934,6 +1934,14 @@ void as_object_set_translation(as_object* object, const as_vec3* translation)
 	as_mat4_set_translation(&object->transform, translation);
 }
 
+void as_object_translate(as_object* object, const as_vec3* translation)
+{
+	AS_ASSERT(object, TEXT("Cannot translate object, but object is NULL"));
+	AS_ASSERT(translation, TEXT("Cannot translate object, but translation is NULL"));
+
+	as_mat4_translate(&object->transform, translation);
+}
+
 void as_object_set_rotation(as_object* object, const as_vec3* rotation)
 {
 	AS_ASSERT(object, TEXT("Trying to set object rotation, but object is NULL"));

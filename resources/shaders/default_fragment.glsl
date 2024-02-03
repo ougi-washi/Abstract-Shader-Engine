@@ -1,7 +1,7 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #version 450
-#include "as_common.glsl"
+#include "core/as_common.glsl"
 
 layout(binding = 1) uniform sampler2D tex_sampler;
 
@@ -18,6 +18,9 @@ void main()
     {
         discard;
     }
-    out_color = sin(mod(ps.current_time, 3)) * sphere_mask* vec4(frag_tex_coord.x, frag_tex_coord.y, cos(ps.current_time * 5. * mod(instance_id, 3)) * 50., 0.) * texture(tex_sampler, frag_tex_coord);
+    out_color =  
+                sphere_mask * 
+                vec4(frag_tex_coord.x, frag_tex_coord.y, cos(ps.current_time * 1. * mod(instance_id, 3)) * 10., 0.) * 
+                texture(tex_sampler, frag_tex_coord);
 }
 

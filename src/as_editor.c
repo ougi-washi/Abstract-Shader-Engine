@@ -4,12 +4,12 @@
 
 void as_rotate_object(as_object* object, const f64 delta_time)
 {
-	as_object_rotate(object, 3. * delta_time, AS_VEC3_X_AXIS_PTR);
+	as_object_set_translation(object, AS_VEC_PTR(as_vec3, sin(as_get_time()) * 3.5, cos(as_get_time()) * 5.));
 }
 
 void as_editor_set_default_scene()
 {    
-	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, 10.f, 10.f, 10.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 0.f));
+	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, -15.f, -15.f, 10.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 0.f));
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
 	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
@@ -18,7 +18,5 @@ void as_editor_set_default_scene()
 	as_assign_texture_to_shader(shader, texture);
 	as_object* object1 = as_object_create_with_tick(shader, &as_rotate_object);
 	as_object* object2 = as_object_create(shader);
-	as_object_set_instance_count(object2, 100000);
-	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 0., 0.));
-	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 0., 0., -10.));
+	as_object_set_instance_count(object2, 10000);
 }
