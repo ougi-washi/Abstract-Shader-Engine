@@ -74,6 +74,23 @@ void as_engine_draw()
 	as_render_end_draw_loop(engine.render);
 }
 
+void as_engine_set_scene(as_scene* scene)
+{
+	// TODO: maybe it's better to defer to the next frame by storing current scene and next frame scene
+	AS_ASSERT(scene, "Cannot set engine scene, invalid scene");
+	AS_WAIT_AND_LOCK(engine.render);
+	engine.scene = scene;
+	AS_UNLOCK(engine.render);
+}
+
+void as_engine_reset_scene()
+{
+	AS_WAIT_AND_LOCK(engine.render);
+	as_scene_destroy(engine.render, engine.scene);
+	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
+	AS_UNLOCK(engine.render);
+}
+
 f64 as_get_time()
 {
 	return as_render_get_time(engine.render);
@@ -110,7 +127,8 @@ as_object* as_object_create_with_tick(as_shader* shader, void tick_func_ptr(as_o
 	AS_ASSERT(tick_func_ptr, "Cannot create ticking object, invalid function ptr");
 	as_object* object = as_object_create(shader);
 	as_tick_handle* handle = as_tick_handle_create(engine.tick_system);
-	handle->func_ptr = &tick_func_ptr;
+ 	handle->func_ptr = &tick_func_ptr;
+	handle->arg = object;
 	return object;
 }
 

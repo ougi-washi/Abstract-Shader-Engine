@@ -4,4 +4,4 @@
 
 #include "as_engine.h"
 
-extern as_scene* as_generate_editor_default_scene();
+extern void as_editor_set_default_scene();

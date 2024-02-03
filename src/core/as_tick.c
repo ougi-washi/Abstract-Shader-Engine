@@ -12,7 +12,7 @@ as_tick_handle* as_tick_handle_create(as_tick_system* tick_system)
     return handle;
 }
 
-void as_tick_handle_execute(const as_tick_handle* tick_handle, const u64 delta_time)
+void as_tick_handle_execute(const as_tick_handle* tick_handle, const f64 delta_time)
 {
     AS_ASSERT(tick_handle, "Cannot execute tick handle, invalid tick handle");
     AS_ASSERT(tick_handle->func_ptr, "Cannot execute tick handle, invalid function pointer");
@@ -32,7 +32,7 @@ void as_tick_system_destroy(as_tick_system* tick_system)
     AS_FREE(tick_system);
 }
 
-void as_tick_system_execute(const as_tick_system* tick_system, const u64 delta_time)
+void as_tick_system_execute(const as_tick_system* tick_system, const f64 delta_time)
 {
     AS_ASSERT(tick_system, "Cannot execute tick system, invalid tick system");
     for (sz i = 0; i < tick_system->handles.size ; i++)

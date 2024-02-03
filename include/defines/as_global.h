@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define AS_EDITOR 1
+
 // Window
 #define AS_ENGINE_WINDOW_WIDTH 1900
 #define AS_ENGINE_WINDOW_HEIGHT 1080

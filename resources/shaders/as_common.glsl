@@ -1,7 +1,10 @@
 
-layout(push_constant) uniform const_vertex_buffer
+
+layout(push_constant) uniform push_constant_buffer
 {
-	mat4 transform;
+	mat4 object_transform;
+	vec3 camera_location;
+	vec3 camera_direction;
 	vec4 mouse_data;
-	float time;
+	float current_time;
 } ps;

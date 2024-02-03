@@ -12,7 +12,7 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define AS_TARGET_FPS 1000.
+#define AS_TARGET_FPS 144.
 
 // Arrays
 
@@ -45,12 +45,14 @@ typedef struct as_vertex
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
 
-typedef struct as_push_const_vertex_buffer
+typedef struct as_push_const_buffer
 {
-	as_mat4 transform;
-	as_vec4 mouse_data;
-	f32 time;
-} as_push_const_vertex_buffer;
+	as_mat4 object_transform;
+	as_vec3 camera_position;
+	as_vec3 camera_direction;
+	as_vec3 mouse_data;
+	float current_time;
+} as_push_const_buffer;
 
 typedef struct as_uniform_buffers
 {
@@ -139,6 +141,8 @@ typedef struct as_camera
 	f32 fov;
 	as_camera_type type;
 	f64 movement_speed;
+
+	as_vec3 cached_direction;
 	AS_FLAG;
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
@@ -148,7 +152,7 @@ typedef struct as_scene
 	char path[AS_MAX_PATH_SIZE];
 	as_objects_1024 objects;
 	as_lights_1024 lights;
-	as_camera_128 cameras;
+	as_camera_128 cameras; // main camera is index 0
 } as_scene;
 
 typedef struct as_render
@@ -224,6 +228,10 @@ extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
 
 extern as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec3* target);
+extern as_camera* as_camera_get_main(as_scene* scene);
+extern void as_camera_set_main(as_scene* scene, as_camera* camera);
+extern void as_camera_set_position(as_camera* camera, const as_vec3* position);
+extern void as_camera_set_target(as_camera* camera, const as_vec3* target);
 
 extern as_object* as_object_make(as_render* render, as_scene* scene, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);

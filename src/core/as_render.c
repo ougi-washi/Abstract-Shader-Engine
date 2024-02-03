@@ -654,12 +654,12 @@ void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeli
 	VkPushConstantRange push_constant_range_vert = { 0 };
 	push_constant_range_vert.offset = 0;
 	push_constant_range_vert.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	push_constant_range_vert.size = sizeof(as_push_const_vertex_buffer);
+	push_constant_range_vert.size = sizeof(as_push_const_buffer);
 
 	VkPushConstantRange push_constant_range_frag = { 0 };
 	push_constant_range_frag.offset = 0;
 	push_constant_range_frag.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	push_constant_range_frag.size = sizeof(as_push_const_vertex_buffer);
+	push_constant_range_frag.size = sizeof(as_push_const_buffer);
 
 	VkPushConstantRange ranges[] = {push_constant_range_vert, push_constant_range_frag};
 
@@ -1025,10 +1025,15 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, as_camer
 	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
 }
 
-as_push_const_vertex_buffer get_push_const_vertex_buffer(const as_object* object, const as_render* render)
+as_push_const_buffer get_push_const_buffer(const as_object* object, const as_camera* camera, const as_render* render)
 {
-	const as_push_const_vertex_buffer output_buffer = { object->transform, {0}, render->time };
-	return output_buffer;
+	return (as_push_const_buffer)
+	{ 	.object_transform = object->transform, 
+		.camera_position = camera->position,
+		.camera_direction = camera->target,
+		.mouse_data = {0},
+		.current_time = as_render_get_time(render)
+	};
 }
 
 void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene)
@@ -1057,6 +1062,8 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 	render_pass_info.pClearValues = clear_values;
 	render_pass_info.clearValueCount = AS_ARRAY_SIZE(clear_values);
 
+	as_camera* camera = as_camera_get_main(scene);
+
 	vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 	{
 		VkViewport viewport = { 0 };
@@ -1080,7 +1087,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 			{
 				as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
 				as_shader* shader = object->shader;
-				as_push_const_vertex_buffer push_const = get_push_const_vertex_buffer(object, render);
+				as_push_const_buffer push_const = get_push_const_buffer(object, camera, render);
 				if (!shader || !shader->graphics_pipeline || !as_shader_is_unlocked(render->frame_counter, shader)) { continue; }
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline);
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
@@ -1331,6 +1338,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
 	record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene);
+
 
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1787,11 +1795,69 @@ as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec
 	camera->target = *target;
 	camera->up = AS_VEC(as_vec3, 0.f, 0.f, 1.f);
 	camera->fov = 45.f;
-	camera->movement_speed = 50.;
+	camera->movement_speed = 40.f;
 	AS_IS_VALID(camera);
 	return camera;
 }
 
+as_camera* as_camera_get_main(as_scene* scene)
+{
+	// no checks for speed's sake, this will be called every frame
+	return &scene->cameras.data[0];
+}
+
+void as_camera_set_main(as_scene* scene, as_camera* camera)
+{
+	AS_ASSERT(scene, "Cannot set camera as main, scene is NULL");
+	AS_ASSERT(camera, "Cannot set camera as main, camera is NULL");
+	AS_ASSERT(scene->cameras.size > 0, "Cannot set camera as main, no cameras found in the scene");
+
+	// main should be index 0
+
+	if (AS_ARRAY_GET(scene->cameras, 0) == camera) // check if it's already 0
+	{
+		return;
+	}
+
+	sz found_camera_index = -1;
+	AS_ARRAY_FIND_PTR(scene->cameras, camera, found_camera_index);
+	if (found_camera_index >= 0)
+	{
+		AS_ARRAY_SWAP(as_camera, scene->cameras, found_camera_index, 0);
+	}
+
+	// for (sz i = 1; i < scene->cameras.size ; i++)
+	// {
+	// 	if (AS_ARRAY_GET(scene->cameras, i) == camera)
+	// 	{
+			
+	// 	}
+	// }
+	
+}
+
+void as_camera_update_direction(as_camera* camera)
+{
+	as_vec3_sub(&camera->cached_direction, &camera->target, &camera->position); // update cached direction (needed for uniforms)
+}
+
+void as_camera_set_position(as_camera* camera, const as_vec3* position)
+{
+	AS_ASSERT(camera, "Trying to set camera position, but camera is NULL");
+	AS_ASSERT(position, "Trying to set camera position, but position is NULL");
+	
+	camera->position = *position;
+	as_camera_update_direction(camera);
+}
+
+void as_camera_set_target(as_camera* camera, const as_vec3* target)
+{
+	AS_ASSERT(camera, "Trying to set camera target, but camera is NULL");
+	AS_ASSERT(target, "Trying to set camera target, but target is NULL");
+	
+	camera->target = *target;
+	as_camera_update_direction(camera);
+}
 as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 {
    	AS_ASSERT(render, "Trying to add object, but render is NULL");

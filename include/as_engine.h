@@ -10,6 +10,8 @@ extern void as_engine_init();
 extern void as_engine_clear();
 extern bool as_engine_should_loop();
 extern void as_engine_draw(); // generally at the end of the engine loop
+extern void as_engine_set_scene(as_scene* scene);
+extern void as_engine_reset_scene();
 
 extern f64 as_get_time();
 extern f64 as_get_delta_time();
