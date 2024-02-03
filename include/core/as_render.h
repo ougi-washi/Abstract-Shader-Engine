@@ -68,7 +68,7 @@ typedef struct as_texture
 
 	char filename[AS_MAX_PATH_SIZE];
 
-	ADD_FLAG;
+	AS_FLAG;
 } as_texture;
 
 typedef struct as_shader_uniform
@@ -98,11 +98,11 @@ typedef struct as_shader
 
 	u64 refresh_frame; // this will define whether or not to use the graphics_pipeline
 	
-	ADD_FLAG;
+	AS_FLAG;
 }as_shader;
 AS_ARRAY_DECLARE(as_shaders_ptr_256, 256, as_shader*);
 
-typedef struct as_object
+typedef struct as_object // TODO: Get GPU data out so they can loop faster in the drawcommands
 {
 	as_transform transform;
 	as_shader* shader;
@@ -114,7 +114,7 @@ typedef struct as_object
 	VkDeviceMemory index_buffer_memory;
 	u32 indices_size;
 
-	ADD_FLAG;
+	AS_FLAG;
 } as_object;
 AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
 
@@ -139,7 +139,7 @@ typedef struct as_camera
 	f32 fov;
 	as_camera_type type;
 	f64 movement_speed;
-	ADD_FLAG;
+	AS_FLAG;
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
@@ -194,7 +194,7 @@ typedef struct as_render
 	f64 delta_time;
 	f64 current_time;
 
-	ADD_FLAG;
+	AS_FLAG;
 } as_render;
 
 

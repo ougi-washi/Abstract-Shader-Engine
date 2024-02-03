@@ -552,12 +552,12 @@ void create_render_pass(as_render* render)
 void as_shader_set_locked(const u64 frame_count, as_shader* shader)
 {
 	shader->refresh_frame = frame_count;
-	AS_SET_LOCKED(shader);
+	AS_LOCK(shader);
 }
 
 void as_shader_set_unlocked(as_shader* shader)
 {
-	AS_SET_UNLOCKED(shader);
+	AS_UNLOCK(shader);
 }
 
 bool as_shader_is_unlocked(const u64 frame_count, as_shader* shader)

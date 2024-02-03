@@ -18,7 +18,7 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 				command->func_ptr(command->arg);
 			}
 			AS_ARRAY_REMOVE_AT(queue->commands, queue_size - 1);
-			AS_SET_UNLOCKED(queue);
+			AS_UNLOCK(queue);
 		}
 		else
 		{
@@ -78,14 +78,14 @@ void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg
 	{
 		AS_LOG(LV_ERROR, "Overflowing render queue, please check your update/submission rates, potential crash.");
 	}
-	AS_SET_UNLOCKED(render_queue);
+	AS_UNLOCK(render_queue);
 }
 
 void as_render_start_draw_loop_func(as_render* render) 
 { 
 	AS_WAIT_AND_LOCK(render);
 	as_render_start_draw_loop(render); 
-	AS_SET_UNLOCKED(render);
+	AS_UNLOCK(render);
 };
 void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render)
 {
@@ -96,7 +96,7 @@ void as_render_end_draw_loop_func(as_render* render)
 {
 	AS_WAIT_AND_LOCK(render);
 	as_render_end_draw_loop(render);
-	AS_SET_UNLOCKED(render);
+	AS_UNLOCK(render);
 }
 void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render)
 {
@@ -114,7 +114,7 @@ void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
 	AS_WAIT_AND_LOCK(draw_frame_arg->render);
 	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->scene);
-	AS_SET_UNLOCKED(draw_frame_arg->render);
+	AS_UNLOCK(draw_frame_arg->render);
 }
 void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene)
 {
@@ -125,7 +125,7 @@ void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, v
 	draw_frame_arg.scene = scene;
 	draw_frame_arg.camera = camera;
 	as_rq_submit(render_queue, &as_render_draw_frame_func, &draw_frame_arg, sizeof(draw_frame_arg));
-	AS_SET_UNLOCKED(render);
+	AS_UNLOCK(render);
 }
 
 void as_render_destroy_func(as_render* render)
@@ -147,7 +147,7 @@ void as_texture_update_func(as_texture_update_arg* texture_update_arg)
 {
 	AS_WAIT_AND_LOCK(texture_update_arg->render);
 	as_texture_update(texture_update_arg->render, texture_update_arg->texture);
-	AS_SET_UNLOCKED(texture_update_arg->render);
+	AS_UNLOCK(texture_update_arg->render);
 }
 void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render)
 {
@@ -166,7 +166,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 AS_WAIT_AND_LOCK(texture_destroy_arg->render);
 	 as_texture_destroy(texture_destroy_arg->render, texture_destroy_arg->texture);
-	 AS_SET_UNLOCKED(texture_destroy_arg->render);
+	 AS_UNLOCK(texture_destroy_arg->render);
  }
  void as_rq_texture_destroy(as_render_queue* render_queue, as_render* render, as_texture* texture)
 {
@@ -186,7 +186,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 AS_WAIT_AND_LOCK(shader_set_uniforms_arg->render);
 	 as_shader_set_uniforms(shader_set_uniforms_arg->render, shader_set_uniforms_arg->shader, shader_set_uniforms_arg->uniforms);
-	 AS_SET_UNLOCKED(shader_set_uniforms_arg->render);
+	 AS_UNLOCK(shader_set_uniforms_arg->render);
  }
  void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
 {
@@ -206,7 +206,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 AS_WAIT_AND_LOCK(shader_update_arg->render);
 	 as_shader_update(shader_update_arg->render, shader_update_arg->shader);
-	 AS_SET_UNLOCKED(shader_update_arg->render);
+	 AS_UNLOCK(shader_update_arg->render);
  }
  void as_rq_shader_update(as_render_queue* render_queue, as_render* render, as_shader* shader)
 {
@@ -220,7 +220,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 AS_WAIT_AND_LOCK(shader);
 	 as_shader_create_graphics_pipeline(shader);
-	 AS_SET_UNLOCKED(shader);
+	 AS_UNLOCK(shader);
  }
  extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader)
  {
@@ -243,7 +243,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 AS_WAIT_AND_LOCK(shader_destroy_arg->render);
 	 as_shader_destroy(shader_destroy_arg->render, shader_destroy_arg->shader);
-	 AS_SET_UNLOCKED(shader_destroy_arg->render);
+	 AS_UNLOCK(shader_destroy_arg->render);
  }
  void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader)
  {
@@ -262,7 +262,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	AS_WAIT_AND_LOCK(scene_destroy_arg->render);
 	as_scene_destroy(scene_destroy_arg->render, scene_destroy_arg->scene);
-	AS_SET_UNLOCKED(scene_destroy_arg->render);
+	AS_UNLOCK(scene_destroy_arg->render);
 }
 void as_rq_scene_destroy(as_render_queue* render_queue, as_render* render, as_scene* scene)
 {

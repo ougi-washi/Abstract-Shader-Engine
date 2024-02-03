@@ -25,7 +25,7 @@ typedef struct as_shader_monitor
 	u64* frame_count;
 	as_render_queue* render_queue; // optional
 	void (*shader_update_func)(as_render_queue*, as_shader*);
-	ADD_FLAG;
+	AS_FLAG;
 } as_shader_monitor;
 
 extern as_shader_monitor* as_shader_monitor_create(u64* frame_count, void shader_update_func(as_render_queue*, as_shader*), as_render_queue* render_queue);

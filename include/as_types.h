@@ -112,7 +112,7 @@ typedef enum as_flag
 	AS_MAX				= 0x03,
 } as_flag;
 
-#define ADD_FLAG as_flag obj_flag
+#define AS_FLAG as_flag obj_flag
 
 #define AS_IS_VALID(_obj)      	(_obj && (u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
 #define AS_IS_INVALID(_obj)    	(!AS_IS_VALID(_obj))
@@ -121,10 +121,10 @@ typedef enum as_flag
 
 #define AS_SET_VALID(_obj)     	if(AS_IS_INVALID(_obj))	_obj->obj_flag = AS_VALID
 #define AS_SET_INVALID(_obj)	_obj->obj_flag = AS_INVALID
-#define AS_SET_LOCKED(_obj)    	if(AS_IS_UNLOCKED(_obj))	_obj->obj_flag = AS_LOCKED
-#define AS_SET_UNLOCKED(_obj)  	if(AS_IS_LOCKED(_obj))		_obj->obj_flag = AS_VALID
+#define AS_LOCK(_obj)    	if(AS_IS_UNLOCKED(_obj))	_obj->obj_flag = AS_LOCKED
+#define AS_UNLOCK(_obj)  	if(AS_IS_LOCKED(_obj))		_obj->obj_flag = AS_VALID
 
 #define AS_WAIT_AND_LOCK(_obj) 																\
 u64 loop_counter = 0; 																		\
 while (AS_IS_LOCKED(_obj) && loop_counter < UINT64_MAX) { loop_counter++; };				\
-AS_SET_LOCKED(_obj)
+AS_LOCK(_obj)
