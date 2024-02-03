@@ -41,7 +41,7 @@ typedef struct as_vertex
 {
 	as_vec3 pos;
 	as_vec3 color;
-	as_vec2 tex_coord;
+	as_vec2 tex_coord; // TODO: add normal before generating
 } as_vertex;
 #define AS_VERTEX_VAR_COUNT 3
 
