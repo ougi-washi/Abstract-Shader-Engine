@@ -3,6 +3,7 @@
 #include "core/as_shader.h"
 #include <shaderc/shaderc.h>
 #include "as_memory.h"
+#include "defines/as_global.h"
 
 const char* compilation_status_texts[] =
 {	
@@ -69,14 +70,22 @@ i32 as_shader_compile(as_shader_binary* binary, const char* source, const char* 
 	return 0;
 }
 
-as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type shader_type)
+void as_shader_get_cached_path(char* out_path, const char* original_path)
+{
+	char file_name[AS_MAX_FILE_NAME_SIZE] = "";
+	as_util_extract_file_name(original_path, file_name);	
+	sprintf(out_path, "%s%s.as_shader_binary", AS_PATH_CACHED_SHADERS, file_name);
+}
+
+as_shader_binary* as_shader_read_code(const char* path, const as_shader_type shader_type)
 {
 	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
-	as_util_expand_file_includes(filename, processed_source);
+	as_util_expand_file_includes(path, processed_source);
 
-	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = {0};
-	sprintf(cached_filename, "%s_cache", filename);
-	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
+	char cached_path[AS_MAX_PATH_SIZE] = {0};
+	as_shader_get_cached_path(cached_path, path);
+
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0)
 	{
 		return cached_binary;
@@ -89,7 +98,7 @@ as_shader_binary* as_shader_read_code(const char* filename, const as_shader_type
 	strcpy(ouput_binary->source, processed_source);
 	ouput_binary->source_size = AS_MAX_SHADER_SOURCE_SIZE;
 
-	as_shader_binary_serialize(ouput_binary, cached_filename);
+	as_shader_binary_serialize(ouput_binary, cached_path);
 	return ouput_binary;
 }
 
@@ -102,33 +111,43 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 	}
 }
 
-bool as_shader_has_changed(const char* filename)
+bool as_shader_has_changed(const char* path)
 {
 	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
-	as_util_expand_file_includes(filename, processed_source);
+	as_util_expand_file_includes(path, processed_source);
 
-	char cached_filename[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
-	sprintf(cached_filename, "%s_cache", filename);
-	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_filename);
+	char cached_path[AS_MAX_PATH_SIZE] = {0};
+	as_shader_get_cached_path(cached_path, path);
+
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;
 	AS_FREE(cached_binary);
 	return !is_same;
 }
 
-void as_shader_binary_serialize(const as_shader_binary* data, const char* filename)
+void as_shader_binary_serialize(const as_shader_binary* data, const char* path)
 {
-	FILE* file = fopen(filename, "wb");
+    char directory[AS_MAX_PATH_SIZE];
+    as_util_extract_base_path(path, directory);
+    as_util_ensure_directory_exists(directory);
+
+	FILE* file = fopen(path, "wb");
 	AS_ASSERT(file, "Failed to open file for writing");
 	fwrite(data, sizeof(as_shader_binary), 1, file);
 	fclose(file);
 }
 
-as_shader_binary* as_shader_binary_deserialize(const char* filename)
+as_shader_binary* as_shader_binary_deserialize(const char* path)
 {
+	char directory[AS_MAX_PATH_SIZE];
+    as_util_extract_base_path(path, directory);
+    as_util_ensure_directory_exists(directory);
+
 	as_shader_binary* data = AS_MALLOC_SINGLE(as_shader_binary);
-	FILE* file = fopen(filename, "rb");
+	FILE* file = fopen(path, "rb");
 	if (!file)
 	{
+		AS_FREE(data);
 		return NULL;
 	}
 

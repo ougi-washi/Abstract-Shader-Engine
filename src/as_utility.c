@@ -8,9 +8,9 @@ void as_i32_to_str(const i32 integer, char* out_str)
 	sprintf(out_str, "%d", integer);
 }
 
-char* as_util_read_file(const char* filename, sz* size)
+char* as_util_read_file(const char* path, sz* size)
 {
-	FILE* file = fopen(filename, "rb");
+	FILE* file = fopen(path, "rb");
 	if (!file)
 	{
 		return NULL;
@@ -40,42 +40,42 @@ sz as_util_get_file_size(FILE* file)
 	return size;
 }
 
-void extract_base_path(const char* filename, char* base_path)
+void extract_base_path(const char* path, char* base_path)
 {
-	size_t len = strlen(filename);
+	size_t len = strlen(path);
 	size_t pos = len;
 
 	// Find the last occurrence of '/'
-	while (pos > 0 && filename[pos - 1] != '/')
+	while (pos > 0 && path[pos - 1] != '/')
 	{
 		pos--;
 	}
 
 	// Copy the base path
-	strncpy(base_path, filename, pos);
+	strncpy(base_path, path, pos);
 	base_path[pos] = '\0';
 }
 
-void append_base_path(const char* base_path, const char* filename, char* output_path)
+void append_base_path(const char* base_path, const char* path, char* output_path)
 {
-	snprintf(output_path, AS_MAX_PATH_SIZE, "%s/%s", base_path, filename);
+	snprintf(output_path, AS_MAX_PATH_SIZE, "%s/%s", base_path, path);
 }
-void as_util_expand_file_includes(const char* filename, char* output) 
+void as_util_expand_file_includes(const char* path, char* output) 
 {
-	if (!output || !filename) 
+	if (!output || !path) 
 	{
 		AS_LOG(LV_WARNING, "Cannot expand file includes, nullptr");
 		return;
 	}
 
 	char file_path[AS_MAX_PATH_SIZE] = "";
-	extract_base_path(filename, file_path);
+	extract_base_path(path, file_path);
 
-	FILE* file = fopen(filename, "r");
+	FILE* file = fopen(path, "r");
 
 	if (!file) {
 		AS_LOG(LV_WARNING, "Error opening file: ");
-		AS_LOG(LV_WARNING, filename);
+		AS_LOG(LV_WARNING, path);
 		return;
 	}
 
@@ -84,7 +84,7 @@ void as_util_expand_file_includes(const char* filename, char* output)
 	if (read_bytes == 0 && !feof(file)) 
 	{
 		AS_LOG(LV_WARNING, "Error reading file: ");
-		AS_LOG(LV_WARNING, filename);
+		AS_LOG(LV_WARNING, path);
 		fclose(file);
 		return;
 	}
@@ -139,23 +139,78 @@ void as_util_expand_file_includes(const char* filename, char* output)
 	}
 }
 
-void as_util_write_file(const char* filename, const void* data, const sz size, const bool is_binary)
+void as_util_write_file(const char* path, const void* data, const sz size, const bool is_binary)
 {
-	FILE* file = fopen(filename, (is_binary) ? "wb" : "w");
+	FILE* file = fopen(path, (is_binary) ? "wb" : "w");
 	AS_ASSERT(file, "Failed to open file for writing");
 	const sz written = fwrite(data, 1, size, file);
 	fclose(file);
 	AS_ASSERT(written == size, "Failed to write the entire data to file");
 }
 
-void as_util_make_dir(const char* directory)
-{
-	mkdir(directory, 0777);
-}
-
-extern void as_util_make_path(char* output, const char* base_path, const char* file_path)
+void as_util_make_path(char* output, const char* base_path, const char* file_path)
 {
 	sprintf(output, "%s%s", base_path, file_path);
+}
+
+void as_util_extract_base_path(const char* path, char* base_path)
+{
+    size_t len = strlen(path);
+    size_t pos = len;
+
+    while (pos > 0 && path[pos - 1] != '/')
+    {
+        pos--;
+    }
+    strncpy(base_path, path, pos);
+    base_path[pos] = '\0';
+}
+
+void as_util_extract_file_name(const char* path, char* file_name)
+{
+    size_t len = strlen(path);
+    size_t pos = len;
+
+    while (pos > 0 && path[pos - 1] != '/')
+    {
+        pos--;
+    }
+    strncpy(file_name, path + pos, len - pos);
+    file_name[len - pos] = '\0';
+}
+
+void as_util_combine_path_and_file(const char* base_path, const char* file_name, char* output_path)
+{
+    snprintf(output_path, AS_MAX_PATH_SIZE, "%s/%s", base_path, file_name);
+}
+
+void create_directory(const char* directory)
+{
+#ifdef _WIN32
+    CreateDirectory(directory, NULL);
+#else
+    mkdir(directory, 0777);
+#endif
+}
+
+void as_util_ensure_directory_exists(const char* path)
+{
+    size_t path_length = strlen(path);
+    char current_path[AS_MAX_PATH_SIZE];
+    current_path[0] = '\0';
+
+    for (size_t i = 0; i < path_length; ++i)
+    {
+        if (path[i] == '/')
+        {
+            strcat(current_path, "/");
+            create_directory(current_path);
+        }
+        else
+        {
+            strncat(current_path, &path[i], 1);
+        }
+    }
 }
 
 clock_t get_current_time()
@@ -181,18 +236,19 @@ void sleep_seconds(const f64 seconds)
 }
 
 
-void as_serialize(void* data, const sz size, const char* filename)
+void as_serialize(void* data, const sz size, const char* path)
 {
-    FILE* file = fopen(filename, "wb");
+	as_util_ensure_directory_exists(path);
+    FILE* file = fopen(path, "wb");
 	AS_ASSERT(file, "Failed to open file for writing"); 
 	fwrite(data, size, 1, file); 
     fclose(file); 
 }
 
-void* as_deserialize(const sz size, const char* filename)
+void* as_deserialize(const sz size, const char* path)
 {
 	void* data = (void*)AS_MALLOC(size); 
-    FILE* file = fopen(filename, "rb"); 
+    FILE* file = fopen(path, "rb"); 
     if (file) 
 	{ 
         fread(data, size, 1, file);

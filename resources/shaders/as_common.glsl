@@ -1,4 +1,4 @@
-
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 layout(push_constant) uniform push_constant_buffer
 {

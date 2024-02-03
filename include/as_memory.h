@@ -20,15 +20,15 @@ typedef struct as_allocation
 	char type[128];
 } as_allocation;
 
-#define AS_INIT_ALLOCATION(_allocation)			\
+#define AS_INIT_ALLOCATION(_allocation)				\
 _allocation.ptr = NULL;								\
 _allocation.size = 0;								\
 strcpy(allocations[allocations_count].file, "");	\
 _allocation.line = 0;								\
 strcpy(allocations[allocations_count].type, _type);
 
-#define AS_DECLARE_ALLOCATION(_allocation)		\
-as_allocation _allocation;						\
+#define AS_DECLARE_ALLOCATION(_allocation)			\
+as_allocation _allocation;							\
 AS_INIT_ALLOCATION(_allocation);
 
 extern u32 allocations_count;

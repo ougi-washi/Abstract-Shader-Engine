@@ -16,6 +16,7 @@
 #define AS_PATH_TEXTURES "../resources/textures/"
 #define AS_PATH_SCENES "../resources/scenes/"
 #define AS_PATH_CACHED "../cached/"
+#define AS_PATH_CACHED_SHADERS "../cached/shaders/"
 
 // DEFAULT
 #define AS_PATH_DEFAULT_VERT_SHADER "../resources/shaders/default_vertex.glsl"
