@@ -29,7 +29,7 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
-	engine.scene = as_scene_load(AS_PATH_DEFAULT_SCENE);
+	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
 	while (AS_IS_INVALID(engine.render)) {};
@@ -134,6 +134,7 @@ void as_input_loop_tick()
 	if (as_is_pressed(AS_KEY_LEFT_CONTROL) && as_is_pressed(AS_KEY_S))
 	{
 		AS_SERIALIZE(as_scene, engine.scene, AS_PATH_DEFAULT_SCENE);
+		return;
 	}
 
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)

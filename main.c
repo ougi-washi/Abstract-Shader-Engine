@@ -15,7 +15,7 @@ i32 main()
 	as_assign_texture_to_shader(shader, texture);
 	as_object* object1 = as_object_create(shader);
 	as_object* object2 = as_object_create(shader);
-	as_object_set_instance_count(object2, 1000000);
+	as_object_set_instance_count(object2, 10000000);
 	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 0., 0.));
 	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 0., 0., -2000.));
 
