@@ -2,9 +2,13 @@
 
 #include "as_editor.h"
 
-void as_rotate_object(as_object* object, const f64 delta_time)
+void as_rotate_object1(as_object* object, const f64 delta_time)
 {
 	as_object_set_translation(object, AS_VEC_PTR(as_vec3, sin(as_get_time()) * 3.5, cos(as_get_time()) * 5.));
+}
+void as_rotate_object2(as_object* object, const f64 delta_time)
+{
+	as_object_set_translation(object, AS_VEC_PTR(as_vec3, cos(as_get_time()) * 1.5, sin(as_get_time()) * 10.));
 }
 
 void as_editor_set_default_scene()
@@ -16,7 +20,11 @@ void as_editor_set_default_scene()
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
 	as_assign_texture_to_shader(shader, texture);
-	as_object* object1 = as_object_create_with_tick(&shape_sphere_10, shader, &as_rotate_object);
-	as_object* object2 = as_object_create(&shape_sphere_10, shader);
-	as_object_set_instance_count(object2, 10000);
+	// as_shape shape_sphere = as_generate_sphere(.2f, 4, 4);
+	as_shape shape_sphere = as_generate_quad();
+	
+	as_object* object1 = as_object_create_with_tick(&shape_sphere, shader, &as_rotate_object1);
+	as_object* object2 = as_object_create(&shape_sphere, shader);
+	as_object_set_instance_count(object1, 50);
+	as_object_set_instance_count(object2, 1000000);
 }

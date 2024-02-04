@@ -6,6 +6,7 @@
 #include "as_array.h"
 #include "as_utility.h"
 #include "as_threads.h"
+#include "core/as_shapes.h"
 #include "defines/as_global.h"
 #include <vulkan/vulkan.h>
 
@@ -36,14 +37,6 @@ typedef struct as_uniform_buffer_object
 	as_mat4 proj;
 } as_uniform_buffer_object;
 
- // use of _Alignof may be needed somewhere here
-typedef struct as_vertex
-{
-	as_vec3 pos;
-	as_vec3 color;
-	as_vec2 tex_coord; // TODO: add normal before generating
-} as_vertex;
-#define AS_VERTEX_VAR_COUNT 3
 
 typedef struct as_push_const_buffer
 {

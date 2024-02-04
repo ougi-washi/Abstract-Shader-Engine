@@ -9,7 +9,7 @@ layout(push_constant) uniform push_constant_buffer
 	float current_time;
 } ps;
 
-mat4 create_look_at(vec3 eye, vec3 center, vec3 up) 
+mat4 look_at(vec3 eye, vec3 center, vec3 up) 
 {
     vec3 f = normalize(center - eye);
     vec3 r = normalize(cross(up, f));

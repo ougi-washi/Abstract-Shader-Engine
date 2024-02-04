@@ -4,7 +4,6 @@
 #include "core/as_shader.h"
 #include "as_memory.h"
 #include "as_threads.h"
-#include "core/as_shapes.h"
 
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -131,17 +130,22 @@ void as_get_attribute_descriptions(VkVertexInputAttributeDescription* attribute_
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
 	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[0].offset = offsetof(as_vertex, pos);
+	attribute_descriptions[0].offset = offsetof(as_vertex, position);
 
 	attribute_descriptions[1].binding = 0;
 	attribute_descriptions[1].location = 1;
 	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = offsetof(as_vertex, color);
+	attribute_descriptions[1].offset = offsetof(as_vertex, normal);
 
 	attribute_descriptions[2].binding = 0;
 	attribute_descriptions[2].location = 2;
-	attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attribute_descriptions[2].offset = offsetof(as_vertex, tex_coord);
+	attribute_descriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribute_descriptions[2].offset = offsetof(as_vertex, color);
+
+	attribute_descriptions[3].binding = 0;
+	attribute_descriptions[3].location = 3;
+	attribute_descriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+	attribute_descriptions[3].offset = offsetof(as_vertex, tex_coord);
 }
 
 bool is_device_suitable(VkPhysicalDevice device) 
