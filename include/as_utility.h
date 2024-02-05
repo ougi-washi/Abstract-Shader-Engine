@@ -10,9 +10,9 @@
 #include <unistd.h>
 #endif
 
-#define AS_MAX_PATH_SIZE 512
+#define AS_MAX_PATH_SIZE 1024
 #define AS_MAX_FILE_NAME_SIZE 128
-#define AS_MAX_FILE_SIZE 4096
+#define AS_MAX_FILE_SIZE 20000
 
 extern void as_i32_to_str(const i32 integer, char* out_str);
 

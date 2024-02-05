@@ -64,8 +64,57 @@ as_shape as_generate_quad()
     return quad;
 }
 
-extern as_shape as_generate_triangle(); 
-extern as_shape as_generate_quad();
+as_shape as_generate_cube()
+{
+    as_shape cube;
+    cube.vertices_size = 24;
+    cube.indices_size = 36;
+
+    as_vec3 vertices[] = {
+        {-0.5f, -0.5f, -0.5f},
+        {0.5f, -0.5f, -0.5f},
+        {0.5f, 0.5f, -0.5f},
+        {-0.5f, 0.5f, -0.5f},
+        {-0.5f, -0.5f, 0.5f},
+        {0.5f, -0.5f, 0.5f},
+        {0.5f, 0.5f, 0.5f},
+        {-0.5f, 0.5f, 0.5f},
+    };
+
+    uint32_t indices[] = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        0, 4, 7, 7, 3, 0,
+        1, 5, 6, 6, 2, 1,
+        0, 1, 5, 5, 4, 0,
+        2, 3, 7, 7, 6, 2,
+    };
+
+    for (int i = 0; i < 8; i++)
+    {
+        cube.vertices[i].position = vertices[i];
+        cube.vertices[i].normal = as_vec3_get_normal(&vertices[i]);
+        cube.vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
+        cube.vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
+    }
+
+    for (int i = 8; i < 24; i += 4)
+    {
+        cube.vertices[i] = cube.vertices[i - 8];
+        cube.vertices[i + 1] = cube.vertices[i - 7];
+        cube.vertices[i + 2] = cube.vertices[i - 6];
+        cube.vertices[i + 3] = cube.vertices[i - 5];
+    }
+
+    // Set indices
+    for (int i = 0; i < 36; i++)
+    {
+        cube.indices[i] = indices[i];
+    }
+
+    return cube;
+}
+
 as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions) 
 {
     as_shape sphere;

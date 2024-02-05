@@ -21,10 +21,10 @@ void as_editor_set_default_scene()
 	
 	as_assign_texture_to_shader(shader, texture);
 	// as_shape shape_sphere = as_generate_sphere(.2f, 4, 4);
-	as_shape shape_sphere = as_generate_quad();
+	// as_shape shape_quad = as_generate_quad();
+	as_shape shape_cube = as_generate_cube();
 	
-	as_object* object1 = as_object_create_with_tick(&shape_sphere, shader, &as_rotate_object1);
-	as_object* object2 = as_object_create(&shape_sphere, shader);
-	as_object_set_instance_count(object1, 50);
+	as_object* object1 = as_object_create_with_tick(&shape_cube, shader, &as_rotate_object1);
+	as_object* object2 = as_object_create(&shape_cube, shader);
 	as_object_set_instance_count(object2, 1000000);
 }

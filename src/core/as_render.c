@@ -1547,6 +1547,8 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
+		as_shader_destroy_binary(frag_shader_bin, true);
+		as_shader_destroy_binary(vert_shader_bin, true);
 		return;
 	}
 
