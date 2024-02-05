@@ -20,7 +20,8 @@ layout(location = 0) out vec3 vert_pos;
 layout(location = 1) out vec3 frag_normal;
 layout(location = 2) out vec3 frag_color;
 layout(location = 3) out vec2 frag_tex_coord;
-layout(location = 4) out int instance_id;
+layout(location = 4) out vec3 obj_position;
+layout(location = 5) out int instance_id;
 
 void main() 
 {
@@ -43,9 +44,10 @@ void main()
     );
 
     gl_Position = ubo.proj * ubo.view * ps.object_transform * vec4(new_pos, 1.);
-    frag_color = in_color;
-    frag_normal = in_normal;
-    instance_id = gl_InstanceIndex;
     vert_pos = in_position;
+    frag_normal = in_normal;
+    frag_color = in_color;
     frag_tex_coord = in_tex_coord;
+    instance_id = gl_InstanceIndex;
+    obj_position = vec3(ps.object_transform[3][0], ps.object_transform[3][1], ps.object_transform[3][2]);
 }

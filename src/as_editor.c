@@ -4,7 +4,7 @@
 
 void as_rotate_object1(as_object* object, const f64 delta_time)
 {
-	as_object_set_translation(object, AS_VEC_PTR(as_vec3, sin(as_get_time()) * 3.5, cos(as_get_time()) * 5.));
+	as_object_set_translation(object, AS_VEC_PTR(as_vec3, sin(as_get_time()) * 3.5, cos(as_get_time()) * 5., 3.));
 }
 void as_rotate_object2(as_object* object, const f64 delta_time)
 {
@@ -26,5 +26,6 @@ void as_editor_set_default_scene()
 	
 	as_object* object1 = as_object_create_with_tick(&shape_cube, shader, &as_rotate_object1);
 	as_object* object2 = as_object_create(&shape_cube, shader);
-	as_object_set_instance_count(object2, 1000000);
+	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, -40., -40., 1.));
+	as_object_set_instance_count(object2, 10000);
 }
