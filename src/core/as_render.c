@@ -1034,7 +1034,7 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	return (as_push_const_buffer)
 	{ 	.object_transform = object->transform, 
 		.camera_position = camera->position,
-		.camera_direction = camera->target,
+		.camera_direction = camera->cached_direction,
 		.mouse_data = {0},
 		.current_time = as_render_get_time(render)
 	};
@@ -1791,6 +1791,11 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	AS_FREE(shader);
 }
 
+void as_camera_update_direction(as_camera* camera)
+{
+	as_vec3_sub(&camera->cached_direction, &camera->target, &camera->position); // update cached direction (needed for uniforms)
+}
+
 as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec3* target)
 {
 	AS_ASSERT(position, "Trying to create camera, but position is NULL");
@@ -1802,6 +1807,7 @@ as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec
 	camera->up = AS_VEC(as_vec3, 0.f, 0.f, 1.f);
 	camera->fov = 45.f;
 	camera->movement_speed = 40.f;
+	as_camera_update_direction(camera);
 	AS_IS_VALID(camera);
 	return camera;
 }
@@ -1840,11 +1846,6 @@ void as_camera_set_main(as_scene* scene, as_camera* camera)
 	// 	}
 	// }
 	
-}
-
-void as_camera_update_direction(as_camera* camera)
-{
-	as_vec3_sub(&camera->cached_direction, &camera->target, &camera->position); // update cached direction (needed for uniforms)
 }
 
 void as_camera_set_position(as_camera* camera, const as_vec3* position)

@@ -35,7 +35,7 @@ void main()
     // {
     //     discard; 
     // }
-    out_color = vec4(vert_pos, 1.);
+    out_color = vec4(ps.camera_direction, 1.);
 
     // out_color = vec4(final_color, 1.0);
     

@@ -212,7 +212,9 @@ void as_input_loop_tick()
 			as_vec3_normalize(&forward_vec);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-			as_vec3_sub(&engine.camera->position, &engine.camera->position, &forward_vec);
+			as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+			as_vec3_sub(&new_location, &engine.camera->position, &forward_vec);
+			as_camera_set_position(engine.camera, &new_location);
 		}
 		else if (as_is_pressed(AS_KEY_D))
 		{
@@ -222,7 +224,9 @@ void as_input_loop_tick()
 			as_vec3_normalize(&forward_vec);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-			as_vec3_add(&engine.camera->position, &engine.camera->position, &forward_vec);
+			as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+			as_vec3_add(&new_location, &engine.camera->position, &forward_vec);
+			as_camera_set_position(engine.camera, &new_location);
 		}
 
 		const bool pressed_e = as_is_pressed(AS_KEY_E);
@@ -242,14 +246,18 @@ void as_input_loop_tick()
 			{
 				if (distance_to_target > threshold_distance)
 				{
-					as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
+					as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+					as_vec3_add(&new_location, &engine.camera->position, &movement_vector);
+					as_camera_set_position(engine.camera, &new_location);
 				}
 			}
 			else if (as_is_pressed(AS_KEY_Q))
 			{
 				if (distance_to_target < (distance_to_target + threshold_distance))
 				{
-					as_vec3_sub(&engine.camera->position, &engine.camera->position, &movement_vector);
+					as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+					as_vec3_sub(&new_location, &engine.camera->position, &movement_vector);
+					as_camera_set_position(engine.camera, &new_location);
 				}
 			}
 		}
