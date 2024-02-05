@@ -2,7 +2,6 @@
 
 #include "core/as_render.h"
 #include "core/as_shader.h"
-#include "core/as_shapes.h"
 #include "as_memory.h"
 #include "as_threads.h"
 
@@ -131,17 +130,22 @@ void as_get_attribute_descriptions(VkVertexInputAttributeDescription* attribute_
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
 	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[0].offset = offsetof(as_vertex, pos);
+	attribute_descriptions[0].offset = offsetof(as_vertex, position);
 
 	attribute_descriptions[1].binding = 0;
 	attribute_descriptions[1].location = 1;
 	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = offsetof(as_vertex, color);
+	attribute_descriptions[1].offset = offsetof(as_vertex, normal);
 
 	attribute_descriptions[2].binding = 0;
 	attribute_descriptions[2].location = 2;
-	attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attribute_descriptions[2].offset = offsetof(as_vertex, tex_coord);
+	attribute_descriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attribute_descriptions[2].offset = offsetof(as_vertex, color);
+
+	attribute_descriptions[3].binding = 0;
+	attribute_descriptions[3].location = 3;
+	attribute_descriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+	attribute_descriptions[3].offset = offsetof(as_vertex, tex_coord);
 }
 
 bool is_device_suitable(VkPhysicalDevice device) 
@@ -1030,7 +1034,7 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	return (as_push_const_buffer)
 	{ 	.object_transform = object->transform, 
 		.camera_position = camera->position,
-		.camera_direction = camera->target,
+		.camera_direction = camera->cached_direction,
 		.mouse_data = {0},
 		.current_time = as_render_get_time(render)
 	};
@@ -1435,7 +1439,7 @@ extern u64* as_render_get_frame_count_ptr(as_render* render)
 	return NULL;
 }
 
-f64 as_render_get_time(as_render* render)
+f64 as_render_get_time(const as_render* render)
 {
 	return render->time;
 }
@@ -1543,6 +1547,8 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
+		as_shader_destroy_binary(frag_shader_bin, true);
+		as_shader_destroy_binary(vert_shader_bin, true);
 		return;
 	}
 
@@ -1785,6 +1791,11 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	AS_FREE(shader);
 }
 
+void as_camera_update_direction(as_camera* camera)
+{
+	as_vec3_sub(&camera->cached_direction, &camera->target, &camera->position); // update cached direction (needed for uniforms)
+}
+
 as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec3* target)
 {
 	AS_ASSERT(position, "Trying to create camera, but position is NULL");
@@ -1796,6 +1807,7 @@ as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec
 	camera->up = AS_VEC(as_vec3, 0.f, 0.f, 1.f);
 	camera->fov = 45.f;
 	camera->movement_speed = 40.f;
+	as_camera_update_direction(camera);
 	AS_IS_VALID(camera);
 	return camera;
 }
@@ -1836,11 +1848,6 @@ void as_camera_set_main(as_scene* scene, as_camera* camera)
 	
 }
 
-void as_camera_update_direction(as_camera* camera)
-{
-	as_vec3_sub(&camera->cached_direction, &camera->target, &camera->position); // update cached direction (needed for uniforms)
-}
-
 void as_camera_set_position(as_camera* camera, const as_vec3* position)
 {
 	AS_ASSERT(camera, "Trying to set camera position, but camera is NULL");
@@ -1858,10 +1865,11 @@ void as_camera_set_target(as_camera* camera, const as_vec3* target)
 	camera->target = *target;
 	as_camera_update_direction(camera);
 }
-as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
+as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, as_shader *shader)
 {
    	AS_ASSERT(render, "Trying to add object, but render is NULL");
 	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
+	AS_ASSERT(shape, "Trying to add object, but shape is NULL");
 	AS_ASSERT(scene, "Trying to add object, but scene is NULL");
 
 	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
@@ -1870,7 +1878,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 	
 	// vertex buffer
 
-	VkDeviceSize vertex_buffer_size = sizeof(as_shape_quad_vertices[0]) * as_shape_quad_vertices_size;
+	VkDeviceSize vertex_buffer_size = sizeof(shape->vertices[0]) * shape->vertices_size;
 	VkBuffer vertex_staging_buffer;
 	VkDeviceMemory vertex_staging_buffer_memory;
 	create_buffer(render, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1879,7 +1887,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 
 	void* data;
 	vkMapMemory(render->device, vertex_staging_buffer_memory, 0, vertex_buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_vertices, (sz)vertex_buffer_size);
+	memcpy(data, shape->vertices, (sz)vertex_buffer_size);
 	vkUnmapMemory(render->device, vertex_staging_buffer_memory);
 
 	create_buffer(render, vertex_buffer_size,
@@ -1893,8 +1901,8 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 
 	// index buffer
 
-	VkDeviceSize index_buffer_size = sizeof(as_shape_quad_indices[0]) * as_shape_quad_indices_size;
-	object->indices_size = as_shape_quad_indices_size;
+	VkDeviceSize index_buffer_size = sizeof(shape->indices[0]) * shape->indices_size;
+	object->indices_size = shape->indices_size;
 	VkBuffer index_staging_buffer;
 	VkDeviceMemory index_staging_buffer_memory;
 	create_buffer(render, index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1902,7 +1910,7 @@ as_object *as_object_make(as_render *render, as_scene *scene, as_shader *shader)
 		&index_staging_buffer, &index_staging_buffer_memory);
 
 	vkMapMemory(render->device, index_staging_buffer_memory, 0, index_buffer_size, 0, &data);
-	memcpy(data, as_shape_quad_indices, (sz)index_buffer_size);
+	memcpy(data, shape->indices, (sz)index_buffer_size);
 	vkUnmapMemory(render->device, index_staging_buffer_memory);
 
 	create_buffer(render, index_buffer_size,
@@ -1932,6 +1940,14 @@ void as_object_set_translation(as_object* object, const as_vec3* translation)
 	AS_ASSERT(translation, TEXT("Trying to set object location, but translation is NULL"));
 
 	as_mat4_set_translation(&object->transform, translation);
+}
+
+void as_object_translate(as_object* object, const as_vec3* translation)
+{
+	AS_ASSERT(object, TEXT("Cannot translate object, but object is NULL"));
+	AS_ASSERT(translation, TEXT("Cannot translate object, but translation is NULL"));
+
+	as_mat4_translate(&object->transform, translation);
 }
 
 void as_object_set_rotation(as_object* object, const as_vec3* rotation)

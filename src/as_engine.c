@@ -115,17 +115,17 @@ as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment
 	return shader;
 }
 
-as_object* as_object_create(as_shader* shader)
+as_object* as_object_create(as_shape* shape, as_shader* shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object* object = as_object_make(engine.render, engine.scene, shader);
+	as_object* object = as_object_make(engine.render, engine.scene, shape, shader);
 	return object;
 }
 
-as_object* as_object_create_with_tick(as_shader* shader, void tick_func_ptr(as_object*, const f64))
+as_object* as_object_create_with_tick(as_shape* shape, as_shader* shader, void tick_func_ptr(as_object*, const f64))
 {
 	AS_ASSERT(tick_func_ptr, "Cannot create ticking object, invalid function ptr");
-	as_object* object = as_object_create(shader);
+	as_object* object = as_object_create(shape, shader);
 	as_tick_handle* handle = as_tick_handle_create(engine.tick_system);
  	handle->func_ptr = &tick_func_ptr;
 	handle->arg = object;
@@ -142,6 +142,7 @@ void as_camera_set_view(as_camera* camera, const as_camera_type type)
 	AS_ASSERT(camera, "Trying to set camera as view, but camera is NULL");
 	engine.camera = camera;
 	engine.camera->type = type;
+	as_camera_set_main(engine.scene, camera);
 }
 
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)
@@ -211,7 +212,9 @@ void as_input_loop_tick()
 			as_vec3_normalize(&forward_vec);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-			as_vec3_sub(&engine.camera->position, &engine.camera->position, &forward_vec);
+			as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+			as_vec3_sub(&new_location, &engine.camera->position, &forward_vec);
+			as_camera_set_position(engine.camera, &new_location);
 		}
 		else if (as_is_pressed(AS_KEY_D))
 		{
@@ -221,7 +224,9 @@ void as_input_loop_tick()
 			as_vec3_normalize(&forward_vec);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, delta_time);
 			as_vec3_mul_scalar(&forward_vec, &forward_vec, engine.camera->movement_speed);
-			as_vec3_add(&engine.camera->position, &engine.camera->position, &forward_vec);
+			as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+			as_vec3_add(&new_location, &engine.camera->position, &forward_vec);
+			as_camera_set_position(engine.camera, &new_location);
 		}
 
 		const bool pressed_e = as_is_pressed(AS_KEY_E);
@@ -241,14 +246,18 @@ void as_input_loop_tick()
 			{
 				if (distance_to_target > threshold_distance)
 				{
-					as_vec3_add(&engine.camera->position, &engine.camera->position, &movement_vector);
+					as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+					as_vec3_add(&new_location, &engine.camera->position, &movement_vector);
+					as_camera_set_position(engine.camera, &new_location);
 				}
 			}
 			else if (as_is_pressed(AS_KEY_Q))
 			{
 				if (distance_to_target < (distance_to_target + threshold_distance))
 				{
-					as_vec3_sub(&engine.camera->position, &engine.camera->position, &movement_vector);
+					as_vec3 new_location = AS_VEC(as_vec3, 0.); 
+					as_vec3_sub(&new_location, &engine.camera->position, &movement_vector);
+					as_camera_set_position(engine.camera, &new_location);
 				}
 			}
 		}

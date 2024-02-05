@@ -70,6 +70,7 @@ typedef as_mat4 as_transform;
 extern f32 as_radians(const f32 degrees);
 
 // vec3
+extern as_vec3 as_vec3_get_normal(const as_vec3* v);
 extern void as_vec3_normalize(as_vec3* v);
 extern f32 as_vec3_dot(const as_vec3* a, const as_vec3* b);
 extern as_vec3 as_vec3_unit_z();

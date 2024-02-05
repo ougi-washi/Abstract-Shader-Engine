@@ -19,6 +19,25 @@ void as_vec3_normalize(as_vec3* v)
 	}
 }
 
+as_vec3 as_vec3_get_normal(const as_vec3* v)
+{
+    as_vec3 result;
+    f32 length = sqrtf(v->x * v->x + v->y * v->y + v->z * v->z);
+
+    if (length != 0.0f)
+    {
+        result.x = v->x / length;
+        result.y = v->y / length;
+        result.z = v->z / length;
+    }
+    else
+    {
+        result = *v;
+    }
+
+    return result;
+}
+
 f32 as_vec3_dot(const as_vec3* a, const as_vec3* b)
 {
 	return a->x * b->x + a->y * b->y + a->z * b->z;

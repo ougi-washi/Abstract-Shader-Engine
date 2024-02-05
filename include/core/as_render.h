@@ -6,6 +6,7 @@
 #include "as_array.h"
 #include "as_utility.h"
 #include "as_threads.h"
+#include "core/as_shapes.h"
 #include "defines/as_global.h"
 #include <vulkan/vulkan.h>
 
@@ -36,14 +37,6 @@ typedef struct as_uniform_buffer_object
 	as_mat4 proj;
 } as_uniform_buffer_object;
 
- // use of _Alignof may be needed somewhere here
-typedef struct as_vertex
-{
-	as_vec3 pos;
-	as_vec3 color;
-	as_vec2 tex_coord;
-} as_vertex;
-#define AS_VERTEX_VAR_COUNT 3
 
 typedef struct as_push_const_buffer
 {
@@ -209,7 +202,7 @@ extern void as_render_draw_frame(as_render* render, void* display_context, as_ca
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
-extern f64 as_render_get_time(as_render* render);
+extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);
 
@@ -233,9 +226,10 @@ extern void as_camera_set_main(as_scene* scene, as_camera* camera);
 extern void as_camera_set_position(as_camera* camera, const as_vec3* position);
 extern void as_camera_set_target(as_camera* camera, const as_vec3* target);
 
-extern as_object* as_object_make(as_render* render, as_scene* scene, as_shader* shader);
+extern as_object* as_object_make(as_render* render, as_scene* scene, struct as_shape* shape, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);
+extern void as_object_translate(as_object* object, const as_vec3* translation);
 extern void as_object_set_rotation(as_object* object, const as_vec3* rotation);
 extern void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
 extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, const as_vec3* axis, const as_vec3* pivot);
