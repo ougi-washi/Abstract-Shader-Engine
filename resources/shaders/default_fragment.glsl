@@ -16,29 +16,6 @@ layout(location = 5) in flat int instance_id;
 
 layout(location = 0) out vec4 out_color;
 
-vec4 raymarch(vec3 ray_pos, vec3 ray_dir) 
-{
-    float depth = MIN_DIST;
-    float dist = MIN_DIST;
-    vec3 hit_point = vec3(MIN_DIST);
-    for (int i = 0; i < MAX_MARCHING_STEPS; i++) 
-    {
-        hit_point = ray_pos + depth * ray_dir;
-        float dist = sd_sphere(hit_point, .5);
-        if (dist < EPSILON)
-        {
-            break;
-        }
-        depth += dist;
-        if (depth >= MAX_DIST) 
-        {
-            return vec4(0.0); 
-        }
-    }
-    // shading (use hit_point)
-    return vec4(hit_point, 1.0); 
-}
-
 void main() 
 {
     vec4 clip_pos = ps.object_transform * vec4(vert_pos, 1.0);
@@ -51,7 +28,7 @@ void main()
         discard;
     }
 
-    vec3 light_dir = vec3(10, 10, 10);
+    vec3 light_dir = vec3(-10, 10, 10);
     float light_mask = dot(frag_normal.xyz, light_dir);
 
     color.rgb = vec3(clamp(light_mask, 0, 1) + .05);

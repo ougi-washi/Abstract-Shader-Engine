@@ -7,23 +7,24 @@
 #define MAX_MARCHING_STEPS 64
 #define EPSILON .01
 
-float sd_get_distance(vec3 ray_pos, vec3 ray_dir) 
+vec4 raymarch(vec3 ray_pos, vec3 ray_dir) 
 {
     float depth = MIN_DIST;
+    float dist = MIN_DIST;
+    vec3 hit_point = vec3(MIN_DIST);
     for (int i = 0; i < MAX_MARCHING_STEPS; i++) 
     {
-        float dist = length(ray_pos) - 0.6; //sd_sphere(ray_pos + depth * ray_dir, .6);
-        if (dist < EPSILON) 
+        hit_point = ray_pos + depth * ray_dir;
+        float dist = sd_sphere(hit_point, .5);
+        if (dist < EPSILON)
         {
-			return depth;
+            break;
         }
-        //depth += dist;
-        ray_pos += ray_dir;
+        depth += dist;
         if (depth >= MAX_DIST) 
         {
-            return MAX_DIST;
+            return vec4(0.0); 
         }
     }
-    return MAX_DIST;
+    return vec4(hit_point, 1.0); 
 }
-
