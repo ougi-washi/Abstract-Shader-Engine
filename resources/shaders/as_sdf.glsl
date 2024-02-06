@@ -3,9 +3,9 @@
 #include "as_sdf_shapes.glsl"
 
 #define MIN_DIST 0.001
-#define MAX_DIST 100000
-#define MAX_MARCHING_STEPS 200
-#define EPSILON .0001
+#define MAX_DIST 10000
+#define MAX_MARCHING_STEPS 64
+#define EPSILON .01
 
 float sd_get_distance(vec3 ray_pos, vec3 ray_dir) 
 {

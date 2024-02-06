@@ -10,11 +10,11 @@ float sd_sphere(vec3 p, float s) {
     return length(p) - s;
 }
 
-// // Box - exact
-// float sd_box(vec3 p, vec3 b) {
-//     vec3 q = abs(p) - b;
-//     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-// }
+// Box - exact
+float sd_box(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
 
 // // Round Box - exact
 // float sd_round_box(vec3 p, vec3 b, float r) {

@@ -25,7 +25,7 @@ layout(location = 5) out int instance_id;
 
 void main() 
 {
-    vec3 grid_spacing = vec3(1.1, 1.1, 1.1); 
+    vec3 grid_spacing = vec3(1.5, 1.5, 1.5); 
     ivec3 grid_size = ivec3(200, 200, 200); 
     int instance_index_x = gl_InstanceIndex % grid_size.x;
     int instance_index_y = (gl_InstanceIndex / grid_size.x) % grid_size.y;
@@ -38,9 +38,9 @@ void main()
         float(instance_index_x) * grid_spacing.x + cos(ps.current_time * movement_frequency_xy) 
         * sin(ps.current_time * movement_frequency_xy) * -1.2 ,
         float(instance_index_y) * grid_spacing.y + sin(ps.current_time * movement_frequency_xz) 
-        * sin(ps.current_time * movement_frequency_xz) * -1.2 ,
-        float(instance_index_z) * grid_spacing.z + cos(ps.current_time * movement_frequency_yz) 
-        * sin(ps.current_time * movement_frequency_yz) * 1.2 
+        * cos(ps.current_time * movement_frequency_xz) * -1.2 ,
+        float(instance_index_z) * grid_spacing.z + sin(ps.current_time * movement_frequency_yz) 
+        * cos(ps.current_time * movement_frequency_yz) * 1.2 
     );
 
     gl_Position = ubo.proj * ubo.view * ps.object_transform * vec4(new_pos, 1.);

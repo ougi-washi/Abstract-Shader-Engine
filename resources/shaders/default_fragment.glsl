@@ -16,43 +16,44 @@ layout(location = 5) in flat int instance_id;
 
 layout(location = 0) out vec4 out_color;
 
-float sd_scene(vec3 ray_pos, vec3 ray_dir) {
+vec4 raymarch(vec3 ray_pos, vec3 ray_dir) 
+{
     float depth = MIN_DIST;
-    for (int i = 0; i < MAX_MARCHING_STEPS; i++) {
-        float dist = sd_sphere(ray_pos + depth * ray_dir, .1);
-        if (dist < EPSILON) {
-            return depth;
+    float dist = MIN_DIST;
+    vec3 hit_point = vec3(MIN_DIST);
+    for (int i = 0; i < MAX_MARCHING_STEPS; i++) 
+    {
+        hit_point = ray_pos + depth * ray_dir;
+        float dist = sd_sphere(hit_point, .5);
+        if (dist < EPSILON)
+        {
+            break;
         }
         depth += dist;
-        if (depth >= MAX_DIST) {
-            return MAX_DIST;
+        if (depth >= MAX_DIST) 
+        {
+            return vec4(0.0); 
         }
     }
-    return MAX_DIST;
+    // shading (use hit_point)
+    return vec4(hit_point, 1.0); 
 }
 
-vec4 raymarch(vec3 ray_pos, vec3 ray_dir) {
-    float dist = sd_scene(ray_pos, ray_dir);
-    if (dist >= MAX_DIST) {
-        return vec4(0.0); 
-    }
-
-    vec3 intersection_point = ray_pos + dist * ray_dir;
-    // shading
-    
-    return vec4(1.0); 
-}
-
-void main() {
+void main() 
+{
     vec4 clip_pos = ps.object_transform * vec4(vert_pos, 1.0);
     vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
     vec3 ray_dir = normalize(world_pos - ps.camera_location);
-
     vec4 color = raymarch(ps.camera_location, ray_dir);
-
+    
     if(color.a < .4)
     {
         discard;
     }
+
+    vec3 light_dir = vec3(10, 10, 10);
+    float light_mask = dot(frag_normal.xyz, light_dir);
+
+    color.rgb = vec3(clamp(light_mask, 0, 1) + .05);
     out_color = vec4(color);
 }
