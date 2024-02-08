@@ -13,7 +13,7 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define AS_TARGET_FPS 144.
+#define AS_TARGET_FPS 1024.
 
 // Arrays
 
@@ -119,7 +119,7 @@ typedef struct as_light
 	as_vec3 color;
 	f32 radius;
 } as_light;
-AS_ARRAY_DECLARE(as_lights_1024, 1024, as_light);
+AS_ARRAY_DECLARE(as_lights_128, 128, as_light);
 
 typedef enum as_camera_type
 {
@@ -140,11 +140,17 @@ typedef struct as_camera
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
+typedef struct as_scene_gpu 
+{
+	as_mat4_1024 objects_transforms;
+	as_lights_128 lights;
+} as_scene_gpu;
+
 typedef struct as_scene
 {
 	char path[AS_MAX_PATH_SIZE];
 	as_objects_1024 objects;
-	as_lights_1024 lights;
+	as_lights_128 lights;
 	as_camera_128 cameras; // main camera is index 0
 } as_scene;
 

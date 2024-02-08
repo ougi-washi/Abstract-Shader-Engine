@@ -115,6 +115,61 @@ as_shape as_generate_cube()
     return cube;
 }
 
+as_shape as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_extent)
+{
+    as_shape box;
+    box.vertices_size = 24;
+    box.indices_size = 36;
+
+    float x_half = x_extent * 0.5f;
+    float y_half = y_extent * 0.5f;
+    float z_half = z_extent * 0.5f;
+
+    as_vec3 vertices[] = {
+        {-x_half, -y_half, -z_half},
+        {x_half, -y_half, -z_half},
+        {x_half, y_half, -z_half},
+        {-x_half, y_half, -z_half},
+        {-x_half, -y_half, z_half},
+        {x_half, -y_half, z_half},
+        {x_half, y_half, z_half},
+        {-x_half, y_half, z_half},
+    };
+
+    uint32_t indices[] = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        0, 4, 7, 7, 3, 0,
+        1, 5, 6, 6, 2, 1,
+        0, 1, 5, 5, 4, 0,
+        2, 3, 7, 7, 6, 2,
+    };
+
+    for (int i = 0; i < 8; i++)
+    {
+        box.vertices[i].position = vertices[i];
+        box.vertices[i].normal = as_vec3_get_normal(&vertices[i]);
+        box.vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
+        box.vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
+    }
+
+    for (int i = 8; i < 24; i += 4)
+    {
+        box.vertices[i] = box.vertices[i - 8];
+        box.vertices[i + 1] = box.vertices[i - 7];
+        box.vertices[i + 2] = box.vertices[i - 6];
+        box.vertices[i + 3] = box.vertices[i - 5];
+    }
+
+    // Set indices
+    for (int i = 0; i < 36; i++)
+    {
+        box.indices[i] = indices[i];
+    }
+
+    return box;
+}
+
 as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions) 
 {
     as_shape sphere;

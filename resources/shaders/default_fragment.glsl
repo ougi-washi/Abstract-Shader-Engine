@@ -19,9 +19,9 @@ layout(location = 0) out vec4 out_color;
 
 float sdf_scene(vec3 p)
 {
-    float sphere1 = sd_sphere(p, 0.6);
+    float sphere1 = sd_sphere(p, 0.4);
     vec3 sphere2_offset = vec3(cos(ps.current_time), sin(ps.current_time) * 2., 0.);
-    float sphere2 = sd_sphere(p + sphere2_offset, .6);
+    float sphere2 = sd_sphere(p + sphere2_offset, .4);
     return op_smooth_union(sphere1, sphere2, 1.);
 }
 

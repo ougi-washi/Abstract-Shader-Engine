@@ -39,4 +39,5 @@ extern const i32 as_shape_quad_indices_size;
 extern as_shape as_generate_triangle();
 extern as_shape as_generate_quad();
 extern as_shape as_generate_cube();
+extern as_shape as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_extent);
 extern as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions);
