@@ -20,7 +20,7 @@ void as_editor_set_default_scene()
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
 	as_assign_texture_to_shader(shader, texture);
-	as_shape shape_sphere = as_generate_sphere(1, 6, 6);
+	as_shape shape_sphere = as_generate_sphere(5., 6, 6);
 	// as_shape shape_quad = as_generate_quad();
 	// as_shape shape_cube = as_generate_cube();
 	

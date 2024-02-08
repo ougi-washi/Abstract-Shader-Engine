@@ -6,10 +6,10 @@
 #include "as_utility.h"
 #include "as_array.h"
 
-#define AS_SHADER_TYPE_VERTEX	0
-#define AS_SHADER_TYPE_FRAGMENT	1
-#define AS_MAX_SHADER_SOURCE_SIZE 32768
-#define AS_MAX_SHADER_BINARY_SIZE 32768
+#define AS_SHADER_TYPE_VERTEX		0
+#define AS_SHADER_TYPE_FRAGMENT		1
+#define AS_MAX_SHADER_SOURCE_SIZE	128 * 1024
+#define AS_MAX_SHADER_BINARY_SIZE 	128 * 1024
 
 typedef u8 as_shader_type;
 

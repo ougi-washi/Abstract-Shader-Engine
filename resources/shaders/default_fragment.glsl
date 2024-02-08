@@ -16,7 +16,16 @@ layout(location = 5) in flat int instance_id;
 
 layout(location = 0) out vec4 out_color;
 
-void main() 
+
+float sdf_scene(vec3 p)
+{
+    float sphere1 = sd_sphere(p, 0.6);
+    vec3 sphere2_offset = vec3(cos(ps.current_time), sin(ps.current_time) * 2., 0.);
+    float sphere2 = sd_sphere(p + sphere2_offset, .6);
+    return op_smooth_union(sphere1, sphere2, 1.);
+}
+
+void main()
 {
     vec4 clip_pos = ps.object_transform * vec4(vert_pos, 1.0);
     vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
@@ -28,9 +37,9 @@ void main()
         discard;
     }
 
-    vec3 light_dir = vec3(-10, 10, 10);
+    vec3 light_dir = vec3(1, -20, 10);
     float light_mask = dot(frag_normal.xyz, light_dir);
 
-    color.rgb = vec3(clamp(light_mask, 0, 1) + .05);
+    color.rgb = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003);
     out_color = vec4(color);
 }

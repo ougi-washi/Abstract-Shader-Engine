@@ -79,13 +79,14 @@ void as_util_expand_file_includes(const char* path, char* output)
 		return;
 	}
 
-	char file_contents[AS_MAX_FILE_SIZE] = "";
+	char* file_contents = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
 	size_t read_bytes = fread(file_contents, 1, as_util_get_file_size(file), file);
 	if (read_bytes == 0 && !feof(file)) 
 	{
 		AS_LOG(LV_WARNING, "Error reading file: ");
 		AS_LOG(LV_WARNING, path);
 		fclose(file);
+		AS_FREE(file_contents);
 		return;
 	}
 	fclose(file);
@@ -94,6 +95,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 	if (!include_pos) 
 	{
 		strcpy(output, file_contents); // No includes found, copy the entire file content
+		AS_FREE(file_contents);
 		return;
 	}
 
@@ -104,7 +106,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 	// Find and replace all includes
 	while (include_pos) 
 	{
-		char include_file[AS_MAX_FILE_SIZE] = "";
+		char* include_file = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
 		char* quote_start = strchr(include_pos, '"');
 		char* quote_end = strchr(quote_start + 1, '"');
 
@@ -117,7 +119,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 		strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
 		include_file[quote_end - quote_start - 1] = '\0';
 
-		char included_file[AS_MAX_FILE_SIZE] = "";
+		char* included_file = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
 		char included_file_path[AS_MAX_PATH_SIZE] = "";
 		append_base_path(file_path, include_file, included_file_path);
 		as_util_expand_file_includes(included_file_path, included_file);
@@ -136,7 +138,10 @@ void as_util_expand_file_includes(const char* path, char* output)
 			// Append the portion between the current and next #include
 			strncat(output, quote_end + 1, include_pos - quote_end - 1);
 		}
+		AS_FREE(include_file);
+		AS_FREE(included_file);
 	}
+	AS_FREE(file_contents);
 }
 
 void as_util_write_file(const char* path, const void* data, const sz size, const bool is_binary)
