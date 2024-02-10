@@ -1713,7 +1713,6 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// uniforms->data[index].data = AS_MALLOC_SINGLE(as_texture); // Not needed
 	uniforms->data[index].data = texture;
 
 	return index;

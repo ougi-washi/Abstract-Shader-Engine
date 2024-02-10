@@ -8,26 +8,40 @@
 #define MAX_MARCHING_STEPS 64
 #define EPSILON .01
 
-float sdf_scene(vec3 p);
+struct sdf_result
+{
+    vec3 position;
+    vec3 color;
+    float alpha;
+};
 
-vec4 raymarch(vec3 ray_pos, vec3 ray_dir) 
+sdf_result sdf_scene(vec3 p);
+
+sdf_result raymarch(vec3 ray_pos, vec3 ray_dir) 
 {
     float depth = MIN_DIST;
     float dist = MIN_DIST;
-    vec3 hit_point = vec3(MIN_DIST);
+    sdf_result result;
+
     for (int i = 0; i < MAX_MARCHING_STEPS; i++) 
     {
-        hit_point = ray_pos + depth * ray_dir;
-        float dist = sdf_scene(hit_point);
+        result.position = ray_pos + depth * ray_dir;
+        result = sdf_scene(result.position);
+
+        dist = result.alpha;
+
         if (dist < EPSILON)
         {
             break;
         }
+
         depth += dist;
+
         if (depth >= MAX_DIST) 
         {
-            return vec4(0.0); 
+            return sdf_result(vec3(0.0), vec3(0.0), 0.0); 
         }
     }
-    return vec4(hit_point, 1.0); 
+
+    return sdf_result(result.position, result.color, 1.); // Maybe the alpha has to be based on distance?
 }
