@@ -1077,7 +1077,6 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				const u32 dynamic_offset = render->current_frame * scene->gpu_buffer.size;
 				u32 offset[] = {0};
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 1, offset);
 				vkCmdDrawIndexed(command_buffer, object->indices_size, object->instance_count, 0, 0, 0);
@@ -1757,8 +1756,9 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
 	
-	if (!shader || AS_IS_INVALID(shader)) { return; }
-	
+	if (!shader) { return; }
+	if (AS_IS_INVALID(shader)) { return; }
+
 	vkDestroyPipeline(render->device, shader->graphics_pipeline, NULL);
 	vkDestroyPipelineLayout(render->device, shader->graphics_pipeline_layout, NULL);
 
@@ -2035,8 +2035,12 @@ void as_scene_gpu_update_data(as_scene* scene)
 
 	scene->gpu_data.lights = scene->lights;
 	AS_ARRAY_CLEAR(scene->gpu_data.objects_transforms);
-	for (sz i = 0; i < scene->objects.size; i++)
+	for (sz i = 0; i < scene->objects.size; i++) // TODO:get only closest
 	{
+		if (i >= AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE)
+		{
+			break;
+		}
 		const as_mat4 transform = AS_ARRAY_GET(scene->objects, i)->transform;
 		AS_ARRAY_PUSH_BACK(scene->gpu_data.objects_transforms, transform);
 	}

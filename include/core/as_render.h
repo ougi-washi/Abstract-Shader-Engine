@@ -76,6 +76,8 @@ AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
 
 typedef struct as_shader
 {
+	AS_FLAG; // adding this at the beginning is a must for better cache checks and avoid crashes
+
 	VkDevice* device;
 	VkRenderPass* render_pass;
 
@@ -94,7 +96,6 @@ typedef struct as_shader
 
 	u64 refresh_frame; // this will define whether or not to use the graphics_pipeline
 	
-	AS_FLAG;
 }as_shader;
 AS_ARRAY_DECLARE(as_shaders_ptr_256, 256, as_shader*);
 
@@ -114,6 +115,7 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 } as_object;
 AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
 AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
+AS_ARRAY_DECLARE(as_objects_2048, 2048, as_object);
 
 typedef struct as_light
 {
@@ -150,6 +152,7 @@ typedef struct as_scene_gpu_data
 	as_lights_128 lights;
 } as_scene_gpu_data;
 #pragma pack(pop)
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 
 typedef struct as_scene_gpu_buffer  
 {
@@ -161,7 +164,7 @@ typedef struct as_scene_gpu_buffer
 typedef struct as_scene
 {
 	char path[AS_MAX_PATH_SIZE];
-	as_objects_512 objects;
+	as_objects_1024 objects;
 	as_lights_128 lights;
 	as_camera_128 cameras; // main camera is index 0
 	
