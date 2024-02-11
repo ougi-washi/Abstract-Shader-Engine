@@ -31,7 +31,7 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
-	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
+	engine.scene = as_scene_create(engine.render, AS_PATH_DEFAULT_SCENE);
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
@@ -83,11 +83,16 @@ void as_engine_set_scene(as_scene* scene)
 	AS_UNLOCK(engine.render);
 }
 
+as_render* as_engine_get_render()
+{
+	return engine.render;	
+}
+
 void as_engine_reset_scene()
 {
 	AS_WAIT_AND_LOCK(engine.render);
 	as_scene_destroy(engine.render, engine.scene);
-	engine.scene = as_scene_create(AS_PATH_DEFAULT_SCENE);
+	engine.scene = as_scene_create(engine.render, AS_PATH_DEFAULT_SCENE);
 	AS_UNLOCK(engine.render);
 }
 
@@ -108,10 +113,14 @@ as_texture* as_texture_create(const char* texture_path)
 	return texture;
 }
 
-as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
+as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path, const bool add_scene)
 {
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
+	if (add_scene)
+	{
+		as_shader_add_scene_gpu(&shader->uniforms, &engine.scene->gpu_buffer);
+	}
 	return shader;
 }
 

@@ -1,6 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_editor.h"
+#include "core/as_render.h"
+#include "as_engine.h"
 
 i32 main()
 {

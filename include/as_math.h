@@ -66,6 +66,8 @@ typedef struct as_mat4
 	f32 m[4][4];
 } as_mat4;
 typedef as_mat4 as_transform;
+AS_ARRAY_DECLARE(as_mat4_64, 64, as_mat4);
+AS_ARRAY_DECLARE(as_mat4_128, 128, as_mat4);
 AS_ARRAY_DECLARE(as_mat4_256, 256, as_mat4);
 AS_ARRAY_DECLARE(as_mat4_512, 512, as_mat4);
 AS_ARRAY_DECLARE(as_mat4_1024, 1024, as_mat4);
