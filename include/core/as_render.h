@@ -44,7 +44,8 @@ typedef struct as_push_const_buffer
 	as_vec3 camera_position;
 	as_vec3 camera_direction;
 	as_vec3 mouse_data;
-	float current_time;
+	f32 current_time;
+	i32 scene_gpu_index; // index from the object transforms in the scene gpu
 } as_push_const_buffer;
 
 typedef struct as_uniform_buffers
@@ -140,11 +141,18 @@ typedef struct as_camera
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
-typedef struct as_scene_gpu 
+// currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
+typedef struct as_scene_gpu  
 {
 	as_mat4_1024 objects_transforms;
 	as_lights_128 lights;
 } as_scene_gpu;
+
+typedef struct as_scene_gpu_buffer  
+{
+	VkBuffer buffer;
+	VkDeviceMemory memory;
+} as_scene_gpu_buffer;
 
 typedef struct as_scene
 {
@@ -244,5 +252,7 @@ extern void as_object_destroy(as_render* render, as_object* object);
 
 extern as_scene* as_scene_create(const char* scene_path);
 extern as_scene* as_scene_load(const char* scene_path);
+extern as_scene_gpu as_scene_make_gpu_scene(const as_scene* scene);
+extern as_scene_gpu_buffer* as_scene_make_gpu_scene_buffer(as_render* render, const as_scene_gpu* scene_gpu);
 
 extern void as_scene_destroy(as_render* render, as_scene* scene);

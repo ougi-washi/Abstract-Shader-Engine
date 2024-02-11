@@ -83,6 +83,11 @@ void as_engine_set_scene(as_scene* scene)
 	AS_UNLOCK(engine.render);
 }
 
+as_render* as_engine_get_render()
+{
+	return engine.render;	
+}
+
 void as_engine_reset_scene()
 {
 	AS_WAIT_AND_LOCK(engine.render);

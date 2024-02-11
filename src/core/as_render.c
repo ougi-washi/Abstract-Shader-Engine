@@ -655,6 +655,11 @@ void cleanup_shader_module(VkDevice device, VkShaderModule shader_module)
 
 void create_graphics_pipeline_layout(as_render* render, VkPipelineLayout* pipeline_layout, VkDescriptorSetLayout* descriptor_set_layout)
 {
+	VkPhysicalDeviceProperties device_properties;
+	vkGetPhysicalDeviceProperties(render->physical_device, &device_properties);
+	AS_ASSERT(device_properties.limits.maxPushConstantsSize >= sizeof(as_push_const_buffer),
+		"Cannot create graphics pipeline layout, invalid size of push const buffer");
+
 	VkPushConstantRange push_constant_range_vert = { 0 };
 	push_constant_range_vert.offset = 0;
 	push_constant_range_vert.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -2016,6 +2021,35 @@ as_scene* as_scene_load(const char* scene_path)
 		scene = as_scene_create(scene_path);
 	}
 	return scene;
+}
+
+as_scene_gpu as_scene_make_gpu_scene(const as_scene* scene)
+{
+	AS_ASSERT(scene, "Cannot make GPU scene data, invalid scene");
+
+	as_scene_gpu scene_gpu;
+	scene_gpu.lights = scene->lights;
+	for (sz i = 0; i < scene->objects.size; i++)
+	{
+		const as_mat4 transform = AS_ARRAY_GET(scene->objects, i)->transform;
+		AS_ARRAY_PUSH_BACK(scene_gpu.objects_transforms, transform);
+	}
+	return scene_gpu;
+}
+
+as_scene_gpu_buffer* as_scene_make_gpu_scene_buffer(as_render* render, const as_scene_gpu* scene_gpu)
+{
+	AS_ASSERT(scene_gpu, "Cannot make GPU scene buffer, invalid scene gpu");
+	as_scene_gpu_buffer* scene_gpu_buffer = AS_MALLOC_SINGLE(as_scene_gpu_buffer);	
+	
+	VkDeviceSize size = sizeof(as_scene_gpu);
+	create_buffer(render, size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scene_gpu_buffer->buffer, &scene_gpu_buffer->memory);
+	void* data = NULL;
+	vkMapMemory(render->device, scene_gpu_buffer->memory, 0, size, 0, &data);
+	memcpy(data, scene_gpu, (sz)size);
+	vkUnmapMemory(render->device, scene_gpu_buffer->memory);
+
+	return scene_gpu_buffer;
 }
 
 void as_scene_destroy(as_render *render, as_scene *scene)
