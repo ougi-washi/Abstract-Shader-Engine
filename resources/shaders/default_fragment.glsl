@@ -4,6 +4,36 @@
 #include "core/as_common.glsl"
 #include "as_sdf.glsl"
 
+struct as_light 
+{
+    vec3 position;
+    vec3 color;
+    float radius;
+};
+
+struct as_mat4_array 
+{
+    mat4 data[128];
+    int size;
+};
+
+struct as_lights_array 
+{
+    as_light data[128];
+    int size;
+};
+
+struct as_scene 
+{
+    as_mat4_array objects_transforms;
+    as_lights_array lights;
+};
+
+layout(set = 0, binding = 0) buffer SceneBuffer 
+{
+    as_scene scene;
+};
+
 layout(binding = 1) uniform sampler2D tex_sampler;
 
 // has to be this order to match as_vertex

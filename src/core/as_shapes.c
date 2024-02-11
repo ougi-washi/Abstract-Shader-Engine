@@ -1,4 +1,5 @@
 #include "core/as_shapes.h"
+#include "as_memory.h"
 
 as_shape as_generate_triangle() 
 {
@@ -170,11 +171,11 @@ as_shape as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_ext
     return box;
 }
 
-as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions) 
+as_shape* as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions) 
 {
-    as_shape sphere;
-    size_t vertex_index = 0;
-    size_t index_index = 0;
+    as_shape* sphere = AS_MALLOC_SINGLE(as_shape);
+    sz vertex_index = 0;
+    sz index_index = 0;
 
     for (i32 lat = 0; lat <= latitude_divisions; lat++) 
     {
@@ -192,20 +193,20 @@ as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, cons
             f32 y = cos_theta;
             f32 z = sin_phi * sin_theta;
 
-            sphere.vertices[vertex_index].position.x = x * radius;
-            sphere.vertices[vertex_index].position.y = y * radius;
-            sphere.vertices[vertex_index].position.z = z * radius;
+            sphere->vertices[vertex_index].position.x = x * radius;
+            sphere->vertices[vertex_index].position.y = y * radius;
+            sphere->vertices[vertex_index].position.z = z * radius;
 
-            sphere.vertices[vertex_index].normal.x = x;
-            sphere.vertices[vertex_index].normal.y = y;
-            sphere.vertices[vertex_index].normal.z = z;
+            sphere->vertices[vertex_index].normal.x = x;
+            sphere->vertices[vertex_index].normal.y = y;
+            sphere->vertices[vertex_index].normal.z = z;
 
-            sphere.vertices[vertex_index].color.x = 1.0f;
-            sphere.vertices[vertex_index].color.y = 1.0f;
-            sphere.vertices[vertex_index].color.z = 1.0f;
+            sphere->vertices[vertex_index].color.x = 1.0f;
+            sphere->vertices[vertex_index].color.y = 1.0f;
+            sphere->vertices[vertex_index].color.z = 1.0f;
 
-            sphere.vertices[vertex_index].tex_coord.x = (f32)lon / longitude_divisions;
-            sphere.vertices[vertex_index].tex_coord.y = (f32)lat / latitude_divisions;
+            sphere->vertices[vertex_index].tex_coord.x = (f32)lon / longitude_divisions;
+            sphere->vertices[vertex_index].tex_coord.y = (f32)lat / latitude_divisions;
 
             vertex_index++;
         }
@@ -218,22 +219,27 @@ as_shape as_generate_sphere(const f32 radius, const i32 latitude_divisions, cons
             i32 current = lat * (longitude_divisions + 1) + lon;
             i32 next = current + longitude_divisions + 1;
 
-            sphere.indices[index_index++] = current;
-            sphere.indices[index_index++] = next;
-            sphere.indices[index_index++] = current + 1;
+            sphere->indices[index_index++] = current;
+            sphere->indices[index_index++] = next;
+            sphere->indices[index_index++] = current + 1;
 
-            sphere.indices[index_index++] = next;
-            sphere.indices[index_index++] = next + 1;
-            sphere.indices[index_index++] = current + 1;
+            sphere->indices[index_index++] = next;
+            sphere->indices[index_index++] = next + 1;
+            sphere->indices[index_index++] = current + 1;
         }
     }
 
-    sphere.vertices_size = vertex_index;
-    sphere.indices_size = index_index;
+    sphere->vertices_size = vertex_index;
+    sphere->indices_size = index_index;
 
     return sphere;
 }
 
+void as_destroy_shape(as_shape* shape)
+{
+    AS_ASSERT(shape, "Cannot destroy shape, already null");
+    AS_FREE(shape);
+}
 
 // TRIANGLE
 const as_vertex as_shape_triangle_vertices[] = {

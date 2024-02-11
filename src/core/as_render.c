@@ -569,33 +569,7 @@ bool as_shader_is_unlocked(const u64 frame_count, as_shader* shader)
 	return shader->refresh_frame + 10 < frame_count && AS_IS_UNLOCKED(shader);
 }
 
-void create_descriptor_set_layout(VkDevice device, VkDescriptorSetLayout* descriptor_set_layout) // TODO: Remove later 
-{
-	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.pImmutableSamplers = NULL;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutBinding sampler_layout_binding = { 0 };
-	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
-	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	sampler_layout_binding.pImmutableSamplers = NULL;
-	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutBinding bindings[] = { ubo_layout_binding, sampler_layout_binding };
-	VkDescriptorSetLayoutCreateInfo layout_info = { 0 };
-	layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layout_info.bindingCount = AS_ARRAY_SIZE(bindings);
-	layout_info.pBindings = bindings;
-
-	AS_ASSERT(vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout) == VK_SUCCESS,
-		"Failed to create descriptor set layout!");
-}
-
-void create_descriptor_set_layout_from_uniforms(as_shader* shader) 
+void create_descriptor_set_layout(as_shader* shader) 
 {
 	AS_ASSERT(&shader->uniforms, "Cannot create_descriptor_set_layout_from_uniforms, NULL uniforms");
 
@@ -619,7 +593,7 @@ void create_descriptor_set_layout_from_uniforms(as_shader* shader)
 		uniform_layout_binding.descriptorCount = 1;
 		uniform_layout_binding.descriptorType = uniform->type;
 		uniform_layout_binding.pImmutableSamplers = NULL;
-		uniform_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		uniform_layout_binding.stageFlags = uniform->stage;
 
 		bindings[uniform_layout_binding.binding] = uniform_layout_binding;
 	}
@@ -957,15 +931,16 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 					descriptor_writes[descriptor_writes_index].pImageInfo = &image_info;
 				}
 			}
-			else if (uniform->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+			else if (uniform->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 			{
-				f32* value = (f32*)uniform->data;
-				if (value)
+				// currently used for scene only
+				as_scene_gpu_buffer* scene_gpu = (as_scene_gpu_buffer*)uniform->data;
+				if (scene_gpu)
 				{
 					VkDescriptorBufferInfo buffer_info = { 0 };
-					//buffer_info.buffer = ; // needs to create buffer, also maybe it's uniform buffer not dynamic
+					buffer_info.buffer = scene_gpu->buffer;
 					buffer_info.offset = 0;
-					buffer_info.range = sizeof(f32);
+					buffer_info.range = scene_gpu->size;
 					descriptor_writes[descriptor_writes_index].pBufferInfo = &buffer_info;
 				}
 			}
@@ -1102,7 +1077,9 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, NULL);
+				const u32 dynamic_offset = render->current_frame * scene->gpu_buffer.size;
+				u32 offset[] = {0};
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 1, offset);
 				vkCmdDrawIndexed(command_buffer, object->indices_size, object->instance_count, 0, 0, 0);
 			}
 		}
@@ -1341,8 +1318,11 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 			as_shader* shader = object->shader;
 			update_shader_uniform_buffer(render, shader, camera, render->current_frame);
 		}
+
+		as_scene_gpu_update_data(scene);
+		as_scene_gpu_update_buffer(render, scene);
 	}
-	
+
 	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
@@ -1351,7 +1331,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
+	
 	VkSemaphore wait_semaphores[] = { render->image_available_semaphores.data[render->current_frame] };
 	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submit_info.waitSemaphoreCount = 1;
@@ -1360,7 +1340,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &render->command_buffers.data[render->current_frame];
-
+	
 	VkSemaphore signal_semaphores[] = { render->render_finished_semaphores.data[render->current_frame] };
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = signal_semaphores;
@@ -1539,11 +1519,6 @@ void as_texture_destroy(as_render* render, as_texture* texture)
 	AS_SET_INVALID(texture);
 }
 
-as_shader_uniforms_32* as_uniforms_create()
-{
-	return AS_MALLOC_SINGLE(as_shader_uniforms_32);
-}
-
 void as_shader_create_graphics_pipeline(as_shader* shader)
 {
 	// Load shader code
@@ -1702,7 +1677,7 @@ sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
 	as_shader_uniform shader_uniform = { 0 };
 	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
-	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	uniforms->data[index].data = AS_MALLOC(sizeof(f32));
 	uniforms->data[index].data = value;
 
@@ -1718,9 +1693,25 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
 	const sz index = uniforms->size - 1;
 	uniforms->data[index].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	uniforms->data[index].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	uniforms->data[index].data = texture;
 
 	return index;
+}
+
+sz as_shader_add_scene_gpu(as_shader_uniforms_32* uniforms, as_scene_gpu_buffer* scene_gpu_buffer)
+{
+    AS_ASSERT(uniforms, "Trying to add scene GPU buffer but uniforms array is NULL");
+    AS_ASSERT(scene_gpu_buffer, "Trying to add scene GPU buffer but buffer is NULL");
+
+    as_shader_uniform shader_uniform = { 0 };
+    AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
+    const sz index = uniforms->size - 1;
+    uniforms->data[index].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	uniforms->data[index].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    uniforms->data[index].data = scene_gpu_buffer;
+
+    return index;
 }
 
 as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path)
@@ -1754,7 +1745,7 @@ void as_shader_update(as_render* render, as_shader* shader)
 	AS_ASSERT(render, "Trying to update shader, but render is NULL");
 	AS_ASSERT(shader, "Trying to update shader, but shader is NULL");
 
-	create_descriptor_set_layout_from_uniforms(shader);
+	create_descriptor_set_layout(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
 	as_shader_create_graphics_pipeline(shader);
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
@@ -2003,53 +1994,65 @@ void as_object_destroy(as_render* render, as_object* object)
 	AS_SET_INVALID(object);
 }
 
-as_scene* as_scene_create(const char* scene_path)
+VkDeviceSize as_scene_get_size(as_render* render)
+{
+	VkPhysicalDeviceProperties physical_device_properties;
+	vkGetPhysicalDeviceProperties(render->physical_device, &physical_device_properties);
+	VkDeviceSize min_uniform_buffer_offset_alignment = physical_device_properties.limits.minUniformBufferOffsetAlignment;
+	return (sizeof(as_scene_gpu_data) + min_uniform_buffer_offset_alignment - 1) & ~(min_uniform_buffer_offset_alignment - 1);
+}
+
+as_scene* as_scene_create(as_render* render, const char* scene_path)
 {
 	as_scene* scene = AS_MALLOC_SINGLE(as_scene);
 	strcpy(scene->path, scene_path);
+	VkDeviceSize size = as_scene_get_size(render);
+	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
+	as_scene_gpu_update_data(scene);
+	as_scene_gpu_update_buffer(render, scene);
 	return scene;
 }
 
-as_scene* as_scene_load(const char* scene_path)
+as_scene* as_scene_load(as_render* render, const char* scene_path)
 {
-	AS_ASSERT(scene_path, "Cannot load scene, scene_path NULL");
+	AS_ASSERT(render, "Cannot load scene, render is NULL");
+	AS_ASSERT(scene_path, "Cannot load scene, scene_path is NULL");
 
 	as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
 	if(!scene)
 	{
 		AS_LOG(LV_LOG, "Could not find scene to load, creating a new one")
-		scene = as_scene_create(scene_path);
+		return as_scene_create(render, scene_path);
 	}
+	VkDeviceSize size = as_scene_get_size(render);
+	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	return scene;
 }
 
-as_scene_gpu as_scene_make_gpu_scene(const as_scene* scene)
+void as_scene_gpu_update_data(as_scene* scene)
 {
 	AS_ASSERT(scene, "Cannot make GPU scene data, invalid scene");
 
-	as_scene_gpu scene_gpu;
-	scene_gpu.lights = scene->lights;
+	scene->gpu_data.lights = scene->lights;
+	AS_ARRAY_CLEAR(scene->gpu_data.objects_transforms);
 	for (sz i = 0; i < scene->objects.size; i++)
 	{
 		const as_mat4 transform = AS_ARRAY_GET(scene->objects, i)->transform;
-		AS_ARRAY_PUSH_BACK(scene_gpu.objects_transforms, transform);
+		AS_ARRAY_PUSH_BACK(scene->gpu_data.objects_transforms, transform);
 	}
-	return scene_gpu;
 }
 
-as_scene_gpu_buffer* as_scene_make_gpu_scene_buffer(as_render* render, const as_scene_gpu* scene_gpu)
+extern void as_scene_gpu_update_buffer(as_render* render, as_scene* scene)
 {
-	AS_ASSERT(scene_gpu, "Cannot make GPU scene buffer, invalid scene gpu");
-	as_scene_gpu_buffer* scene_gpu_buffer = AS_MALLOC_SINGLE(as_scene_gpu_buffer);	
+	AS_ASSERT(render, "Cannot make GPU scene buffer, invalid render");
 	
-	VkDeviceSize size = sizeof(as_scene_gpu);
-	create_buffer(render, size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scene_gpu_buffer->buffer, &scene_gpu_buffer->memory);
-	void* data = NULL;
-	vkMapMemory(render->device, scene_gpu_buffer->memory, 0, size, 0, &data);
-	memcpy(data, scene_gpu, (sz)size);
-	vkUnmapMemory(render->device, scene_gpu_buffer->memory);
+	// ensure it has a proper alignment
 
-	return scene_gpu_buffer;
+	scene->gpu_buffer.size = as_scene_get_size(render);
+	void* data = NULL;
+	vkMapMemory(render->device, scene->gpu_buffer.memory, 0, scene->gpu_buffer.size, 0, &data);
+	memcpy(data, &scene->gpu_data, (sz)scene->gpu_buffer.size);
+	vkUnmapMemory(render->device, scene->gpu_buffer.memory);
 }
 
 void as_scene_destroy(as_render *render, as_scene *scene)
@@ -2063,6 +2066,9 @@ void as_scene_destroy(as_render *render, as_scene *scene)
 	{
 		as_object_destroy(render, &scene->objects.data[i]);
 	}
+
+	vkFreeMemory(render->device, scene->gpu_buffer.memory, NULL);
+	vkDestroyBuffer(render->device, scene->gpu_buffer.buffer, NULL);
 
 	AS_FREE(scene);
 }

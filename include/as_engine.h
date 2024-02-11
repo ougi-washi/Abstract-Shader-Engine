@@ -19,7 +19,7 @@ extern f64 as_get_time();
 extern f64 as_get_delta_time();
 
 extern as_texture* as_texture_create(const char* texture_path);
-extern as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path);
+extern as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path, const bool add_scene);
 extern as_object* as_object_create(as_shape* shape, as_shader* shader);
 extern as_object* as_object_create_with_tick(as_shape* shape, as_shader* shader, void tick_func_ptr(as_object*, const f64));
 extern as_camera* as_camera_create(const as_vec3* position, const as_vec3* target);

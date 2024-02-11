@@ -37,7 +37,6 @@ typedef struct as_uniform_buffer_object
 	as_mat4 proj;
 } as_uniform_buffer_object;
 
-
 typedef struct as_push_const_buffer
 {
 	as_mat4 object_transform;
@@ -70,6 +69,7 @@ typedef struct as_texture
 typedef struct as_shader_uniform
 {
 	VkDescriptorType type;
+	VkShaderStageFlagBits stage;
 	void* data;
 } as_shader_uniform;
 AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
@@ -112,6 +112,7 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 
 	AS_FLAG;
 } as_object;
+AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
 AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
 
 typedef struct as_light
@@ -141,25 +142,31 @@ typedef struct as_camera
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
+#pragma pack(push, 1)  
 // currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
-typedef struct as_scene_gpu  
+typedef struct as_scene_gpu_data
 {
-	as_mat4_1024 objects_transforms;
+	as_mat4_128 objects_transforms; // max is 512 since 65536 is the max possible size
 	as_lights_128 lights;
-} as_scene_gpu;
+} as_scene_gpu_data;
+#pragma pack(pop)
 
 typedef struct as_scene_gpu_buffer  
 {
 	VkBuffer buffer;
 	VkDeviceMemory memory;
+	VkDeviceSize size;
 } as_scene_gpu_buffer;
 
 typedef struct as_scene
 {
 	char path[AS_MAX_PATH_SIZE];
-	as_objects_1024 objects;
+	as_objects_512 objects;
 	as_lights_128 lights;
 	as_camera_128 cameras; // main camera is index 0
+	
+	as_scene_gpu_data gpu_data;
+	as_scene_gpu_buffer gpu_buffer;
 } as_scene;
 
 typedef struct as_render
@@ -224,11 +231,10 @@ extern as_texture* as_texture_make(const char* path);
 extern void as_texture_update(as_render* render, as_texture* texture);
 extern void as_texture_destroy(as_render* render, as_texture* texture);
 
-extern as_shader_uniforms_32* as_uniforms_create();
-
 void as_shader_create_graphics_pipeline(as_shader* shader);
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
 extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
+extern sz as_shader_add_scene_gpu(as_shader_uniforms_32* uniforms, as_scene_gpu_buffer* scene_gpu_buffer);
 extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path);
 extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
 extern void as_shader_update(as_render* render, as_shader* shader);
@@ -250,9 +256,8 @@ extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, co
 extern void as_object_set_scale(as_object* object, const as_vec3* scale);
 extern void as_object_destroy(as_render* render, as_object* object);
 
-extern as_scene* as_scene_create(const char* scene_path);
-extern as_scene* as_scene_load(const char* scene_path);
-extern as_scene_gpu as_scene_make_gpu_scene(const as_scene* scene);
-extern as_scene_gpu_buffer* as_scene_make_gpu_scene_buffer(as_render* render, const as_scene_gpu* scene_gpu);
-
+extern as_scene* as_scene_create(as_render* render, const char* scene_path);
+extern as_scene* as_scene_load(as_render* render, const char* scene_path);
+extern void as_scene_gpu_update_data(as_scene* scene);
+extern void as_scene_gpu_update_buffer(as_render* render, as_scene* scene);
 extern void as_scene_destroy(as_render* render, as_scene* scene);
