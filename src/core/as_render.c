@@ -581,7 +581,7 @@ void create_descriptor_set_layout(as_shader* shader)
 	ubo_layout_binding.descriptorCount = 1;
 	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ubo_layout_binding.pImmutableSamplers = NULL;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	bindings[ubo_layout_binding.binding] = ubo_layout_binding;
 
@@ -1012,7 +1012,7 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, as_camer
 as_push_const_buffer get_push_const_buffer(const as_object* object, const as_camera* camera, const as_render* render)
 {
 	return (as_push_const_buffer)
-	{ 	.object_transform = object->transform, 
+	{ 	.object_index = object->scene_gpu_index, 
 		.camera_position = camera->position,
 		.camera_direction = camera->cached_direction,
 		.mouse_data = {0},
@@ -1077,8 +1077,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				u32 offset[] = {0};
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 1, offset);
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 1, &(u32){ 0 });
 				vkCmdDrawIndexed(command_buffer, object->indices_size, object->instance_count, 0, 0, 0);
 			}
 		}
@@ -1707,7 +1706,7 @@ sz as_shader_add_scene_gpu(as_shader_uniforms_32* uniforms, as_scene_gpu_buffer*
     AS_ARRAY_INSERT_AT((*uniforms), uniforms->size, shader_uniform);
     const sz index = uniforms->size - 1;
     uniforms->data[index].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	uniforms->data[index].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	uniforms->data[index].stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uniforms->data[index].data = scene_gpu_buffer;
 
     return index;
@@ -2041,8 +2040,9 @@ void as_scene_gpu_update_data(as_scene* scene)
 		{
 			break;
 		}
-		const as_mat4 transform = AS_ARRAY_GET(scene->objects, i)->transform;
-		AS_ARRAY_PUSH_BACK(scene->gpu_data.objects_transforms, transform);
+		as_object* object = AS_ARRAY_GET(scene->objects, i);
+		object->scene_gpu_index = i;
+		AS_ARRAY_PUSH_BACK(scene->gpu_data.objects_transforms, object->transform);
 	}
 }
 

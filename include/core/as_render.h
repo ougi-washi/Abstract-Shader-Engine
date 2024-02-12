@@ -39,12 +39,11 @@ typedef struct as_uniform_buffer_object
 
 typedef struct as_push_const_buffer
 {
-	as_mat4 object_transform;
 	as_vec3 camera_position;
 	as_vec3 camera_direction;
-	as_vec3 mouse_data;
+	as_vec4 mouse_data;
 	f32 current_time;
-	i32 scene_gpu_index; // index from the object transforms in the scene gpu
+	i32 object_index; // index from the object transforms in the scene gpu
 } as_push_const_buffer;
 
 typedef struct as_uniform_buffers
@@ -110,6 +109,8 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 	VkBuffer index_buffer;
 	VkDeviceMemory index_buffer_memory;
 	u32 indices_size;
+
+	i32 scene_gpu_index; // index of the object in the GPU scene 
 
 	AS_FLAG;
 } as_object;

@@ -2,12 +2,19 @@
 
 layout(push_constant) uniform push_constant_buffer
 {
-	mat4 object_transform;
 	vec3 camera_location;
 	vec3 camera_direction;
 	vec4 mouse_data;
 	float current_time;
+	int object_index;
 } ps;
+
+layout(binding = 0) uniform uniform_buffer_object 
+{
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} ubo; 
 
 mat4 look_at(vec3 eye, vec3 center, vec3 up) 
 {

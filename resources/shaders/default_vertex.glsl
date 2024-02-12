@@ -3,25 +3,7 @@
 #version 450
 
 #include "core/as_common.glsl"
-
-layout(binding = 0) uniform uniform_buffer_object 
-{
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-} ubo; 
-
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec3 in_normal;
-layout(location = 2) in vec3 in_color;
-layout(location = 3) in vec2 in_tex_coord;
-
-layout(location = 0) out vec3 vert_pos;
-layout(location = 1) out vec3 frag_normal;
-layout(location = 2) out vec3 frag_color;
-layout(location = 3) out vec2 frag_tex_coord;
-layout(location = 4) out vec3 obj_position;
-layout(location = 5) out int instance_id;
+#include "core/as_vertex_layout.glsl"
 
 void main() 
 {
@@ -43,11 +25,14 @@ void main()
         * cos(ps.current_time * movement_frequency_yz) * 1.2 
     );
 
-    gl_Position = ubo.proj * ubo.view * ps.object_transform * vec4(new_pos, 1.);
+    as_scene curr_scene = scene;
+    as_mat4_array transforms = curr_scene.objects_transforms;
+    mat4 object_transform = transforms.data[ps.object_index];
+    gl_Position = ubo.proj * ubo.view * object_transform * vec4(new_pos, 1.);
     vert_pos = in_position;
     frag_normal = in_normal;
     frag_color = in_color;
     frag_tex_coord = in_tex_coord;
     instance_id = gl_InstanceIndex;
-    obj_position = vec3(ps.object_transform[3][0], ps.object_transform[3][1], ps.object_transform[3][2]);
+    obj_position = vec3(object_transform[3][0], object_transform[3][1], object_transform[3][2]);
 }

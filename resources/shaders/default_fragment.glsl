@@ -1,10 +1,10 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #version 450
+
 #include "core/as_common.glsl"
 #include "core/as_fragment_layout.glsl"
 #include "as_sdf.glsl"
-
 
 sdf_result sdf_scene(vec3 p)
 {
@@ -24,7 +24,11 @@ sdf_result sdf_scene(vec3 p)
 
 void main()
 {
-    vec4 clip_pos = ps.object_transform * vec4(vert_pos, 1.0);
+    as_scene curr_scene = scene;
+    as_mat4_array transforms = curr_scene.objects_transforms;
+    mat4 object_transform = transforms.data[ps.object_index];
+
+    vec4 clip_pos = object_transform * vec4(vert_pos, 1.0);
     vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
     vec3 ray_dir = normalize(world_pos - ps.camera_location);
     sdf_result sdf = raymarch(ps.camera_location, ray_dir);
