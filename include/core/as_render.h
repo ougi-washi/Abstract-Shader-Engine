@@ -40,10 +40,12 @@ typedef struct as_uniform_buffer_object
 typedef struct as_push_const_buffer
 {
 	as_vec3 camera_position;
+	f32 _padding_0;
 	as_vec3 camera_direction;
+	f32 _padding_1;
 	as_vec4 mouse_data;
 	f32 current_time;
-	i32 object_index; // index from the object transforms in the scene gpu
+	i32 object_index; // index from the object transforms in the scene GPU
 } as_push_const_buffer;
 
 typedef struct as_uniform_buffers
@@ -121,8 +123,9 @@ AS_ARRAY_DECLARE(as_objects_2048, 2048, as_object);
 typedef struct as_light
 {
 	as_vec3 position;
+	float _padding_0; // Add padding to ensure 16-byte alignment
 	as_vec3 color;
-	f32 radius;
+	float radius;
 } as_light;
 AS_ARRAY_DECLARE(as_lights_128, 128, as_light);
 

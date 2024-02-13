@@ -3,6 +3,7 @@
 struct as_light 
 {
     vec3 position;
+    float _padding_0;
     vec3 color;
     float radius;
 };

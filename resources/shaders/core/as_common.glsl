@@ -3,7 +3,9 @@
 layout(push_constant) uniform push_constant_buffer
 {
 	vec3 camera_location;
+    float _padding_0;
 	vec3 camera_direction;
+    float _padding_1;
 	vec4 mouse_data;
 	float current_time;
 	int object_index;
