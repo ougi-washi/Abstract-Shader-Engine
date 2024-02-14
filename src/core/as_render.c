@@ -1006,17 +1006,35 @@ void update_shader_uniform_buffer(as_render* render, as_shader* shader, as_camer
 	ubo.proj = as_mat4_perspective(as_radians(camera->fov), render->swap_chain_extent.width / (f32)render->swap_chain_extent.height, 0.01f, 1000.f);
 	ubo.proj.m[1][1] *= -1;
 
-	memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+	if (shader->uniform_buffers.buffers_mapped.size != 0)
+	{
+		memcpy(shader->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+	}
 }
 
 as_push_const_buffer get_push_const_buffer(const as_object* object, const as_camera* camera, const as_render* render)
 {
+	as_mat4 buffer_data = {0};
+	buffer_data.m[0][0] = camera->position.x;
+	buffer_data.m[0][1] = camera->position.y;
+	buffer_data.m[0][2] = camera->position.z;
+
+	buffer_data.m[1][0] = camera->cached_direction.x;
+	buffer_data.m[1][1] = camera->cached_direction.y;
+	buffer_data.m[1][2] = camera->cached_direction.z;
+
+	buffer_data.m[2][0] = as_render_get_time(render);
+
+	buffer_data.m[3][0] = (f32)object->scene_gpu_index;
+
 	return (as_push_const_buffer)
-	{ 	.object_index = object->scene_gpu_index, 
+	{
+		.data = buffer_data
+		/*.object_index = object->scene_gpu_index, 
 		.camera_position = camera->position,
 		.camera_direction = camera->cached_direction,
 		.mouse_data = {0},
-		.current_time = as_render_get_time(render)
+		.current_time = as_render_get_time(render)*/
 	};
 }
 
@@ -1314,6 +1332,10 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 			as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
 			if (!object) { continue; }
 			as_shader* shader = object->shader;
+			if (!shader->graphics_pipeline)
+			{
+				as_shader_update(render, shader);
+			}
 			update_shader_uniform_buffer(render, shader, camera, render->current_frame);
 		}
 
