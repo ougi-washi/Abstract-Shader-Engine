@@ -17,17 +17,17 @@ void main()
     int movement_frequency_yz = int(mod(instance_index_x + instance_index_y, 3));
 
     vec3 new_pos = in_position.xyz + vec3(
-        float(instance_index_x) * grid_spacing.x + cos(ps.current_time * movement_frequency_xy) 
-        * sin(ps.current_time * movement_frequency_xy) * -1.2 ,
-        float(instance_index_y) * grid_spacing.y + sin(ps.current_time * movement_frequency_xz) 
-        * cos(ps.current_time * movement_frequency_xz) * -1.2 ,
-        float(instance_index_z) * grid_spacing.z + sin(ps.current_time * movement_frequency_yz) 
-        * cos(ps.current_time * movement_frequency_yz) * 1.2 
+        float(instance_index_x) * grid_spacing.x + cos(get_current_time() * movement_frequency_xy) 
+        * sin(get_current_time() * movement_frequency_xy) * -1.2 ,
+        float(instance_index_y) * grid_spacing.y + sin(get_current_time() * movement_frequency_xz) 
+        * cos(get_current_time() * movement_frequency_xz) * -1.2 ,
+        float(instance_index_z) * grid_spacing.z + sin(get_current_time() * movement_frequency_yz) 
+        * cos(get_current_time() * movement_frequency_yz) * 1.2 
     );
 
     as_scene curr_scene = scene;
     as_mat4_array transforms = curr_scene.objects_transforms;
-    mat4 object_transform = transforms.data[ps.object_index];
+    mat4 object_transform = transforms.data[get_object_index()];
     gl_Position = ubo.proj * ubo.view * object_transform * vec4(new_pos, 1.);
     vert_pos = in_position;
     frag_normal = in_normal;

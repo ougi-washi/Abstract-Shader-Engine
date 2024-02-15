@@ -11,7 +11,7 @@ sdf_result sdf_scene(vec3 p)
     float sphere1_dist = sd_sphere(p, 0.4);
     vec3 sphere1_color = vec3(1.0, 0.0, 0.0);
 
-    vec3 sphere2_offset = vec3(cos(ps.current_time * (instance_id + 1) * .6), sin(ps.current_time * (instance_id + 1 ) * .2) * 2., 0.);
+    vec3 sphere2_offset = vec3(cos(get_current_time() * (instance_id + 1) * .6), sin(get_current_time() * (instance_id + 1 ) * .2) * 2., 0.);
     float sphere2_dist = sd_sphere(p + sphere2_offset, 0.4);
     vec3 sphere2_color = vec3(0.0, 0.0, 1.0);
 
@@ -26,12 +26,12 @@ void main()
 {
     as_scene curr_scene = scene;
     as_mat4_array transforms = curr_scene.objects_transforms;
-    mat4 object_transform = transforms.data[ps.object_index];
+    mat4 object_transform = transforms.data[get_object_index()];
 
     vec4 clip_pos = object_transform * vec4(vert_pos, 1.0);
     vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
-    vec3 ray_dir = normalize(world_pos - ps.camera_location);
-    sdf_result sdf = raymarch(ps.camera_location, ray_dir);
+    vec3 ray_dir = normalize(world_pos - get_camera_pos());
+    sdf_result sdf = raymarch(get_camera_pos(), ray_dir);
     vec3 color = sdf.color;
 
     if(sdf.alpha < .4)
@@ -44,4 +44,5 @@ void main()
 
     color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003) * color;
     out_color = vec4(color, 1.);
+    // vec4(get_object_index());
 }

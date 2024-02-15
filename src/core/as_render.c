@@ -1024,17 +1024,11 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	buffer_data.m[1][2] = camera->cached_direction.z;
 
 	buffer_data.m[2][0] = as_render_get_time(render);
-
-	buffer_data.m[3][0] = (f32)object->scene_gpu_index;
+	buffer_data.m[2][1] = (f32)object->scene_gpu_index;
 
 	return (as_push_const_buffer)
 	{
 		.data = buffer_data
-		/*.object_index = object->scene_gpu_index, 
-		.camera_position = camera->position,
-		.camera_direction = camera->cached_direction,
-		.mouse_data = {0},
-		.current_time = as_render_get_time(render)*/
 	};
 }
 
