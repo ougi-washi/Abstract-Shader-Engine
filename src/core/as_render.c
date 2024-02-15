@@ -2048,8 +2048,10 @@ void as_scene_gpu_update_data(as_scene* scene)
 {
 	AS_ASSERT(scene, "Cannot make GPU scene data, invalid scene");
 
-	scene->gpu_data.lights = scene->lights;
-	AS_ARRAY_CLEAR(scene->gpu_data.objects_transforms);
+	// scene->gpu_data.lights = scene->lights; // need to pack the lights in mat4 for alignments
+	// AS_ARRAY_CLEAR(scene->gpu_data.objects_transforms);
+
+	scene->gpu_data.info.m[0][0] = (f32)scene->objects.size;
 	for (sz i = 0; i < scene->objects.size; i++) // TODO:get only closest
 	{
 		if (i >= AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE)
@@ -2058,7 +2060,7 @@ void as_scene_gpu_update_data(as_scene* scene)
 		}
 		as_object* object = AS_ARRAY_GET(scene->objects, i);
 		object->scene_gpu_index = i;
-		AS_ARRAY_PUSH_BACK(scene->gpu_data.objects_transforms, object->transform);
+		scene->gpu_data.objects_transforms[i] = object->transform;
 	}
 }
 

@@ -39,16 +39,7 @@ typedef struct as_uniform_buffer_object
 
 typedef struct as_push_const_buffer
 {
-	/*as_vec3 camera_position;
-	f32 _padding_0;
-	as_vec3 camera_direction;
-	f32 _padding_1;
-	as_vec4 mouse_data;
-	f32 current_time;
-	i32 object_index;*/ // index from the object transforms in the scene GPU
-
 	as_mat4 data;
-
 	// camera_position  X[0][0] Y[0][1] Z[0][2]
 	// camera_direction X[1][0] Y[1][1] Z[1][2]
 	// current_time		[2][0]
@@ -157,12 +148,14 @@ typedef struct as_camera
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
 // currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
+// Also, alignment matters
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 typedef struct as_scene_gpu_data
 {
-	as_mat4_128 objects_transforms; // max is 512 since 65536 is the max possible size
-	as_lights_128 lights;
+	as_mat4 info;
+	as_mat4 objects_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE]; // max is 512 since 65536 is the max possible size
+	// as_lights_128 lights;
 } as_scene_gpu_data;
-#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 
 typedef struct as_scene_gpu_buffer  
 {

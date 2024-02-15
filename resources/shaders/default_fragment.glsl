@@ -24,10 +24,7 @@ sdf_result sdf_scene(vec3 p)
 
 void main()
 {
-    as_scene curr_scene = scene;
-    as_mat4_array transforms = curr_scene.objects_transforms;
-    mat4 object_transform = transforms.data[get_object_index()];
-
+    mat4 object_transform = get_object_transform(get_object_index());
     vec4 clip_pos = object_transform * vec4(vert_pos, 1.0);
     vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
     vec3 ray_dir = normalize(world_pos - get_camera_pos());
@@ -42,7 +39,7 @@ void main()
     vec3 light_dir = vec3(1, -20, 10);
     float light_mask = dot(frag_normal.xyz, light_dir);
 
-    color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003) * color;
+    // color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003) * color;
     out_color = vec4(color, 1.);
     // vec4(get_object_index());
 }

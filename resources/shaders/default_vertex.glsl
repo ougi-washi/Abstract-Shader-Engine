@@ -25,9 +25,7 @@ void main()
         * cos(get_current_time() * movement_frequency_yz) * 1.2 
     );
 
-    as_scene curr_scene = scene;
-    as_mat4_array transforms = curr_scene.objects_transforms;
-    mat4 object_transform = transforms.data[get_object_index()];
+    mat4 object_transform = get_object_transform(get_object_index());
     gl_Position = ubo.proj * ubo.view * object_transform * vec4(new_pos, 1.);
     vert_pos = in_position;
     frag_normal = in_normal;
