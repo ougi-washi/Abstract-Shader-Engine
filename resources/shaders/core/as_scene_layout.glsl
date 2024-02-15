@@ -41,8 +41,8 @@ layout(set = 0, binding = 0) uniform scene_buffer
 
 mat4 get_object_transform(int index)
 {
-    as_scene curr_scene = scene;
-    mat4 transforms[128] = curr_scene.objects_transforms;
-    return transforms[index];
+    // as_scene curr_scene = scene;
+    // mat4 transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE] = curr_scene.objects_transforms;
+    return scene.objects_transforms[index];
 }
 

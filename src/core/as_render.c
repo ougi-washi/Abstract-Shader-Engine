@@ -44,7 +44,8 @@ const char* instance_extensions[] =
 const u32 instance_extensions_count = AS_ARRAY_SIZE(instance_extensions);
 const char* device_extensions[] =
 {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_MAINTENANCE1_EXTENSION_NAME
 };
 const u32 device_extensions_count = AS_ARRAY_SIZE(device_extensions);
 
