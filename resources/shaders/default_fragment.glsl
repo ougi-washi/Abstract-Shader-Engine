@@ -11,6 +11,10 @@ sdf_result sdf_scene(vec3 p)
     float blended_dist = SDF_MAX_DIST;
     vec3 blended_color = vec3(0.f, 0.f, 0.f);
 
+    vec3 light_dir = vec3(1, -20, 10);
+    float light_mask = dot(frag_normal.xyz, light_dir);
+    vec3 light_color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003);
+    
     for (int i = 0 ; i < get_object_count() ; i++)
     {
         float sphere_dist = SDF_MAX_DIST;
@@ -26,7 +30,7 @@ sdf_result sdf_scene(vec3 p)
             sphere_color = vec3(0.0, 0.0, 1.0);
         }
 
-        blended_dist = op_smooth_union(blended_dist, sphere_dist, abs(cos(get_current_time())));
+        blended_dist = op_smooth_union(blended_dist, sphere_dist, .8);
         blended_color = mix(blended_color, sphere_color, sphere_dist);
     }
     return sdf_result(p, blended_color, blended_dist);
@@ -43,10 +47,8 @@ void main()
         discard;
     }
 
-    vec3 light_dir = vec3(1, -20, 10);
-    float light_mask = dot(frag_normal.xyz, light_dir);
 
-    // color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003) * color;
     out_color = vec4(color, 1.);
+
 }
 

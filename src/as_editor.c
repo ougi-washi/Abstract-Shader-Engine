@@ -20,7 +20,7 @@ void as_editor_set_default_scene()
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER, true);
 	
 	//as_assign_texture_to_shader(shader, texture);
-	as_shape* shape_sphere = as_generate_sphere(.6, 6, 6);
+	as_shape* shape_sphere = as_generate_sphere(.6, 16, 16);
 
 	as_object* object1 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object1);
 	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0.5, 0., 0.));
