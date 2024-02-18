@@ -30,15 +30,19 @@ AS_ARRAY_DECLARE(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
 AS_ARRAY_DECLARE(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 typedef struct as_uniform_buffer_object
 {
 	as_mat4 model;
 	as_mat4 view;
 	as_mat4 proj;
+	as_mat4 scene_info;
+	as_mat4 object_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE];
 } as_uniform_buffer_object;
 
 typedef struct as_push_const_buffer
 {
+	// as_mat4 obj_transform;
 	as_mat4 data;
 	// camera_position  X[0][0] Y[0][1] Z[0][2]
 	// camera_direction X[1][0] Y[1][1] Z[1][2]
@@ -149,7 +153,6 @@ AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
 // currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
 // Also, alignment matters
-#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 typedef struct as_scene_gpu_data
 {
 	as_mat4 info;

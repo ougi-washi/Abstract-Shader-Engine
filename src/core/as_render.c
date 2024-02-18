@@ -45,7 +45,7 @@ const u32 instance_extensions_count = AS_ARRAY_SIZE(instance_extensions);
 const char* device_extensions[] =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE1_EXTENSION_NAME
+	// VK_KHR_MAINTENANCE1_EXTENSION_NAME
 };
 const u32 device_extensions_count = AS_ARRAY_SIZE(device_extensions);
 
@@ -932,19 +932,19 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 					descriptor_writes[descriptor_writes_index].pImageInfo = &image_info;
 				}
 			}
-			else if (uniform->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-			{
-				// currently used for scene only
-				as_scene_gpu_buffer* scene_gpu = (as_scene_gpu_buffer*)uniform->data;
-				if (scene_gpu)
-				{
-					VkDescriptorBufferInfo buffer_info = { 0 };
-					buffer_info.buffer = scene_gpu->buffer;
-					buffer_info.offset = 0;
-					buffer_info.range = scene_gpu->size;
-					descriptor_writes[descriptor_writes_index].pBufferInfo = &buffer_info;
-				}
-			}
+			// else if (uniform->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+			// {
+			// 	// currently used for scene only
+			// 	as_scene_gpu_buffer* scene_gpu = (as_scene_gpu_buffer*)uniform->data;
+			// 	if (scene_gpu)
+			// 	{
+			// 		VkDescriptorBufferInfo buffer_info = { 0 };
+			// 		buffer_info.buffer = scene_gpu->buffer;
+			// 		buffer_info.offset = 0;
+			// 		buffer_info.range = scene_gpu->size;
+			// 		descriptor_writes[descriptor_writes_index].pBufferInfo = &buffer_info;
+			// 	}
+			// }
 		}
 		vkUpdateDescriptorSets(device, descriptor_writes_count, descriptor_writes, 0, NULL);
 		AS_FREE(descriptor_writes);
@@ -992,10 +992,15 @@ as_mat4 as_get_camera_view_matrix(as_camera* camera)
 	return as_mat4_look_at(&camera->position, &camera->target, &camera->up);
 }
 
-void update_shader_uniform_buffer(as_render* render, as_shader* shader, as_camera* camera, const u32 current_image)
+void update_shader_uniform_buffer(as_render* render, as_scene* scene, as_shader* shader, as_camera* camera, const u32 current_image)
 {
 	as_uniform_buffer_object ubo = { 0 };
 	as_mat4_set_identity(&ubo.model);
+	if (scene)
+	{
+		memcpy(ubo.object_transforms, scene->gpu_data.objects_transforms, sizeof(ubo.object_transforms));
+		ubo.scene_info.m[0][0] = (f32)scene->objects.size;
+	}
 	if (camera)
 	{
 		ubo.view = as_get_camera_view_matrix(camera);
@@ -1090,7 +1095,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				vkCmdPushConstants(command_buffer, shader->graphics_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindVertexBuffers(command_buffer, 0, 1, &object->vertex_buffer, &(VkDeviceSize) { 0 });
 				vkCmdBindIndexBuffer(command_buffer, object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 1, &(u32){ 0 });
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->graphics_pipeline_layout, 0, 1, &shader->descriptor_sets.data[render->current_frame], 0, 0);
 				vkCmdDrawIndexed(command_buffer, object->indices_size, object->instance_count, 0, 0, 0);
 			}
 		}
@@ -1331,7 +1336,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 			{
 				as_shader_update(render, shader);
 			}
-			update_shader_uniform_buffer(render, shader, camera, render->current_frame);
+			update_shader_uniform_buffer(render, scene, shader, camera, render->current_frame);
 		}
 
 		as_scene_gpu_update_data(scene);
@@ -2010,6 +2015,15 @@ void as_object_destroy(as_render* render, as_object* object)
 	AS_SET_INVALID(object);
 }
 
+void as_scene_gpu_create_descriptor(as_render* render, as_scene* scene)
+{
+	AS_ASSERT(render, TEXT("Trying to create scene gpu descriptor, but render is NULL"));
+	AS_ASSERT(scene, TEXT("Trying to create scene gpu descriptor, but scene is NULL"));
+
+	
+}
+
+
 VkDeviceSize as_scene_get_size(as_render* render)
 {
 	VkPhysicalDeviceProperties physical_device_properties;
@@ -2065,7 +2079,7 @@ void as_scene_gpu_update_data(as_scene* scene)
 	}
 }
 
-extern void as_scene_gpu_update_buffer(as_render* render, as_scene* scene)
+void as_scene_gpu_update_buffer(as_render* render, as_scene* scene)
 {
 	AS_ASSERT(render, "Cannot make GPU scene buffer, invalid render");
 	
