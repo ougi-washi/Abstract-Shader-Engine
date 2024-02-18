@@ -117,10 +117,6 @@ as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment
 {
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
-	if (add_scene)
-	{
-		as_shader_add_scene_gpu(&shader->uniforms, &engine.scene->gpu_buffer);
-	}
 	return shader;
 }
 

@@ -30,21 +30,25 @@ AS_ARRAY_DECLARE(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
 AS_ARRAY_DECLARE(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 typedef struct as_uniform_buffer_object
 {
 	as_mat4 model;
 	as_mat4 view;
 	as_mat4 proj;
+	as_mat4 scene_info;
+	as_mat4 object_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE];
 } as_uniform_buffer_object;
 
 typedef struct as_push_const_buffer
 {
-	as_mat4 object_transform;
-	as_vec3 camera_position;
-	as_vec3 camera_direction;
-	as_vec3 mouse_data;
-	f32 current_time;
-	i32 scene_gpu_index; // index from the object transforms in the scene gpu
+	// as_mat4 obj_transform;
+	as_mat4 data;
+	// camera_position  X[0][0] Y[0][1] Z[0][2]
+	// camera_direction X[1][0] Y[1][1] Z[1][2]
+	// current_time		[2][0]
+	// object_index		[2][1]
+	// mouse_data		X[3][0] Y[3][1]
 } as_push_const_buffer;
 
 typedef struct as_uniform_buffers
@@ -111,6 +115,8 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 	VkDeviceMemory index_buffer_memory;
 	u32 indices_size;
 
+	i32 scene_gpu_index; // index of the object in the GPU scene 
+
 	AS_FLAG;
 } as_object;
 AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
@@ -120,8 +126,9 @@ AS_ARRAY_DECLARE(as_objects_2048, 2048, as_object);
 typedef struct as_light
 {
 	as_vec3 position;
+	float _padding_0; // Add padding to ensure 16-byte alignment
 	as_vec3 color;
-	f32 radius;
+	float radius;
 } as_light;
 AS_ARRAY_DECLARE(as_lights_128, 128, as_light);
 
@@ -144,15 +151,14 @@ typedef struct as_camera
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
-#pragma pack(push, 1)  
 // currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
+// Also, alignment matters
 typedef struct as_scene_gpu_data
 {
-	as_mat4_128 objects_transforms; // max is 512 since 65536 is the max possible size
-	as_lights_128 lights;
+	as_mat4 info;
+	as_mat4 objects_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE]; // max is 512 since 65536 is the max possible size
+	// as_lights_128 lights;
 } as_scene_gpu_data;
-#pragma pack(pop)
-#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
 
 typedef struct as_scene_gpu_buffer  
 {
