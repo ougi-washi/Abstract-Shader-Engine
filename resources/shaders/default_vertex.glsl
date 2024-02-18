@@ -32,5 +32,5 @@ void main()
     frag_color = in_color;
     frag_tex_coord = in_tex_coord;
     instance_id = gl_InstanceIndex;
-    obj_position = get_position(object_transform);
+    obj_position = new_pos;
 }

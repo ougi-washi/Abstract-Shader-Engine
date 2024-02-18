@@ -17,16 +17,16 @@ sdf_result sdf_scene(vec3 p)
         vec3 sphere_color = vec3(0.);
         if (i == 0)
         {
-            sphere_dist = sd_sphere(p + vec3(.7f), 0.4);
+            sphere_dist = sd_sphere(p + get_object_position(i), 0.4);
             sphere_color = vec3(1.0, 0.0, 0.0);
         }
         else if (i == 1)
         {
-            sphere_dist = sd_sphere(p, 0.4);
+            sphere_dist = sd_sphere(p + get_object_position(i), 0.3);
             sphere_color = vec3(0.0, 0.0, 1.0);
         }
 
-        blended_dist = op_smooth_union(blended_dist, sphere_dist, abs(1. * cos(get_current_time())));
+        blended_dist = op_smooth_union(blended_dist, sphere_dist, abs(cos(get_current_time())));
         blended_color = mix(blended_color, sphere_color, sphere_dist);
     }
     return sdf_result(p, blended_color, blended_dist);
@@ -34,13 +34,10 @@ sdf_result sdf_scene(vec3 p)
 
 void main()
 {
-    mat4 object_transform = get_object_transform(get_object_index());
-    vec4 clip_pos = object_transform * vec4(vert_pos, 1.0);
-    vec3 world_pos = (clip_pos.xyz / clip_pos.w) - obj_position;
-    vec3 ray_dir = normalize(world_pos - get_camera_pos());
+    vec3 world_pos = vert_pos + get_current_object_position();
+    vec3 ray_dir = - normalize(world_pos + get_camera_pos());
     sdf_result sdf = raymarch(get_camera_pos(), ray_dir);
     vec3 color = sdf.color;
-
     if(sdf.alpha < .4)
     {
         discard;
