@@ -46,9 +46,6 @@ void main()
     {
         discard;
     }
-
-
     out_color = vec4(color, 1.);
-
 }
 
