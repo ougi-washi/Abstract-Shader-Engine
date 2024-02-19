@@ -22,12 +22,12 @@ sdf_result sdf_scene(vec3 p)
         if (i == 0)
         {
             sphere_dist = sd_sphere(p + get_object_position(i), 0.4);
-            sphere_color = vec3(1.0, 0.0, 0.0);
+            sphere_color = vec3(1.0, abs(sin(get_current_time() * 2.)), 0.0);
         }
         else if (i == 1)
         {
             sphere_dist = sd_sphere(p + get_object_position(i), 0.3);
-            sphere_color = vec3(0.0, 0.0, 1.0);
+            sphere_color = vec3(abs(sin(get_current_time() * 1.)), 0.0, 1.0);
         }
 
         blended_dist = op_smooth_union(blended_dist, sphere_dist, .8);
@@ -48,4 +48,3 @@ void main()
     }
     out_color = vec4(color, 1.);
 }
-
