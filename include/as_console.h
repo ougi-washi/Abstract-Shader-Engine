@@ -12,63 +12,16 @@
 #endif
 
 #define MAX_COMMAND_LENGTH 256
+static char current_command[MAX_COMMAND_LENGTH];
+static int cursor_position = 0;
+static bool is_init_command = false;
 
 extern void process_console_command(const char *command)
 {
-    // // Process different commands
-    // if (strncmp(command, "add_object", strlen("add_object")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_object *newObject = as_object_create(/* parameters */);
-    //     printf("Object added with ID %d\n", newObject->id);
-    // }
-    // else if (strncmp(command, "select_object", strlen("select_object")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_object *selectedObject = /* ... */;
-    //     printf("Object selected with ID %d\n", selectedObject->id);
-    // }
-    // else if (strncmp(command, "remove_object", strlen("remove_object")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_object *objectToRemove = /* ... */;
-    //     printf("Object removed with ID %d\n", objectToRemove->id);
-    // }
-    // else if (strncmp(command, "attach_camera", strlen("attach_camera")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_camera *camera = /* ... */;
-    //     printf("Camera attached\n");
-    // }
-    // else if (strncmp(command, "assign_shader", strlen("assign_shader")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_shader *shader = /* ... */;
-    //     printf("Shader assigned\n");
-    // }
-    // else if (strncmp(command, "assign_texture", strlen("assign_texture")) == 0)
-    // {
-    //     // Extract parameters from the command if needed
-    //     // ...
-    //     // Call the appropriate function from your engine
-    //     as_texture *texture = /* ... */;
-    //     printf("Texture assigned\n");
-    // }
-    // else 
     if (strncmp(command, "exit", strlen("exit")) == 0)
     {
         printf("Exiting program\n");
-        // Cleanup and exit the program if needed
+        // TODO: Cleanup 
     }
     else
     {
@@ -107,9 +60,6 @@ void auto_fill(const char* input)
     }
 }
 
-static char current_command[MAX_COMMAND_LENGTH];
-static int cursor_position = 0;
-static bool is_init_command = false;
 
 int is_key_pressed()
 {
@@ -149,13 +99,16 @@ void move_cursor(i32 col)
 
 bool handle_special_keys(const i32 key)
 {
-	if (key == 8 && cursor_position > 0)
+	if (key == 8)
 	{
-		printf("\b \b");
-		memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
-		cursor_position--;
-		move_cursor(cursor_position);
-		printf("%s", &current_command[cursor_position]);
+		if (cursor_position > 0)
+		{
+			printf("\b \b");
+			memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
+			cursor_position--;
+			move_cursor(cursor_position);
+			printf("%s", &current_command[cursor_position]);
+		}
 		return true;
 	}
     if (key == 0 || key == 224 || key == -32)
@@ -190,51 +143,6 @@ bool handle_special_keys(const i32 key)
 		return true;
 	}
 	return false;
-	//char key = get_pressed_key();
- //   if (key == 91)
- //   {
-	//	key = get_pressed_key();
- //   }
-	//switch (key) {
-	//case 27: // Escape key
-	//	// Handle escape key
-	//	break;
-	//case 65: // Up arrow key
-	//	// Handle up arrow key
-	//	break;
-	//case 66: // Down arrow key
-	//	// Handle down arrow key
-	//	break;
-	//case 68: // Left arrow key
-	//	// Handle left arrow key
-	//	if (cursor_position > 0) {
-	//		cursor_position--;
-	//		move_cursor(cursor_position);
-	//	}
-	//	break;
-	//case 67: // Right arrow key
-	//	// Handle right arrow key
-	//	if (cursor_position < strlen(current_command)) {
-	//		cursor_position++;
-	//		move_cursor(cursor_position);
-	//	}
-	//	break;
-	//case 8: // Backspace (Delete)
-	//	// Handle delete key
-	//	if (cursor_position > 0) {
-	//		printf("\b \b");
-	//		memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
-	//		cursor_position--;
-	//		move_cursor(cursor_position);
-	//		printf("%s", &current_command[cursor_position]);
-	//	}
-	//	break;
-	//default:
-	//	// Handle other keys
- //       return false;
- //       break;
-	//}
- //   return true;
 }
 
 void as_console_process_input()
