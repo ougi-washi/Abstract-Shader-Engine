@@ -34,6 +34,6 @@ void as_editor_set_default_scene()
 
 bool as_editor_should_loop()
 {
-	//as_console_process_input();
+	as_console_process_input();
 	return as_engine_should_loop();
 }

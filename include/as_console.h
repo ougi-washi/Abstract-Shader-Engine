@@ -135,7 +135,7 @@ char get_pressed_key()
 #endif
 }
 
-void move_cursor(int col)
+void move_cursor(i32 col)
 {
 #ifdef _WIN32
 	COORD coord;
@@ -147,73 +147,105 @@ void move_cursor(int col)
 #endif
 }
 
-bool handle_special_keys()
+bool handle_special_keys(const i32 key)
 {
-	int ch;
-
-	while ((ch = _getch()) != 27) /* 27 = Esc key */
+	if (key == 8 && cursor_position > 0)
 	{
-		printf("%d", ch);
-		if (ch == 0 || ch == 224)
-			printf(", %d", _getch());
-		printf("\n");
+		printf("\b \b");
+		memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
+		cursor_position--;
+		move_cursor(cursor_position);
+		printf("%s", &current_command[cursor_position]);
+		return true;
 	}
+    if (key == 0 || key == 224 || key == -32)
+	{
+		const i32 special_key = get_pressed_key();
+		switch (special_key)
+		{
+		case 72: // up
+			break;
 
-	char key = get_pressed_key();
-    if (key == 91)
-    {
-		key = get_pressed_key();
-    }
-	switch (key) {
-	case 27: // Escape key
-		// Handle escape key
-		break;
-	case 65: // Up arrow key
-		// Handle up arrow key
-		break;
-	case 66: // Down arrow key
-		// Handle down arrow key
-		break;
-	case 68: // Left arrow key
-		// Handle left arrow key
-		if (cursor_position > 0) {
-			cursor_position--;
-			move_cursor(cursor_position);
+		case 80: // down
+			break;
+		case 77: // right
+			if (cursor_position < strlen(current_command)) 
+			{
+				cursor_position++;
+				move_cursor(cursor_position);
+			}
+			break;
+		case 75: // left
+			if (cursor_position > 0) 
+			{
+				cursor_position--;
+				move_cursor(cursor_position);
+			}
+			break;
+		default:
+			printf("%d", special_key);
+			break;
+			/* ... etc ... */
 		}
-		break;
-	case 67: // Right arrow key
-		// Handle right arrow key
-		if (cursor_position < strlen(current_command)) {
-			cursor_position++;
-			move_cursor(cursor_position);
-		}
-		break;
-	case 8: // Backspace (Delete)
-		// Handle delete key
-		if (cursor_position > 0) {
-			printf("\b \b");
-			memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
-			cursor_position--;
-			move_cursor(cursor_position);
-			printf("%s", &current_command[cursor_position]);
-		}
-		break;
-	default:
-		// Handle other keys
-        return false;
-        break;
+		return true;
 	}
-    return true;
+	return false;
+	//char key = get_pressed_key();
+ //   if (key == 91)
+ //   {
+	//	key = get_pressed_key();
+ //   }
+	//switch (key) {
+	//case 27: // Escape key
+	//	// Handle escape key
+	//	break;
+	//case 65: // Up arrow key
+	//	// Handle up arrow key
+	//	break;
+	//case 66: // Down arrow key
+	//	// Handle down arrow key
+	//	break;
+	//case 68: // Left arrow key
+	//	// Handle left arrow key
+	//	if (cursor_position > 0) {
+	//		cursor_position--;
+	//		move_cursor(cursor_position);
+	//	}
+	//	break;
+	//case 67: // Right arrow key
+	//	// Handle right arrow key
+	//	if (cursor_position < strlen(current_command)) {
+	//		cursor_position++;
+	//		move_cursor(cursor_position);
+	//	}
+	//	break;
+	//case 8: // Backspace (Delete)
+	//	// Handle delete key
+	//	if (cursor_position > 0) {
+	//		printf("\b \b");
+	//		memmove(&current_command[cursor_position - 1], &current_command[cursor_position], strlen(current_command) - cursor_position + 1);
+	//		cursor_position--;
+	//		move_cursor(cursor_position);
+	//		printf("%s", &current_command[cursor_position]);
+	//	}
+	//	break;
+	//default:
+	//	// Handle other keys
+ //       return false;
+ //       break;
+	//}
+ //   return true;
 }
 
 void as_console_process_input()
 {
-	if (is_key_pressed()) {
-        if (handle_special_keys())
+	if (is_key_pressed())
+	{
+		const i32 key = get_pressed_key();
+		if (handle_special_keys(key))
         {
             return;
         }
-		char key = get_pressed_key();
 		if (key == '\r') {
 			// Enter key pressed, process the command
 			process_console_command(current_command);
