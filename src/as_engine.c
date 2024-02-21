@@ -26,6 +26,11 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 	as_input_add(engine.input_buffer, key, action);
 }
 
+void command1_test()
+{
+	AS_LOG(LV_LOG, "Executing command1");
+}
+
 void as_engine_init()
 {
 	AS_LOG(LV_LOG, "Initializing the engine");
@@ -38,7 +43,7 @@ void as_engine_init()
 	engine.tick_system = as_tick_system_create();
 
 	as_command_mapping_128* command_mappings = as_console_get_mappings();
-	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command1", NULL, 0}));
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command1", &command1_test, 0}));
 	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command2", NULL, 1}));
 	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command3", NULL, 2}));
 	as_console_init();
@@ -61,6 +66,8 @@ void as_engine_clear()
 
 	as_display_context_destroy(engine.display_context);
 	as_display_context_terminate();
+
+	as_console_clear();
 
 	AS_LOG_MEMORY();
 }

@@ -34,6 +34,21 @@ typedef struct as_console_handle
 
 static as_console_handle console_handle;
 
+as_command_mapping* as_console_find_command_mapping(const char* command_name)
+{
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(console_handle.mappings); ++i)
+	{
+		as_command_mapping* mapped_cmd = AS_ARRAY_GET(console_handle.mappings, i);
+		if (!mapped_cmd || !mapped_cmd->func) continue;
+
+		if (strcmp(command_name, mapped_cmd->name) == 0)
+		{
+			return mapped_cmd;
+		}
+	}
+	return NULL;
+}
+
 void as_console_execute_command(as_console_command* cmd) 
 {
 	if (!cmd)
@@ -83,16 +98,19 @@ void* as_console_process_input(void* arg)
 			continue;
 		}
 
-		for (sz i = 0; i < AS_COMMAND_MAX_ARGS; ++i) 
+		as_command_mapping* mapping_found = as_console_find_command_mapping(cmd.command);
+		if (mapping_found)
 		{
-			scanf_val = scanf("%s", cmd.argument[i]);
-			if (scanf_val == EOF) 
+			for (sz i = 0; i < mapping_found->arg_count; ++i)
 			{
-				break;
+				scanf_val = scanf("%s", cmd.argument[i]);
 			}
+			as_console_execute_command(&cmd);
 		}
-
-		as_console_execute_command(&cmd);
+		else
+		{
+			AS_FLOG(LV_LOG, "Unknown command: %s\n", cmd.command);
+		}
 	}
 	return NULL;
 }
