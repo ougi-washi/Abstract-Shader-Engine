@@ -18,10 +18,10 @@ void as_editor_set_default_scene()
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
 	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
-	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER, true);
+	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
 	//as_assign_texture_to_shader(shader, texture);
-	as_shape* shape_sphere = as_generate_sphere(.6, 6, 6);
+	as_shape* shape_sphere = as_generate_sphere(.6, 8, 8);
 
 	as_object* object1 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object1);
 	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0.5, 0., 0.));
@@ -34,6 +34,5 @@ void as_editor_set_default_scene()
 
 bool as_editor_should_loop()
 {
-	as_console_process_input();
 	return as_engine_should_loop();
 }

@@ -5,6 +5,7 @@
 #include "core/as_render_queue.h"
 #include "core/as_input.h"
 #include "core/as_tick.h"
+#include "as_console.h"
 
 typedef struct as_engine
 {
@@ -35,6 +36,13 @@ void as_engine_init()
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
+
+	as_command_mapping_128* command_mappings = as_console_get_mappings();
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command1", NULL, 0}));
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command2", NULL, 1}));
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command3", NULL, 2}));
+	as_console_init();
+
 	while (AS_IS_INVALID(engine.render)) {};
 }
 
@@ -113,7 +121,7 @@ as_texture* as_texture_create(const char* texture_path)
 	return texture;
 }
 
-as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path, const bool add_scene)
+as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
 {
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);

@@ -31,7 +31,7 @@ sdf_result sdf_scene(vec3 p)
         }
 
         blended_dist = op_smooth_union(blended_dist, sphere_dist, .8);
-        blended_color = mix(blended_color, sphere_color, sphere_dist) * light_color;
+        blended_color = mix(blended_color, sphere_color, sphere_dist);
     }
     return sdf_result(p, blended_color, blended_dist);
 }
