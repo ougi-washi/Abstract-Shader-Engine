@@ -12,7 +12,11 @@ i32 main()
 	as_editor_set_default_scene();
 #endif
 
+#if AS_EDITOR
+	while (as_editor_should_loop())
+#else
 	while (as_engine_should_loop())
+#endif
 	{
 		as_engine_draw();
 	}

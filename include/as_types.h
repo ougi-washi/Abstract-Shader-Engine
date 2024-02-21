@@ -19,6 +19,7 @@ typedef int64_t		i64;
 typedef float		f32;
 typedef double		f64;
 typedef size_t		sz;
+typedef bool		b8;
 
 
 // Platform detection
@@ -96,6 +97,18 @@ typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 	else if(level == LV_WARNING)		printf("[%s|%d] WARNING: %s\n", __FILE__, __LINE__, text);			\
 	else if(level == LV_ERROR)			printf("[%s|%d] ERROR: %s\n", __FILE__, __LINE__, text);
 
+
+#define AS_FLOG(level, format, ...)                                                                \
+    do {                                                                                                    \
+        if (level == LV_LOG) {                                                                              \
+            printf("LOG : " format, __VA_ARGS__);                                                           \
+        } else if (level == LV_WARNING) {                                                                   \
+            printf("[%s|%d] WARNING: " format, __FILE__, __LINE__, __VA_ARGS__);                            \
+        } else if (level == LV_ERROR) {                                                                     \
+            printf("[%s|%d] ERROR: " format, __FILE__, __LINE__, __VA_ARGS__);                              \
+        }                                                                                                   \
+    } while(0)
+
 #define AS_ASSERT(result, text)																				\
 if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 
@@ -114,15 +127,15 @@ typedef enum as_flag
 
 #define AS_FLAG as_flag obj_flag
 
-#define AS_IS_VALID(_obj)      	(_obj && (u8)_obj->obj_flag >= AS_VALID && (u8)_obj->obj_flag < AS_MAX)
-#define AS_IS_INVALID(_obj)    	(!(&_obj->obj_flag) || !AS_IS_VALID(_obj))
-#define AS_IS_LOCKED(_obj)     	((u8)_obj->obj_flag == AS_LOCKED)
-#define AS_IS_UNLOCKED(_obj)   	((u8)_obj->obj_flag == AS_VALID)
+#define AS_IS_VALID(_obj)      	((_obj) && (u8)(_obj)->obj_flag >= AS_VALID && (u8)(_obj)->obj_flag < AS_MAX)
+#define AS_IS_INVALID(_obj)    	(!(&((_obj)->obj_flag)) || !AS_IS_VALID(_obj))
+#define AS_IS_LOCKED(_obj)     	((u8)(_obj)->obj_flag == AS_LOCKED)
+#define AS_IS_UNLOCKED(_obj)   	((u8)(_obj)->obj_flag == AS_VALID)
 
-#define AS_SET_VALID(_obj)     	if(AS_IS_INVALID(_obj))	_obj->obj_flag = AS_VALID
-#define AS_SET_INVALID(_obj)	_obj->obj_flag = AS_INVALID
-#define AS_LOCK(_obj)    	if(AS_IS_UNLOCKED(_obj))	_obj->obj_flag = AS_LOCKED
-#define AS_UNLOCK(_obj)  	if(AS_IS_LOCKED(_obj))		_obj->obj_flag = AS_VALID
+#define AS_SET_VALID(_obj)     	if(AS_IS_INVALID(_obj))	(_obj)->obj_flag = AS_VALID
+#define AS_SET_INVALID(_obj)	(_obj)->obj_flag = AS_INVALID
+#define AS_LOCK(_obj)    	if(AS_IS_UNLOCKED(_obj))	(_obj)->obj_flag = AS_LOCKED
+#define AS_UNLOCK(_obj)  	if(AS_IS_LOCKED(_obj))		(_obj)->obj_flag = AS_VALID
 
 #define AS_WAIT_AND_LOCK(_obj) 																\
 u64 loop_counter = 0; 																		\

@@ -14,8 +14,8 @@
     ((_array).size < AS_ARRAY_SIZE((_array).data) ? &((_array).data[(_array).size++]) : NULL)
     
 #define AS_ARRAY_PUSH_BACK(_array, _element)                                    \
-    if ((_array).size < AS_ARRAY_SIZE(_array.data)){                            \
-        (_array).data[(_array).size++] = _element; }                            \
+    if ((_array).size < AS_ARRAY_SIZE((_array).data)){                            \
+        (_array).data[(_array).size++] = _element; }                          \
     else { AS_LOG(LV_ERROR,"Array overflow"); }
 
 #define AS_ARRAY_INSERT_AT(_array, _index, _element)                                                    \
@@ -70,3 +70,6 @@ AS_ARRAY_DECLARE(voids128, 128, void*);
 AS_ARRAY_DECLARE(voids256, 256, void*);
 AS_ARRAY_DECLARE(voids512, 512, void*);
 AS_ARRAY_DECLARE(voids1024, 1024, void*);
+
+AS_ARRAY_DECLARE(char512, 512, char);
+AS_ARRAY_DECLARE(char1024, 1024, char);
