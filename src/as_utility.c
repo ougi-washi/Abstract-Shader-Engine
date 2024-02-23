@@ -2,6 +2,7 @@
 
 #include "as_utility.h"
 #include "as_memory.h"
+#include <stdlib.h>
 
 void as_i32_to_str(const i32 integer, char* out_str)
 {

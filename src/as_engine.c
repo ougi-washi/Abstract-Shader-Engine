@@ -5,7 +5,8 @@
 #include "core/as_render_queue.h"
 #include "core/as_input.h"
 #include "core/as_tick.h"
-#include "as_console.h"
+#include "core/as_content.h"
+#include "core/as_console.h"
 
 typedef struct as_engine
 {
@@ -17,6 +18,8 @@ typedef struct as_engine
 	as_scene* scene;
 	as_input_buffer* input_buffer;
 	as_tick_system* tick_system;
+	as_content* content;
+	as_console* console;
 } as_engine;
 
 static as_engine engine = {0};
@@ -26,9 +29,76 @@ void key_callback(void* window, const i32 key, const i32 scancode, const i32 act
 	as_input_add(engine.input_buffer, key, action);
 }
 
-void command1_test()
+void as_command_create_texture(const char* texture_path, const char* extra_0, const char* extra_1)
 {
-	AS_LOG(LV_LOG, "Executing command1");
+	if (!texture_path)
+	{
+		AS_LOG(LV_WARNING, "Cannot create texture, invalid path");
+		return;
+	}
+
+	as_texture* texture = as_texture_create(texture_path);
+	if (!texture)
+	{
+		AS_LOG(LV_WARNING, "Could not create texture");
+		return;
+	}
+	as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE);
+}
+
+void as_command_create_shader(const char* vertex_shader_path, const char* fragment_shader_path, const char* extra_0)
+{
+	if (!vertex_shader_path || !fragment_shader_path)
+	{
+		AS_LOG(LV_WARNING, "Cannot create shader, invalid paths");
+		return;
+	}
+
+	as_shader* shader = as_shader_create(vertex_shader_path, fragment_shader_path);
+	if (!shader)
+	{
+		AS_LOG(LV_WARNING, "Could not create shader");
+		return;
+	}
+	as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER);
+}
+
+void as_command_create_object(const char* shape_index, const char* shader_index, const char* extra_0)
+{
+	if (!shape_index || !shader_index)
+	{
+		AS_LOG(LV_WARNING, "Cannot create object, invalid asset indices");
+		return;
+	}
+
+	//as_object* object = as_object_create(shape, shader);
+	//if (!object)
+	//{
+	//	AS_LOG(LV_WARNING, "Could not create object");
+	//	return;
+	//}
+	//as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT);
+}
+
+void as_engine_init_console()
+{
+	engine.console = as_console_create();
+	as_command_mapping_128* command_mappings = as_console_get_mappings(engine.console);
+
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){
+		"create_texture", 
+		"Loads a texture in the content. Usage example: create_texture /resources/textures/example.png", 
+		as_command_create_texture, 1}));
+
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){
+		"create_shader",
+		"Loads a shader in the content. Usage example: create_shader /resources/shaders/example_vert.png /resources/shaders/example_frag.png",
+		&as_command_create_shader, 2}));
+
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){
+		"create_object",
+		"Loads a object in the content. Usage example, where 5 is the index for the shape and 7 is the index for the shader: create_object 5 7",
+		&as_command_create_object, 2}));
 }
 
 void as_engine_init()
@@ -41,12 +111,8 @@ void as_engine_init()
 	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
-
-	as_command_mapping_128* command_mappings = as_console_get_mappings();
-	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command1", &command1_test, 0}));
-	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command2", NULL, 1}));
-	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){"command3", NULL, 2}));
-	as_console_init();
+	engine.content = as_content_create();
+	as_engine_init_console();
 
 	while (AS_IS_INVALID(engine.render)) {};
 }
@@ -67,7 +133,8 @@ void as_engine_clear()
 	as_display_context_destroy(engine.display_context);
 	as_display_context_terminate();
 
-	as_console_clear();
+	as_content_destroy(engine.content);
+	as_console_destroy(engine.console);
 
 	AS_LOG_MEMORY();
 }

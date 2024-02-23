@@ -1,7 +1,7 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_editor.h"
-#include "as_console.h"
+#include "core/as_console.h"
 
 void as_rotate_object1(as_object* object, const f64 delta_time)
 {
