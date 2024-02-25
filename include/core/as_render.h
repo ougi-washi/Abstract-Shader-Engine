@@ -237,7 +237,7 @@ extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);
 
 extern as_texture* as_texture_make(const char* path);
-extern void as_texture_update(as_render* render, as_texture* texture);
+extern bool as_texture_update(as_render* render, as_texture* texture);
 extern void as_texture_destroy(as_render* render, as_texture* texture);
 
 void as_shader_create_graphics_pipeline(as_shader* shader);

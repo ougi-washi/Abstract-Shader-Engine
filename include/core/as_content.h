@@ -27,8 +27,8 @@ typedef struct as_content
 	as_assets_1024 assets;
 } as_content;
 
-as_content* as_content_create();
-void as_content_destroy(as_content* content);
-void as_content_add_asset(as_content* content, void* ptr, const as_asset_type type);
-void as_content_remove_asset(as_content* content, const sz index);
-as_asset* as_content_get_asset(as_content* content, const sz index);
+extern as_content* as_content_create();
+extern void as_content_destroy(as_content* content);
+extern i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type);
+extern void as_content_remove_asset(as_content* content, const sz index);
+extern as_asset* as_content_get_asset(as_content* content, const sz index);

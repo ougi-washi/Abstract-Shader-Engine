@@ -14,7 +14,7 @@ void as_content_destroy(as_content* content)
 	AS_FREE(content);
 }
 
-void as_content_add_asset(as_content* content, void* ptr, const as_asset_type type)
+i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type)
 {
 	AS_ASSERT(content, "Cannot add asset to content, NULL content");
 	AS_ASSERT(ptr, "Cannot add asset to content, NULL ptr");
@@ -25,6 +25,8 @@ void as_content_add_asset(as_content* content, void* ptr, const as_asset_type ty
 	asset->ptr = ptr;
 	asset->type = type;
 	AS_SET_VALID(asset);
+
+	return AS_ARRAY_GET_LAST_INDEX(content->assets);
 }
 
 void as_content_remove_asset(as_content* content, const sz index)

@@ -43,7 +43,8 @@ void as_command_create_texture(const char* texture_path, const char* extra_0, co
 		AS_LOG(LV_WARNING, "Could not create texture");
 		return;
 	}
-	as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE);
+	const i32 content_index = as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE);
+	AS_FLOG(LV_LOG, "Created texture asset at %d", content_index);
 }
 
 void as_command_create_shader(const char* vertex_shader_path, const char* fragment_shader_path, const char* extra_0)
@@ -60,7 +61,24 @@ void as_command_create_shader(const char* vertex_shader_path, const char* fragme
 		AS_LOG(LV_WARNING, "Could not create shader");
 		return;
 	}
-	as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER);
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER);
+	AS_FLOG(LV_LOG, "Created shader asset at %d", content_index);
+}
+
+void as_command_create_sphere(const char* size, const char* latitude_divisions, const char* longitude_divisions)
+{
+	AS_WARNING_RETURN_IF_FALSE(size, "Cannot create sphere, invalid size argument");
+	AS_WARNING_RETURN_IF_FALSE(latitude_divisions, "Cannot create sphere, invalid latitude_divisions argument");
+	AS_WARNING_RETURN_IF_FALSE(longitude_divisions, "Cannot create sphere, invalid longitude_divisions argument");
+
+	const f32 size_float = atof(size);
+	const i32 latitude_divisions_int = atoi(latitude_divisions);
+	const i32 longitude_divisions_int = atoi(longitude_divisions);
+
+	as_shape* generated_sphere = as_generate_sphere(size_float, latitude_divisions_int, longitude_divisions_int);
+
+	const i32 content_index = as_content_add_asset(engine.content, generated_sphere, AS_ASSET_TYPE_SHAPE);
+	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
 void as_command_create_object(const char* shape_index, const char* shader_index, const char* extra_0)
@@ -71,15 +89,32 @@ void as_command_create_object(const char* shape_index, const char* shader_index,
 		return;
 	}
 
-	//as_object* object = as_object_create(shape, shader);
-	//if (!object)
-	//{
-	//	AS_LOG(LV_WARNING, "Could not create object");
-	//	return;
-	//}
-	//as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT);
+	const i32 shape_index_int = atoi(shape_index);
+	const i32 shader_index_int = atoi(shader_index);
+
+	as_asset* shader = as_content_get_asset(engine.content, shader_index_int);
+	as_asset* shape = as_content_get_asset(engine.content, shape_index_int);
+
+	if (!shader || shader->type != AS_ASSET_TYPE_SHADER)
+	{
+		AS_LOG(LV_WARNING, "Cannot create object, invalid shader");
+	}
+	if (!shape || shape->type != AS_ASSET_TYPE_SHAPE)
+	{
+		AS_LOG(LV_WARNING, "Cannot create object, invalid shape");
+	}
+
+	as_object* object = as_object_create(shape->ptr, shader->ptr);
+	if (!object)
+	{
+		AS_LOG(LV_WARNING, "Could not create object");
+		return;
+	}
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT);
+	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
+// maybe this should be moved to console defines
 void as_engine_init_console()
 {
 	engine.console = as_console_create();
@@ -96,6 +131,11 @@ void as_engine_init_console()
 		&as_command_create_shader, 2}));
 
 	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){
+		"create_sphere",
+		"Creates sphere shape from size, latitude_divisions and, longitude_divisions. Usage example: create_sphere 0.6 10 10",
+		& as_command_create_sphere, 3}));
+
+	AS_ARRAY_PUSH_BACK(*command_mappings, ((as_command_mapping){
 		"create_object",
 		"Loads a object in the content. Usage example, where 5 is the index for the shape and 7 is the index for the shader: create_object 5 7",
 		&as_command_create_object, 2}));
@@ -106,9 +146,9 @@ void as_engine_init()
 	AS_LOG(LV_LOG, "Initializing the engine");
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
+	engine.render_queue = as_rq_create();
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
 	engine.scene = as_scene_create(engine.render, AS_PATH_DEFAULT_SCENE);
-	engine.render_queue = as_rq_create();
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
 	engine.content = as_content_create();
@@ -191,7 +231,7 @@ f64 as_get_delta_time()
 as_texture* as_texture_create(const char* texture_path)
 {
 	as_texture* texture = as_texture_make(texture_path);
-	as_texture_update(engine.render, texture);
+	as_rq_texture_update(engine.render_queue, texture, engine.render);
 	return texture;
 }
 
