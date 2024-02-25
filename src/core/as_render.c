@@ -1560,6 +1560,10 @@ void as_texture_destroy(as_render* render, as_texture* texture)
 
 void as_shader_create_graphics_pipeline(as_shader* shader)
 {
+	if (strcmp(shader->filename_vertex, "") == 0 || strcmp(shader->filename_fragment, "") == 0)
+	{
+		return;
+	}
 	// Load shader code
 	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
 	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);

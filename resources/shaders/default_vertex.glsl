@@ -31,6 +31,7 @@ void main()
     frag_normal = in_normal;
     frag_color = in_color;
     frag_tex_coord = in_tex_coord;
-    instance_id = gl_InstanceIndex;
+    //instance_id = gl_InstanceIndex;
     obj_position = new_pos;
 }
+
