@@ -74,9 +74,9 @@ void as_util_expand_file_includes(const char* path, char* output)
 
 	FILE* file = fopen(path, "r");
 
-	if (!file) {
-		AS_LOG(LV_WARNING, "Error opening file: ");
-		AS_LOG(LV_WARNING, path);
+	if (!file) 
+	{
+		AS_FLOG(LV_WARNING, "Error opening file: %s", path);
 		return;
 	}
 
@@ -84,8 +84,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 	size_t read_bytes = fread(file_contents, 1, as_util_get_file_size(file), file);
 	if (read_bytes == 0 && !feof(file)) 
 	{
-		AS_LOG(LV_WARNING, "Error reading file: ");
-		AS_LOG(LV_WARNING, path);
+		AS_FLOG(LV_WARNING, "Error reading file: %s", path);
 		fclose(file);
 		AS_FREE(file_contents);
 		return;
@@ -113,8 +112,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 
 		if (!quote_start || !quote_end) 
 		{
-			AS_LOG(LV_WARNING, "Invalid include directive: ");
-			AS_LOG(LV_WARNING, include_pos);
+			AS_FLOG(LV_WARNING, "Invalid include directive: %s", include_pos);
 		}
 
 		strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
