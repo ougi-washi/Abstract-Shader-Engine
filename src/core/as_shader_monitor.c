@@ -62,6 +62,23 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
 	AS_ASSERT(frame_counter, "cannot add shader to monitor, invalid frame_counter");
 
+	sz found;
+	for (sz i = 0 ; i < AS_ARRAY_GET_SIZE(monitor->threads) ; i++)
+	{
+		as_shader_monitor_thread* thread_found = AS_ARRAY_GET(monitor->threads, i);
+		if (thread_found && thread_found->shader)
+		{
+			i32 frag_res = strcmp(shader->filename_fragment, thread_found->shader->filename_fragment);
+			i32 vert_res = strcmp(shader->filename_vertex, thread_found->shader->filename_vertex);
+			if (strcmp(shader->filename_fragment, thread_found->shader->filename_fragment) == 0 &&
+				strcmp(shader->filename_vertex, thread_found->shader->filename_vertex) == 0)
+			{
+				AS_LOG(LV_WARNING, "Shader has been already added to the shader monitor, won't be added again");
+				return;
+			}
+		}
+	}
+
 	as_shader_monitor_thread thread_data /*= AS_MALLOC_SINGLE(as_shader_monitor_thread)*/ = { 0 };
 	AS_ARRAY_PUSH_BACK(monitor->threads, thread_data);
 	as_shader_monitor_thread* thread = AS_ARRAY_GET(monitor->threads, monitor->threads.size - 1);
