@@ -25,7 +25,7 @@ typedef struct as_render_queue
 	as_thread thread;
 	as_render_commands_1024 commands;
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_render_queue;
 
 extern as_render_queue* as_rq_create();

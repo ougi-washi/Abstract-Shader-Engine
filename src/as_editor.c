@@ -7,6 +7,7 @@ void as_rotate_object1(as_object* object, const f64 delta_time)
 {
 	as_object_set_translation(object, AS_VEC_PTR(as_vec3, 0., -cos(as_get_time() * .5) * 2., 0.));
 }
+
 void as_rotate_object2(as_object* object, const f64 delta_time)
 {
 	as_object_set_translation(object, AS_VEC_PTR(as_vec3, 0., sin(as_get_time() * .48) * 2.));

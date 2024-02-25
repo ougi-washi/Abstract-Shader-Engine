@@ -6,15 +6,24 @@
 
 as_content* as_content_create()
 {
-	return AS_MALLOC_SINGLE(as_content);
+	as_content* content = AS_MALLOC_SINGLE(as_content);
+	AS_SET_VALID(content);
+	return content;
 }
 
 void as_content_destroy(as_content* content)
 {
+	if (AS_IS_INVALID(content))
+	{
+		return;
+	}
 	for (sz i = 0 ; i < AS_ARRAY_GET_SIZE(content->assets) ; i++)
 	{
 		as_asset* asset = AS_ARRAY_GET(content->assets, i);
-		AS_FREE(asset->ptr); // Maybe have to check each type and clear it accordingly
+		if (AS_IS_VALID(asset))
+		{
+			AS_FREE(asset->ptr); // Maybe have to check each type and clear it accordingly
+		}
 	}
 	AS_FREE(content);
 }

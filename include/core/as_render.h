@@ -67,7 +67,7 @@ typedef struct as_texture
 
 	char filename[AS_MAX_PATH_SIZE];
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_texture;
 
 typedef struct as_shader_uniform
@@ -80,7 +80,7 @@ AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
 
 typedef struct as_shader
 {
-	AS_FLAG; // adding this at the beginning is a must for better cache checks and avoid crashes
+	AS_DECLARE_TYPE; // adding this at the beginning is a must for better cache checks and avoid crashes
 
 	VkDevice* device;
 	VkRenderPass* render_pass;
@@ -117,7 +117,7 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 
 	i32 scene_gpu_index; // index of the object in the GPU scene 
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_object;
 AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
 AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
@@ -147,7 +147,7 @@ typedef struct as_camera
 	f64 movement_speed;
 
 	as_vec3 cached_direction;
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
@@ -221,7 +221,7 @@ typedef struct as_render
 	f64 delta_time;
 	f64 current_time;
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_render;
 
 

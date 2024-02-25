@@ -237,6 +237,11 @@ as_texture* as_texture_create(const char* texture_path)
 
 as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path)
 {
+	as_shader* found_shader = as_shader_monitor_find_shader(engine.shader_monitor, vertex_shader_path, fragment_shader_path);
+	if (found_shader)
+	{
+		return found_shader;
+	}
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
 	return shader;

@@ -62,22 +62,6 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	AS_ASSERT(shader, "cannot add shader to monitor, invalid shader");
 	AS_ASSERT(frame_counter, "cannot add shader to monitor, invalid frame_counter");
 
-	sz found;
-	for (sz i = 0 ; i < AS_ARRAY_GET_SIZE(monitor->threads) ; i++)
-	{
-		as_shader_monitor_thread* thread_found = AS_ARRAY_GET(monitor->threads, i);
-		if (thread_found && thread_found->shader)
-		{
-			i32 frag_res = strcmp(shader->filename_fragment, thread_found->shader->filename_fragment);
-			i32 vert_res = strcmp(shader->filename_vertex, thread_found->shader->filename_vertex);
-			if (strcmp(shader->filename_fragment, thread_found->shader->filename_fragment) == 0 &&
-				strcmp(shader->filename_vertex, thread_found->shader->filename_vertex) == 0)
-			{
-				AS_LOG(LV_WARNING, "Shader has been already added to the shader monitor, won't be added again");
-				return;
-			}
-		}
-	}
 
 	as_shader_monitor_thread thread_data /*= AS_MALLOC_SINGLE(as_shader_monitor_thread)*/ = { 0 };
 	AS_ARRAY_PUSH_BACK(monitor->threads, thread_data);
@@ -89,4 +73,50 @@ void as_shader_monitor_add(u64* frame_counter, as_shader_monitor* monitor, as_sh
 	thread->render_queue = monitor->render_queue;
 	thread->shader = shader;
 	thread->thread = as_thread_create(as_shader_monitor_thread_run, thread);
+}
+
+as_shader_monitor_thread* as_shader_monitor_find_thread(as_shader_monitor* monitor, const char* filename_vertex, const char* filename_fragment)
+{
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(monitor->threads); i++)
+	{
+		as_shader_monitor_thread* thread_found = AS_ARRAY_GET(monitor->threads, i);
+		if (!thread_found)
+		{
+			continue;
+		}
+		as_shader* shader_found = thread_found->shader;
+		if (!shader_found)
+		{
+			continue;
+		}
+		if (strcmp(shader_found->filename_fragment, filename_fragment) == 0 &&
+			strcmp(shader_found->filename_vertex, filename_vertex) == 0)
+		{
+			return thread_found;
+		}
+	}
+	return NULL;
+}
+
+as_shader* as_shader_monitor_find_shader(as_shader_monitor* monitor, const char* filename_vertex, const char* filename_fragment)
+{
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(monitor->threads); i++)
+	{
+		as_shader_monitor_thread* thread_found = AS_ARRAY_GET(monitor->threads, i);
+		if (!thread_found)
+		{
+			continue;
+		}
+		as_shader* shader_found = thread_found->shader;
+		if (!shader_found)
+		{
+			continue;
+		}
+		if (strcmp(shader_found->filename_fragment, filename_fragment) == 0 &&
+			strcmp(shader_found->filename_vertex, filename_vertex) == 0)
+		{
+			return shader_found;
+		}
+	}
+	return NULL;
 }

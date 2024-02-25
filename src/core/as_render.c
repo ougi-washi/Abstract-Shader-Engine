@@ -1330,8 +1330,9 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 		for (sz obj_index = 0; obj_index < scene->objects.size; obj_index++)
 		{
 			as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
-			if (!object) { continue; }
+			if (AS_IS_INVALID(object)) { continue; }
 			as_shader* shader = object->shader;
+			if (AS_IS_INVALID(shader)) { continue; }
 			if (!shader->graphics_pipeline)
 			{
 				as_shader_update(render, shader);

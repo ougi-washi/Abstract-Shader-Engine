@@ -18,7 +18,7 @@ typedef struct as_input_buffer
 {
     as_input_keys_128 keys;
 	void (*on_add)(const as_input_key*);
-    AS_FLAG;
+    AS_DECLARE_TYPE;
 } as_input_buffer;
 
 extern as_input_buffer* as_input_create();
