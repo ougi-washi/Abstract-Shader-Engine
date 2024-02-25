@@ -1,8 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
-#include "as_console.h"
+#include "core/as_console.h"
 #include "as_types.h"
-#include "as_threads.h"
+#include "as_memory.h"
 
 #define AS_COMMAND_MAX_LENGTH			512
 #define AS_COMMAND_ARG_MAX_LENGTH		512
@@ -22,23 +22,15 @@
 typedef struct as_console_command
 {
 	char command[AS_COMMAND_MAX_LENGTH];
-	char argument[AS_COMMAND_ARG_MAX_LENGTH][AS_COMMAND_MAX_ARGS];
+	char argument[AS_COMMAND_MAX_ARGS][AS_COMMAND_ARG_MAX_LENGTH];
 } as_console_command;
 
-typedef struct as_console_handle
+as_command_mapping* as_console_find_command_mapping(as_console* console, const char* command_name)
 {
-	b8 is_running;
-	as_thread thread;
-	as_command_mapping_128 mappings;
-}as_console_handle;
-
-static as_console_handle console_handle;
-
-as_command_mapping* as_console_find_command_mapping(const char* command_name)
-{
-	for (sz i = 0; i < AS_ARRAY_GET_SIZE(console_handle.mappings); ++i)
+	AS_ASSERT(console, "Cannot find command mapping, invalid console");
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(console->mappings); ++i)
 	{
-		as_command_mapping* mapped_cmd = AS_ARRAY_GET(console_handle.mappings, i);
+		as_command_mapping* mapped_cmd = AS_ARRAY_GET(console->mappings, i);
 		if (!mapped_cmd || !mapped_cmd->func) continue;
 
 		if (strcmp(command_name, mapped_cmd->name) == 0)
@@ -49,17 +41,18 @@ as_command_mapping* as_console_find_command_mapping(const char* command_name)
 	return NULL;
 }
 
-void as_console_execute_command(as_console_command* cmd) 
+void as_console_execute_command(as_console* console, as_console_command* cmd)
 {
+	AS_ASSERT(console, "Cannot execute command, invalid console");
 	if (!cmd)
 	{
 		AS_LOG(LV_WARNING, "Cannot execute command, invalid cmd");
 		return;
 	}
 	
-	for (sz i = 0; i < AS_ARRAY_GET_SIZE(console_handle.mappings); ++i) 
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(console->mappings); ++i) 
 	{
-		as_command_mapping* mapped_cmd = AS_ARRAY_GET(console_handle.mappings, i);
+		as_command_mapping* mapped_cmd = AS_ARRAY_GET(console->mappings, i);
 		if (!mapped_cmd || !mapped_cmd->func) continue;
 
 		if (strcmp(cmd->command, mapped_cmd->name) == 0)
@@ -86,9 +79,11 @@ void as_console_execute_command(as_console_command* cmd)
 	AS_FLOG(LV_LOG, "Unknown command: %s\n", cmd->command);
 }
 
-void* as_console_process_input(void* arg) 
+void* as_console_process_input(void* arg)
 {
-	while (console_handle.is_running) 
+	if (!arg) { return NULL; }
+	as_console* console = (as_console*)arg;
+	while (console->is_running) 
 	{
 		as_console_command cmd = { 0 };
 		i32 scanf_val = scanf("%s", cmd.command);
@@ -98,14 +93,15 @@ void* as_console_process_input(void* arg)
 			continue;
 		}
 
-		as_command_mapping* mapping_found = as_console_find_command_mapping(cmd.command);
+		as_command_mapping* mapping_found = as_console_find_command_mapping(console, cmd.command);
 		if (mapping_found)
 		{
 			for (sz i = 0; i < mapping_found->arg_count; ++i)
 			{
 				scanf_val = scanf("%s", cmd.argument[i]);
 			}
-			as_console_execute_command(&cmd);
+			as_console_execute_command(console, &cmd);
+			printf("\n"); // return to the line after executing, to receive the next command
 		}
 		else
 		{
@@ -115,38 +111,21 @@ void* as_console_process_input(void* arg)
 	return NULL;
 }
 
-void as_console_init()
+as_console* as_console_create()
 {
-	if (!console_handle.is_running)
-	{
-		console_handle.is_running = true;
-		console_handle.thread = as_thread_create(as_console_process_input, NULL);
-	}
+	as_console* console = AS_MALLOC_SINGLE(as_console);
+	console->is_running = true;
+	console->thread = as_thread_create(as_console_process_input, console);
+	return console;
 }
 
-void as_console_clear()
-{
-	if (console_handle.is_running)
-	{
-		console_handle.is_running = false;
-		as_thread_detach(console_handle.thread);
-	}
-}
-
-as_command_mapping_128* as_console_get_mappings()
-{
-	return &console_handle.mappings;
-}
-
-void move_cursor(const i32 x, const i32 y)
+char get_pressed_key()
 {
 #ifdef _WIN32
-	COORD coord;
-	coord.X = x;
-	coord.Y = y;
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+	return _getch();
 #else
-	printf("\033[%d;%dH", y + 1, x + 1);
+	int ch = getchar();
+	return (ch == EOF) ? EOF : (char)ch;
 #endif
 }
 
@@ -164,15 +143,35 @@ int is_key_pressed()
 #endif
 }
 
-char get_pressed_key()
+void as_console_destroy(as_console* console)
+{
+	if (console)
+	{
+		console->is_running = false;
+		as_thread_terminate(console->thread);
+		AS_FREE(console);
+	}
+}
+
+as_command_mapping_128* as_console_get_mappings(as_console* console)
+{
+	AS_ASSERT(console, "Cannot get mappings, invalid console");
+	return &console->mappings;
+}
+
+void move_cursor(const i32 x, const i32 y)
 {
 #ifdef _WIN32
-	return _getch();
+	COORD coord;
+	coord.X = x;
+	coord.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 #else
-	int ch = getchar();
-	return (ch == EOF) ? EOF : (char)ch;
+	printf("\033[%d;%dH", y + 1, x + 1);
 #endif
 }
+
+
 
 bool handle_special_keys(const i32 key)
 {
@@ -219,6 +218,6 @@ bool handle_special_keys(const i32 key)
 	//	}
 	//	return true;
 	//}
-	//return false;
+	return false;
 }
 

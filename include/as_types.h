@@ -97,8 +97,7 @@ typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 	else if(level == LV_WARNING)		printf("[%s|%d] WARNING: %s\n", __FILE__, __LINE__, text);			\
 	else if(level == LV_ERROR)			printf("[%s|%d] ERROR: %s\n", __FILE__, __LINE__, text);
 
-
-#define AS_FLOG(level, format, ...)                                                                \
+#define AS_FLOG(level, format, ...)                                                                         \
     do {                                                                                                    \
         if (level == LV_LOG) {                                                                              \
             printf("LOG : " format, __VA_ARGS__);                                                           \
@@ -111,6 +110,10 @@ typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 
 #define AS_ASSERT(result, text)																				\
 if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
+
+#define AS_WARNING_RETURN_IF_FALSE(result, format, ...)                                                     \
+if (!result) { AS_FLOG(LV_WARNING, format, __VA_ARGS__); return; }
+
 
 #else
 #define AS_LOG(level, text) {};

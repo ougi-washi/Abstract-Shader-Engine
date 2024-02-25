@@ -6,7 +6,6 @@
 #include "core/as_shapes.h"
 #include "defines/as_global.h"
 #include "as_memory.h"
-#include "as_console.h"
 
 extern void as_engine_init();
 extern void as_engine_clear();
@@ -18,9 +17,6 @@ extern void as_engine_reset_scene();
 
 extern f64 as_get_time();
 extern f64 as_get_delta_time();
-
-extern as_command_mapping console_mappings[];
-
 
 extern as_texture* as_texture_create(const char* texture_path);
 extern as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment_shader_path);

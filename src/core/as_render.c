@@ -557,7 +557,7 @@ void create_render_pass(as_render* render)
 void as_shader_set_locked(const u64 frame_count, as_shader* shader)
 {
 	shader->refresh_frame = frame_count;
-	AS_LOCK(shader);
+	AS_WAIT_AND_LOCK(shader);
 }
 
 void as_shader_set_unlocked(as_shader* shader)
@@ -1469,14 +1469,19 @@ as_texture* as_texture_make(const char* path)
 	return texture;
 }
 
-extern void as_texture_update(as_render* render, as_texture* texture)
+bool as_texture_update(as_render* render, as_texture* texture)
 {
 	AS_ASSERT(render, "Trying to update texture but texture is NULL");
 	AS_ASSERT(render, "Trying to update texture but render is NULL");
 
 	u32 tex_width, tex_height, tex_channels;
 	stbi_uc* pixels = stbi_load(texture->filename, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
-	AS_ASSERT(pixels, "Failed to load texture image!");
+	
+	if (!pixels)
+	{
+		AS_LOG(LV_WARNING, "Failed to load texture image!");
+		return false;
+	}
 
 	VkDeviceSize image_size = tex_width * tex_height * 4;
 
@@ -1524,6 +1529,7 @@ extern void as_texture_update(as_render* render, as_texture* texture)
 
 	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &texture->sampler);
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
+	return true;
 }
 
 void as_texture_destroy(as_render* render, as_texture* texture)
@@ -1531,11 +1537,23 @@ void as_texture_destroy(as_render* render, as_texture* texture)
 	AS_ASSERT(render, "Trying to destroy texture but render is NULL");
 	if (!texture || AS_IS_INVALID(texture)) { return; }
 
-	vkDestroyImage(render->device, texture->image, NULL);
-	vkDestroyImageView(render->device, texture->image_view, NULL);
-	vkDestroySampler(render->device, texture->sampler, NULL);
-	vkFreeMemory(render->device, texture->memory, NULL);
-
+	if (texture->image)
+	{
+		vkDestroyImage(render->device, texture->image, NULL);
+	}
+	if (texture->image_view)
+	{
+		vkDestroyImageView(render->device, texture->image_view, NULL);
+	}
+	if (texture->sampler)
+	{
+		vkDestroySampler(render->device, texture->sampler, NULL);
+	}
+	if (texture->memory)
+	{
+		vkFreeMemory(render->device, texture->memory, NULL);
+	}
+	AS_FREE(texture);
 	AS_SET_INVALID(texture);
 }
 

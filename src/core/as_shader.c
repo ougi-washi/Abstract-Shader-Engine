@@ -113,7 +113,7 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 
 bool as_shader_has_changed(const char* path)
 {
-	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
+	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_SHADER_SOURCE_SIZE);
 	as_util_expand_file_includes(path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
@@ -121,6 +121,7 @@ bool as_shader_has_changed(const char* path)
 
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;
+	AS_FREE(processed_source);
 	AS_FREE(cached_binary);
 	return !is_same;
 }
