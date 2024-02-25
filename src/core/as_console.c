@@ -101,6 +101,7 @@ void* as_console_process_input(void* arg)
 				scanf_val = scanf("%s", cmd.argument[i]);
 			}
 			as_console_execute_command(console, &cmd);
+			printf("\n"); // return to the line after executing, to receive the next command
 		}
 		else
 		{
