@@ -22,7 +22,7 @@
 typedef struct as_console_command
 {
 	char command[AS_COMMAND_MAX_LENGTH];
-	char argument[AS_COMMAND_ARG_MAX_LENGTH][AS_COMMAND_MAX_ARGS];
+	char argument[AS_COMMAND_MAX_ARGS][AS_COMMAND_ARG_MAX_LENGTH];
 } as_console_command;
 
 as_command_mapping* as_console_find_command_mapping(as_console* console, const char* command_name)
