@@ -67,7 +67,7 @@ typedef struct as_texture
 
 	char filename[AS_MAX_PATH_SIZE];
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_texture;
 
 typedef struct as_shader_uniform
@@ -80,7 +80,7 @@ AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
 
 typedef struct as_shader
 {
-	AS_FLAG; // adding this at the beginning is a must for better cache checks and avoid crashes
+	AS_DECLARE_TYPE; // adding this at the beginning is a must for better cache checks and avoid crashes
 
 	VkDevice* device;
 	VkRenderPass* render_pass;
@@ -117,7 +117,7 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 
 	i32 scene_gpu_index; // index of the object in the GPU scene 
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_object;
 AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
 AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
@@ -147,7 +147,7 @@ typedef struct as_camera
 	f64 movement_speed;
 
 	as_vec3 cached_direction;
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_camera;
 AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
 
@@ -175,7 +175,7 @@ typedef struct as_scene
 	as_camera_128 cameras; // main camera is index 0
 	
 	as_scene_gpu_data gpu_data;
-	as_scene_gpu_buffer gpu_buffer;
+	//as_scene_gpu_buffer gpu_buffer;
 } as_scene;
 
 typedef struct as_render
@@ -221,7 +221,7 @@ typedef struct as_render
 	f64 delta_time;
 	f64 current_time;
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_render;
 
 
@@ -255,7 +255,8 @@ extern void as_camera_set_main(as_scene* scene, as_camera* camera);
 extern void as_camera_set_position(as_camera* camera, const as_vec3* position);
 extern void as_camera_set_target(as_camera* camera, const as_vec3* target);
 
-extern as_object* as_object_make(as_render* render, as_scene* scene, struct as_shape* shape, as_shader* shader);
+extern as_object* as_object_consturct(as_render* render, as_scene* scene);
+extern void as_object_update(as_render* render, as_object* object, as_shape* shape, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);
 extern void as_object_translate(as_object* object, const as_vec3* translation);

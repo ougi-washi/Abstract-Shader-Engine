@@ -190,11 +190,11 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  }
  void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
 {
-	 as_shader_set_uniforms_arg* shader_set_uniforms_arg = AS_MALLOC_SINGLE(as_shader_set_uniforms_arg);
-	 shader_set_uniforms_arg->render = render;
-	 shader_set_uniforms_arg->shader = shader;
-	 shader_set_uniforms_arg->uniforms = uniforms;
-	 as_rq_submit(render_queue, &as_shader_set_uniforms_func, shader_set_uniforms_arg, sizeof(shader_set_uniforms_arg));
+	 as_shader_set_uniforms_arg shader_set_uniforms_arg = {0};
+	 shader_set_uniforms_arg.render = render;
+	 shader_set_uniforms_arg.shader = shader;
+	 shader_set_uniforms_arg.uniforms = uniforms;
+	 as_rq_submit(render_queue, &as_shader_set_uniforms_func, &shader_set_uniforms_arg, sizeof(shader_set_uniforms_arg));
 }
 
  typedef struct as_shader_update_arg
@@ -216,17 +216,23 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_rq_submit(render_queue, &as_shader_update_func, &shader_update_arg, sizeof(shader_update_arg));
 }
 
- void as_shader_create_graphics_pipeline_func(as_shader* shader)
+ typedef struct as_shader_create_graphics_pipeline_arg
  {
-	 AS_WAIT_AND_LOCK(shader);
-	 as_shader_create_graphics_pipeline(shader);
-	 AS_UNLOCK(shader);
+	 as_shader* shader;
+ } as_shader_create_graphics_pipeline_arg;
+ void as_shader_create_graphics_pipeline_func(as_shader_create_graphics_pipeline_arg* arg)
+ {
+	 AS_WAIT_AND_LOCK(arg->shader);
+	 as_shader_create_graphics_pipeline(arg->shader);
+	 AS_UNLOCK(arg->shader);
  }
  extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader)
  {
 	 if (render_queue)
 	 {
-		 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, shader, sizeof(shader));
+		 as_shader_create_graphics_pipeline_arg shader_create_graphics_pipeline_arg = { 0 };
+		 shader_create_graphics_pipeline_arg.shader = shader;
+		 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, &shader_create_graphics_pipeline_arg, sizeof(shader_create_graphics_pipeline_arg));
 	 }
 	 else
 	 {
@@ -252,6 +258,28 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 shader_destroy_arg.shader = shader;
 	 as_rq_submit(render_queue, &as_shader_destroy_func, &shader_destroy_arg, sizeof(shader_destroy_arg));
 }
+
+ typedef struct as_object_update_arg
+ {
+	 as_render* render;
+	 as_object* object;
+	 as_shape* shape;
+	 as_shader* shader;
+ } as_object_update_arg;
+ void as_object_update_func(as_object_update_arg* object_update_arg)
+ {
+	 as_object_update(object_update_arg->render, object_update_arg->object, object_update_arg->shape, object_update_arg->shader);
+ }
+ void as_rq_object_update(as_render_queue* render_queue, as_render* render, as_object* object, as_shape* shape, as_shader* shader)
+ {
+	 as_object_update_arg object_update_arg = { 0 };
+	 object_update_arg.render = render;
+	 object_update_arg.object = object;
+	 object_update_arg.shape = shape;
+	 object_update_arg.shader = shader;
+
+	 as_rq_submit(render_queue, &as_object_update_func, &object_update_arg, sizeof(object_update_arg));
+ }
 
  typedef struct as_scene_destroy_arg
  {

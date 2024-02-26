@@ -19,7 +19,7 @@ AS_ARRAY_DECLARE(as_tick_handles_1024, 1024, as_tick_handle);
 typedef struct as_tick_system
 {
     as_tick_handles_1024 handles;
-    AS_FLAG;
+    AS_DECLARE_TYPE;
 }as_tick_system;
 
 extern as_tick_handle* as_tick_handle_create(as_tick_system* tick_system);

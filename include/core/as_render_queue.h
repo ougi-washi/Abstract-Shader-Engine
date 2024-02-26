@@ -25,7 +25,7 @@ typedef struct as_render_queue
 	as_thread thread;
 	as_render_commands_1024 commands;
 
-	AS_FLAG;
+	AS_DECLARE_TYPE;
 } as_render_queue;
 
 extern as_render_queue* as_rq_create();
@@ -46,5 +46,7 @@ extern void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* 
 extern void as_rq_shader_update(as_render_queue* render_queue, as_render* render, as_shader* shader);
 extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader);
 extern void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader);
+
+extern void as_rq_object_update(as_render_queue* render_queue, as_render* render, as_object* object, struct as_shape* shape, as_shader* shader);
 
 extern void as_rq_scene_destroy(as_render_queue* render_queue, as_render* render, as_scene* scene);

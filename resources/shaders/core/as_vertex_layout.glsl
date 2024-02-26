@@ -10,4 +10,4 @@ layout(location = 1) out vec3 frag_normal;
 layout(location = 2) out vec3 frag_color;
 layout(location = 3) out vec2 frag_tex_coord;
 layout(location = 4) out vec3 obj_position;
-layout(location = 5) out int instance_id;
+//layout(location = 5) out flat int instance_id; uncommment only if used

@@ -65,11 +65,11 @@ as_shape as_generate_quad()
     return quad;
 }
 
-as_shape as_generate_cube()
+as_shape* as_generate_cube()
 {
-    as_shape cube;
-    cube.vertices_size = 24;
-    cube.indices_size = 36;
+    as_shape* cube = AS_MALLOC_SINGLE(as_shape);
+    cube->vertices_size = 24;
+    cube->indices_size = 36;
 
     as_vec3 vertices[] = {
         {-0.5f, -0.5f, -0.5f},
@@ -93,34 +93,35 @@ as_shape as_generate_cube()
 
     for (int i = 0; i < 8; i++)
     {
-        cube.vertices[i].position = vertices[i];
-        cube.vertices[i].normal = as_vec3_get_normal(&vertices[i]);
-        cube.vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
-        cube.vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
+        cube->vertices[i].position = vertices[i];
+        cube->vertices[i].normal = as_vec3_get_normal(&vertices[i]);
+        cube->vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
+        cube->vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
     }
 
     for (int i = 8; i < 24; i += 4)
     {
-        cube.vertices[i] = cube.vertices[i - 8];
-        cube.vertices[i + 1] = cube.vertices[i - 7];
-        cube.vertices[i + 2] = cube.vertices[i - 6];
-        cube.vertices[i + 3] = cube.vertices[i - 5];
+        cube->vertices[i] = cube->vertices[i - 8];
+        cube->vertices[i + 1] = cube->vertices[i - 7];
+        cube->vertices[i + 2] = cube->vertices[i - 6];
+        cube->vertices[i + 3] = cube->vertices[i - 5];
     }
 
     // Set indices
     for (int i = 0; i < 36; i++)
     {
-        cube.indices[i] = indices[i];
+        cube->indices[i] = indices[i];
     }
 
-    return cube;
+	AS_SET_VALID(cube);
+	return cube;
 }
 
-as_shape as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_extent)
+as_shape* as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_extent)
 {
-    as_shape box;
-    box.vertices_size = 24;
-    box.indices_size = 36;
+	as_shape* box = AS_MALLOC_SINGLE(as_shape);
+	box->vertices_size = 24;
+    box->indices_size = 36;
 
     float x_half = x_extent * 0.5f;
     float y_half = y_extent * 0.5f;
@@ -148,27 +149,28 @@ as_shape as_generate_box(const f32 x_extent, const f32 y_extent, const f32 z_ext
 
     for (int i = 0; i < 8; i++)
     {
-        box.vertices[i].position = vertices[i];
-        box.vertices[i].normal = as_vec3_get_normal(&vertices[i]);
-        box.vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
-        box.vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
+        box->vertices[i].position = vertices[i];
+        box->vertices[i].normal = as_vec3_get_normal(&vertices[i]);
+        box->vertices[i].color = (as_vec3){1.0f, 1.0f, 1.0f};
+        box->vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
     }
 
     for (int i = 8; i < 24; i += 4)
     {
-        box.vertices[i] = box.vertices[i - 8];
-        box.vertices[i + 1] = box.vertices[i - 7];
-        box.vertices[i + 2] = box.vertices[i - 6];
-        box.vertices[i + 3] = box.vertices[i - 5];
+        box->vertices[i] = box->vertices[i - 8];
+        box->vertices[i + 1] = box->vertices[i - 7];
+        box->vertices[i + 2] = box->vertices[i - 6];
+        box->vertices[i + 3] = box->vertices[i - 5];
     }
 
     // Set indices
     for (int i = 0; i < 36; i++)
     {
-        box.indices[i] = indices[i];
+        box->indices[i] = indices[i];
     }
 
-    return box;
+	AS_SET_VALID(box);
+	return box;
 }
 
 as_shape* as_generate_sphere(const f32 radius, const i32 latitude_divisions, const i32 longitude_divisions) 
@@ -232,6 +234,7 @@ as_shape* as_generate_sphere(const f32 radius, const i32 latitude_divisions, con
     sphere->vertices_size = vertex_index;
     sphere->indices_size = index_index;
 
+    AS_SET_VALID(sphere);
     return sphere;
 }
 

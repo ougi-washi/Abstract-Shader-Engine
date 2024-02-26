@@ -125,20 +125,23 @@ typedef enum as_flag
 	AS_INVALID			= 0x00,
 	AS_VALID			= 0x01,
 	AS_LOCKED			= 0x02,
-	AS_MAX				= 0x03,
+	AS_DIRTY			= 0x03,
+	AS_MAX				= 0x04,
 } as_flag;
 
-#define AS_FLAG as_flag obj_flag
+#define AS_DECLARE_TYPE as_flag obj_flag
 
 #define AS_IS_VALID(_obj)      	((_obj) && (u8)(_obj)->obj_flag >= AS_VALID && (u8)(_obj)->obj_flag < AS_MAX)
 #define AS_IS_INVALID(_obj)    	(!(&((_obj)->obj_flag)) || !AS_IS_VALID(_obj))
 #define AS_IS_LOCKED(_obj)     	((u8)(_obj)->obj_flag == AS_LOCKED)
 #define AS_IS_UNLOCKED(_obj)   	((u8)(_obj)->obj_flag == AS_VALID)
+#define AS_IS_DIRTY(_obj)   	((u8)(_obj)->obj_flag == AS_DIRTY)
 
 #define AS_SET_VALID(_obj)     	if(AS_IS_INVALID(_obj))	(_obj)->obj_flag = AS_VALID
 #define AS_SET_INVALID(_obj)	(_obj)->obj_flag = AS_INVALID
-#define AS_LOCK(_obj)    	if(AS_IS_UNLOCKED(_obj))	(_obj)->obj_flag = AS_LOCKED
-#define AS_UNLOCK(_obj)  	if(AS_IS_LOCKED(_obj))		(_obj)->obj_flag = AS_VALID
+#define AS_LOCK(_obj)    	    if(AS_IS_UNLOCKED(_obj))	(_obj)->obj_flag = AS_LOCKED
+#define AS_UNLOCK(_obj)  	    if(AS_IS_LOCKED(_obj))		(_obj)->obj_flag = AS_VALID
+#define AS_SET_DIRTY(_obj)  	(_obj)->obj_flag = AS_DIRTY
 
 #define AS_WAIT_AND_LOCK(_obj) 																\
 u64 loop_counter = 0; 																		\

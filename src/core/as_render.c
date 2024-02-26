@@ -1330,8 +1330,9 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 		for (sz obj_index = 0; obj_index < scene->objects.size; obj_index++)
 		{
 			as_object* object = AS_ARRAY_GET(scene->objects, obj_index);
-			if (!object) { continue; }
+			if (AS_IS_INVALID(object)) { continue; }
 			as_shader* shader = object->shader;
+			if (AS_IS_INVALID(shader)) { continue; }
 			if (!shader->graphics_pipeline)
 			{
 				as_shader_update(render, shader);
@@ -1559,6 +1560,10 @@ void as_texture_destroy(as_render* render, as_texture* texture)
 
 void as_shader_create_graphics_pipeline(as_shader* shader)
 {
+	if (strcmp(shader->filename_vertex, "") == 0 || strcmp(shader->filename_fragment, "") == 0)
+	{
+		return;
+	}
 	// Load shader code
 	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
 	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
@@ -1899,19 +1904,26 @@ void as_camera_set_target(as_camera* camera, const as_vec3* target)
 	camera->target = *target;
 	as_camera_update_direction(camera);
 }
-as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, as_shader *shader)
+
+as_object* as_object_consturct(as_render* render, as_scene* scene)	
 {
-   	AS_ASSERT(render, "Trying to add object, but render is NULL");
-	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
-	AS_ASSERT(shape, "Trying to add object, but shape is NULL");
-	AS_ASSERT(scene, "Trying to add object, but scene is NULL");
+	AS_ASSERT(scene, "Trying to construct object, but scene is NULL");
 
 	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
 	as_mat4_set_identity(&object->transform);
 	object->instance_count = 1;
-	
-	// vertex buffer
 
+	return object;
+}
+
+void as_object_update(as_render* render, as_object* object, as_shape* shape, as_shader* shader)
+{
+	AS_ASSERT(render, "Trying to update object, but render is NULL");
+	AS_ASSERT(object, "Trying to update object, but render is NULL");
+	AS_ASSERT(shape, "Trying to update object, but shape is NULL");
+	AS_ASSERT(shader, "Trying to update object, but shader is NULL");
+
+	// vertex buffer
 	VkDeviceSize vertex_buffer_size = sizeof(shape->vertices[0]) * shape->vertices_size;
 	VkBuffer vertex_staging_buffer;
 	VkDeviceMemory vertex_staging_buffer_memory;
@@ -1958,7 +1970,6 @@ as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, a
 
 	object->shader = shader;
 	AS_SET_VALID(object);
-	return object;
 }
 
 void as_object_set_instance_count(as_object* object, const u32 instance_count)
@@ -2037,10 +2048,7 @@ void as_scene_gpu_create_descriptor(as_render* render, as_scene* scene)
 {
 	AS_ASSERT(render, TEXT("Trying to create scene gpu descriptor, but render is NULL"));
 	AS_ASSERT(scene, TEXT("Trying to create scene gpu descriptor, but scene is NULL"));
-
-	
 }
-
 
 VkDeviceSize as_scene_get_size(as_render* render)
 {
@@ -2055,7 +2063,7 @@ as_scene* as_scene_create(as_render* render, const char* scene_path)
 	as_scene* scene = AS_MALLOC_SINGLE(as_scene);
 	strcpy(scene->path, scene_path);
 	VkDeviceSize size = as_scene_get_size(render);
-	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
+	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	as_scene_gpu_update_data(scene);
 	as_scene_gpu_update_buffer(render, scene);
 	return scene;
@@ -2066,14 +2074,28 @@ as_scene* as_scene_load(as_render* render, const char* scene_path)
 	AS_ASSERT(render, "Cannot load scene, render is NULL");
 	AS_ASSERT(scene_path, "Cannot load scene, scene_path is NULL");
 
+	//for (scene->cameras)
+	//{
+	//}
 	as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
 	if(!scene)
 	{
 		AS_LOG(LV_LOG, "Could not find scene to load, creating a new one")
 		return as_scene_create(render, scene_path);
 	}
+
+	//AS_ARRAY_FOR_EACH(scene->objects, as_object, object,
+	//{
+	//	as_object_update(render, object, )
+	//});
+
+	AS_ARRAY_FOR_EACH(scene->cameras, as_camera, camera,
+	{
+		AS_SET_VALID(camera);
+	});
+
 	VkDeviceSize size = as_scene_get_size(render);
-	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
+	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	return scene;
 }
 
@@ -2103,11 +2125,11 @@ void as_scene_gpu_update_buffer(as_render* render, as_scene* scene)
 	
 	// ensure it has a proper alignment
 
-	scene->gpu_buffer.size = as_scene_get_size(render);
-	void* data = NULL;
-	vkMapMemory(render->device, scene->gpu_buffer.memory, 0, scene->gpu_buffer.size, 0, &data);
-	memcpy(data, &scene->gpu_data, (sz)scene->gpu_buffer.size);
-	vkUnmapMemory(render->device, scene->gpu_buffer.memory);
+	//scene->gpu_buffer.size = as_scene_get_size(render);
+	//void* data = NULL;
+	//vkMapMemory(render->device, scene->gpu_buffer.memory, 0, scene->gpu_buffer.size, 0, &data);
+	//memcpy(data, &scene->gpu_data, (sz)scene->gpu_buffer.size);
+	//vkUnmapMemory(render->device, scene->gpu_buffer.memory);
 }
 
 void as_scene_destroy(as_render *render, as_scene *scene)
@@ -2122,8 +2144,8 @@ void as_scene_destroy(as_render *render, as_scene *scene)
 		as_object_destroy(render, &scene->objects.data[i]);
 	}
 
-	vkFreeMemory(render->device, scene->gpu_buffer.memory, NULL);
-	vkDestroyBuffer(render->device, scene->gpu_buffer.buffer, NULL);
+	//vkFreeMemory(render->device, scene->gpu_buffer.memory, NULL);
+	//vkDestroyBuffer(render->device, scene->gpu_buffer.buffer, NULL);
 
 	AS_FREE(scene);
 }

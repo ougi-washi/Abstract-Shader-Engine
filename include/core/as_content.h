@@ -16,14 +16,15 @@ typedef enum as_asset_type
 
 typedef struct as_asset
 {
+	AS_DECLARE_TYPE;
 	as_asset_type type;
 	void* ptr;
-	AS_FLAG;
 } as_asset;
 AS_ARRAY_DECLARE(as_assets_1024, 1024, as_asset);
 
 typedef struct as_content
 {
+	AS_DECLARE_TYPE;
 	as_assets_1024 assets;
 } as_content;
 
