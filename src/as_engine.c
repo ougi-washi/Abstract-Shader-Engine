@@ -250,7 +250,8 @@ as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment
 as_object* as_object_create(as_shape* shape, as_shader* shader)
 {
 	AS_ASSERT(shader, "Trying create object, but shader is NULL");
-	as_object* object = as_object_make(engine.render, engine.scene, shape, shader);
+	as_object* object = as_object_consturct(engine.render, engine.scene);
+	as_rq_object_update(engine.render_queue, engine.render, object, shape, shader);
 	return object;
 }
 

@@ -47,4 +47,6 @@ extern void as_rq_shader_update(as_render_queue* render_queue, as_render* render
 extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader);
 extern void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader);
 
+extern void as_rq_object_update(as_render_queue* render_queue, as_render* render, as_object* object, struct as_shape* shape, as_shader* shader);
+
 extern void as_rq_scene_destroy(as_render_queue* render_queue, as_render* render, as_scene* scene);

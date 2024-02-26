@@ -30,7 +30,6 @@ void as_editor_set_default_scene()
 	as_object* object2 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object2);
 	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 0., 0., 0.));
 	as_object_set_instance_count(object2, 1);
-	as_destroy_shape(shape_sphere);
 }
 
 bool as_editor_should_loop()

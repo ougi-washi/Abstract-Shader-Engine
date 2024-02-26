@@ -259,6 +259,28 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_rq_submit(render_queue, &as_shader_destroy_func, &shader_destroy_arg, sizeof(shader_destroy_arg));
 }
 
+ typedef struct as_object_update_arg
+ {
+	 as_render* render;
+	 as_object* object;
+	 as_shape* shape;
+	 as_shader* shader;
+ } as_object_update_arg;
+ void as_object_update_func(as_object_update_arg* object_update_arg)
+ {
+	 as_object_update(object_update_arg->render, object_update_arg->object, object_update_arg->shape, object_update_arg->shader);
+ }
+ void as_rq_object_update(as_render_queue* render_queue, as_render* render, as_object* object, as_shape* shape, as_shader* shader)
+ {
+	 as_object_update_arg object_update_arg = { 0 };
+	 object_update_arg.render = render;
+	 object_update_arg.object = object;
+	 object_update_arg.shape = shape;
+	 object_update_arg.shader = shader;
+
+	 as_rq_submit(render_queue, &as_object_update_func, &object_update_arg, sizeof(object_update_arg));
+ }
+
  typedef struct as_scene_destroy_arg
  {
 	as_render* render;

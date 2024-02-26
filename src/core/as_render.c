@@ -1904,19 +1904,26 @@ void as_camera_set_target(as_camera* camera, const as_vec3* target)
 	camera->target = *target;
 	as_camera_update_direction(camera);
 }
-as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, as_shader *shader)
+
+as_object* as_object_consturct(as_render* render, as_scene* scene)	
 {
-   	AS_ASSERT(render, "Trying to add object, but render is NULL");
-	AS_ASSERT(shader, "Trying to add object, but shader is NULL");
-	AS_ASSERT(shape, "Trying to add object, but shape is NULL");
-	AS_ASSERT(scene, "Trying to add object, but scene is NULL");
+	AS_ASSERT(scene, "Trying to construct object, but scene is NULL");
 
 	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
 	as_mat4_set_identity(&object->transform);
 	object->instance_count = 1;
-	
-	// vertex buffer
 
+	return object;
+}
+
+void as_object_update(as_render* render, as_object* object, as_shape* shape, as_shader* shader)
+{
+	AS_ASSERT(render, "Trying to update object, but render is NULL");
+	AS_ASSERT(object, "Trying to update object, but render is NULL");
+	AS_ASSERT(shape, "Trying to update object, but shape is NULL");
+	AS_ASSERT(shader, "Trying to update object, but shader is NULL");
+
+	// vertex buffer
 	VkDeviceSize vertex_buffer_size = sizeof(shape->vertices[0]) * shape->vertices_size;
 	VkBuffer vertex_staging_buffer;
 	VkDeviceMemory vertex_staging_buffer_memory;
@@ -1963,7 +1970,6 @@ as_object* as_object_make(as_render *render, as_scene *scene, as_shape* shape, a
 
 	object->shader = shader;
 	AS_SET_VALID(object);
-	return object;
 }
 
 void as_object_set_instance_count(as_object* object, const u32 instance_count)

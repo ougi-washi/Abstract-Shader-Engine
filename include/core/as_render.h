@@ -255,7 +255,8 @@ extern void as_camera_set_main(as_scene* scene, as_camera* camera);
 extern void as_camera_set_position(as_camera* camera, const as_vec3* position);
 extern void as_camera_set_target(as_camera* camera, const as_vec3* target);
 
-extern as_object* as_object_make(as_render* render, as_scene* scene, struct as_shape* shape, as_shader* shader);
+extern as_object* as_object_consturct(as_render* render, as_scene* scene);
+extern void as_object_update(as_render* render, as_object* object, as_shape* shape, as_shader* shader);
 extern void as_object_set_instance_count(as_object* object, const u32 instance_count);
 extern void as_object_set_translation(as_object* object, const as_vec3* translation);
 extern void as_object_translate(as_object* object, const as_vec3* translation);
