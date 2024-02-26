@@ -175,7 +175,7 @@ typedef struct as_scene
 	as_camera_128 cameras; // main camera is index 0
 	
 	as_scene_gpu_data gpu_data;
-	as_scene_gpu_buffer gpu_buffer;
+	//as_scene_gpu_buffer gpu_buffer;
 } as_scene;
 
 typedef struct as_render

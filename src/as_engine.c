@@ -5,7 +5,6 @@
 #include "core/as_render_queue.h"
 #include "core/as_input.h"
 #include "core/as_tick.h"
-#include "core/as_content.h"
 #include "core/as_console.h"
 
 typedef struct as_engine
@@ -148,7 +147,6 @@ void as_engine_init()
 	engine.render = as_render_create(engine.display_context);
 	engine.render_queue = as_rq_create();
 	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
-	engine.scene = as_scene_create(engine.render, AS_PATH_DEFAULT_SCENE);
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
 	engine.content = as_content_create();
@@ -191,7 +189,14 @@ bool as_engine_should_loop()
 
 void as_engine_draw()
 {
-	as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene);
+	if (!engine.scene)
+	{
+		engine.scene = as_scene_create(engine.render, AS_PATH_DEFAULT_SCENE);
+	}
+	if (engine.camera)
+	{
+		as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene);
+	}
 	as_rq_wait_queue(engine.render_queue);
 	as_render_end_draw_loop(engine.render);
 }
@@ -208,6 +213,11 @@ void as_engine_set_scene(as_scene* scene)
 as_render* as_engine_get_render()
 {
 	return engine.render;	
+}
+
+as_content* as_engine_get_content()
+{
+	return engine.content;
 }
 
 void as_engine_reset_scene()
@@ -276,6 +286,12 @@ void as_camera_set_view(as_camera* camera, const as_camera_type type)
 	engine.camera = camera;
 	engine.camera->type = type;
 	as_camera_set_main(engine.scene, camera);
+}
+
+as_asset* as_asset_register(void* ptr, const as_asset_type type)
+{
+	const sz index = as_content_add_asset(engine.content, ptr, type);
+	return as_content_get_asset(engine.content, index);
 }
 
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)

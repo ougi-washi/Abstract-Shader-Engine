@@ -60,6 +60,12 @@ for (sz _i = 0; _i < (_array).size; ++_i) { \
     } \
 }
 
+#define AS_ARRAY_FOR_EACH(_array, _type, _it, _exec)    \
+for (sz _i = 0; _i < (_array).size; ++_i) {             \
+    _type* _it = &((_array).data[_i]);                  \
+    if (_it){ ##_exec };                                \
+}
+
 #define AS_ARRAY_GET_SIZE(_array) (_array).size
 #define AS_ARRAY_GET_LAST_INDEX(_array) _array.size - 1
 #define AS_ARRAY_CLEAR(_array) { (_array).size = 0; }

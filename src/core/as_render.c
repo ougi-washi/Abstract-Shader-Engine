@@ -2048,10 +2048,7 @@ void as_scene_gpu_create_descriptor(as_render* render, as_scene* scene)
 {
 	AS_ASSERT(render, TEXT("Trying to create scene gpu descriptor, but render is NULL"));
 	AS_ASSERT(scene, TEXT("Trying to create scene gpu descriptor, but scene is NULL"));
-
-	
 }
-
 
 VkDeviceSize as_scene_get_size(as_render* render)
 {
@@ -2066,7 +2063,7 @@ as_scene* as_scene_create(as_render* render, const char* scene_path)
 	as_scene* scene = AS_MALLOC_SINGLE(as_scene);
 	strcpy(scene->path, scene_path);
 	VkDeviceSize size = as_scene_get_size(render);
-	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
+	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	as_scene_gpu_update_data(scene);
 	as_scene_gpu_update_buffer(render, scene);
 	return scene;
@@ -2077,14 +2074,28 @@ as_scene* as_scene_load(as_render* render, const char* scene_path)
 	AS_ASSERT(render, "Cannot load scene, render is NULL");
 	AS_ASSERT(scene_path, "Cannot load scene, scene_path is NULL");
 
+	//for (scene->cameras)
+	//{
+	//}
 	as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
 	if(!scene)
 	{
 		AS_LOG(LV_LOG, "Could not find scene to load, creating a new one")
 		return as_scene_create(render, scene_path);
 	}
+
+	//AS_ARRAY_FOR_EACH(scene->objects, as_object, object,
+	//{
+	//	as_object_update(render, object, )
+	//});
+
+	AS_ARRAY_FOR_EACH(scene->cameras, as_camera, camera,
+	{
+		AS_SET_VALID(camera);
+	});
+
 	VkDeviceSize size = as_scene_get_size(render);
-	create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
+	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	return scene;
 }
 
@@ -2114,11 +2125,11 @@ void as_scene_gpu_update_buffer(as_render* render, as_scene* scene)
 	
 	// ensure it has a proper alignment
 
-	scene->gpu_buffer.size = as_scene_get_size(render);
-	void* data = NULL;
-	vkMapMemory(render->device, scene->gpu_buffer.memory, 0, scene->gpu_buffer.size, 0, &data);
-	memcpy(data, &scene->gpu_data, (sz)scene->gpu_buffer.size);
-	vkUnmapMemory(render->device, scene->gpu_buffer.memory);
+	//scene->gpu_buffer.size = as_scene_get_size(render);
+	//void* data = NULL;
+	//vkMapMemory(render->device, scene->gpu_buffer.memory, 0, scene->gpu_buffer.size, 0, &data);
+	//memcpy(data, &scene->gpu_data, (sz)scene->gpu_buffer.size);
+	//vkUnmapMemory(render->device, scene->gpu_buffer.memory);
 }
 
 void as_scene_destroy(as_render *render, as_scene *scene)
@@ -2133,8 +2144,8 @@ void as_scene_destroy(as_render *render, as_scene *scene)
 		as_object_destroy(render, &scene->objects.data[i]);
 	}
 
-	vkFreeMemory(render->device, scene->gpu_buffer.memory, NULL);
-	vkDestroyBuffer(render->device, scene->gpu_buffer.buffer, NULL);
+	//vkFreeMemory(render->device, scene->gpu_buffer.memory, NULL);
+	//vkDestroyBuffer(render->device, scene->gpu_buffer.buffer, NULL);
 
 	AS_FREE(scene);
 }
