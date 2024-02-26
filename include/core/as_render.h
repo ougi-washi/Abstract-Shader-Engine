@@ -135,7 +135,7 @@ AS_ARRAY_DECLARE(as_lights_128, 128, as_light);
 typedef enum as_camera_type
 {
 	AS_CAMERA_FREE = 0,
-	AS_CAMERA_LOCK = 1
+	AS_CAMERA_MANUAL = 1
 } as_camera_type;
 typedef struct as_camera
 {
