@@ -23,3 +23,8 @@
 #define AS_PATH_DEFAULT_FRAG_SHADER "../resources/shaders/default_fragment.glsl"
 #define AS_PATH_DEFAULT_TEXTURE "../resources/textures/default_texture.png"
 #define AS_PATH_DEFAULT_SCENE "../resources/scenes/default_scene.as_scene"
+
+// Render
+#define AS_MAX_SCENE_OBJECTS 1024
+#define AS_MAX_SCENE_LIGHTS 128
+#define AS_MAX_SCENE_CAMERAS 128
