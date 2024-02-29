@@ -6,6 +6,7 @@
 #include "core/as_input.h"
 #include "core/as_tick.h"
 #include "core/as_console.h"
+#include "core/as_serialization.h"
 
 typedef struct as_engine
 {
@@ -313,10 +314,22 @@ void as_input_loop_tick()
 		glfwSetWindowShouldClose(engine.display_context, true);
 	}
 
-	if (as_is_pressed(AS_KEY_LEFT_CONTROL) && as_is_pressed(AS_KEY_S))
+	if (as_is_pressed(AS_KEY_LEFT_CONTROL) )
 	{
-		AS_SERIALIZE(as_scene, engine.scene, AS_PATH_DEFAULT_SCENE);
-		return;
+		if (as_is_pressed(AS_KEY_S))
+		{
+			as_serialized_scene* serialized_scene = as_serialize_scene(engine.scene);
+			AS_SERIALIZE_TO_FILE(as_serialized_scene, serialized_scene, AS_PATH_DEFAULT_SCENE);
+			AS_FREE(serialized_scene);
+			return;
+		}
+		else if (as_is_pressed(AS_KEY_L))
+		{
+			as_serialized_scene* serialized_scene = AS_DESERIALIZE_FROM_FILE(as_serialized_scene, AS_PATH_DEFAULT_SCENE);
+			engine.scene = as_deserialize_scene(serialized_scene, engine.render, engine.render_queue);
+			AS_FREE(serialized_scene);
+			return;
+		}
 	}
 
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)
