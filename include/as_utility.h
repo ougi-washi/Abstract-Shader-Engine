@@ -31,8 +31,8 @@ extern clock_t get_current_time();
 extern f64 calculate_delta_time(clock_t start, clock_t end);
 extern void sleep_seconds(const f64 seconds);
 
-void as_serialize(void* data, const sz size, const char* path);
-#define AS_SERIALIZE(_type, _data, _path) as_serialize(_data, sizeof(_type), _path)
+void as_serialize_to_file(void* data, const sz size, const char* path);
+#define AS_SERIALIZE_TO_FILE(_type, _data, _path) as_serialize_to_file(_data, sizeof(_type), _path)
 
-void* as_deserialize(const sz size, const char* path);
-#define AS_DESERIALIZE(_type, _path) (_type*)as_deserialize(sizeof(_type), _path)
+void* as_deserialize_from_file(const sz size, const char* path);
+#define AS_DESERIALIZE_FROM_FILE(_type, _path) (_type*)as_deserialize_from_file(sizeof(_type), _path)

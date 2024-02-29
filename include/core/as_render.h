@@ -101,14 +101,14 @@ typedef struct as_shader
 	u64 refresh_frame; // this will define whether or not to use the graphics_pipeline
 	
 }as_shader;
-AS_ARRAY_DECLARE(as_shaders_ptr_256, 256, as_shader*);
 
 typedef struct as_object // TODO: Get GPU data out so they can loop faster in the drawcommands
 {
 	as_transform transform;
+	as_shape* shape;
 	as_shader* shader;
 	u32 instance_count;
-
+	
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
 	VkBuffer index_buffer;
@@ -116,26 +116,24 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 	u32 indices_size;
 
 	i32 scene_gpu_index; // index of the object in the GPU scene 
-
+	
 	AS_DECLARE_TYPE;
 } as_object;
-AS_ARRAY_DECLARE(as_objects_512, 512, as_object);
-AS_ARRAY_DECLARE(as_objects_1024, 1024, as_object);
-AS_ARRAY_DECLARE(as_objects_2048, 2048, as_object);
+AS_ARRAY_DECLARE(as_scene_objects, AS_MAX_SCENE_OBJECTS, as_object);
 
 typedef struct as_light
 {
 	as_vec3 position;
 	float _padding_0; // Add padding to ensure 16-byte alignment
 	as_vec3 color;
-	float radius;
+	f32 radius;
 } as_light;
-AS_ARRAY_DECLARE(as_lights_128, 128, as_light);
+AS_ARRAY_DECLARE(as_scene_lights, AS_MAX_SCENE_LIGHTS, as_light);
 
 typedef enum as_camera_type
 {
 	AS_CAMERA_FREE = 0,
-	AS_CAMERA_LOCK = 1
+	AS_CAMERA_MANUAL = 1
 } as_camera_type;
 typedef struct as_camera
 {
@@ -149,7 +147,7 @@ typedef struct as_camera
 	as_vec3 cached_direction;
 	AS_DECLARE_TYPE;
 } as_camera;
-AS_ARRAY_DECLARE(as_camera_128, 128, as_camera);
+AS_ARRAY_DECLARE(as_scene_cameras, AS_MAX_SCENE_CAMERAS, as_camera);
 
 // currently, I am passing the whole scene, in the future it should only be the nearby objects that can impact the shader of the target object
 // Also, alignment matters
@@ -170,12 +168,13 @@ typedef struct as_scene_gpu_buffer
 typedef struct as_scene
 {
 	char path[AS_MAX_PATH_SIZE];
-	as_objects_1024 objects;
-	as_lights_128 lights;
-	as_camera_128 cameras; // main camera is index 0
-	
+	as_scene_objects objects;
+	as_scene_lights lights;
+	as_scene_cameras cameras; // main camera is index 0
+
 	as_scene_gpu_data gpu_data;
 	//as_scene_gpu_buffer gpu_buffer;
+	AS_DECLARE_TYPE;
 } as_scene;
 
 typedef struct as_render

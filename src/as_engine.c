@@ -6,6 +6,7 @@
 #include "core/as_input.h"
 #include "core/as_tick.h"
 #include "core/as_console.h"
+#include "core/as_serialization.h"
 
 typedef struct as_engine
 {
@@ -306,6 +307,14 @@ bool as_is_pressed(const i32 key)
 	return as_input_is_pressed(engine.input_buffer, key);
 }
 
+bool as_is_released(const i32 key)
+{
+	return as_input_is_released(engine.input_buffer, key);
+}
+
+// locking system
+static bool scene_being_saved = false; 
+static bool scene_being_loaded = false;
 void as_input_loop_tick()
 {
 	if (as_is_pressed(AS_KEY_ESCAPE))
@@ -313,10 +322,46 @@ void as_input_loop_tick()
 		glfwSetWindowShouldClose(engine.display_context, true);
 	}
 
-	if (as_is_pressed(AS_KEY_LEFT_CONTROL) && as_is_pressed(AS_KEY_S))
+	if (as_is_pressed(AS_KEY_LEFT_CONTROL) )
 	{
-		AS_SERIALIZE(as_scene, engine.scene, AS_PATH_DEFAULT_SCENE);
-		return;
+		if (as_is_pressed(AS_KEY_S))
+		{
+			if (scene_being_saved)
+			{
+				return;
+			}
+			scene_being_saved = true;
+			as_serialized_scene* serialized_scene = AS_MALLOC_SINGLE(as_serialized_scene);
+			as_serialize_scene(engine.scene, serialized_scene);
+			AS_SERIALIZE_TO_FILE(as_serialized_scene, serialized_scene, AS_PATH_DEFAULT_SCENE);
+			// writing to the file is still being processed and we try to delete, this has to be delayed or something
+			// thinking about creating a queue/command system for a lot of async stuff
+			//AS_FREE(serialized_scene); 
+			as_asset_register(serialized_scene, 0); // currently registering this asset to get deleted automatically on clean up
+			return;
+		}
+		else if (as_is_pressed(AS_KEY_L))
+		{
+			if (scene_being_loaded)
+			{
+				return;
+			}
+			scene_being_loaded = true;
+			as_serialized_scene* serialized_scene = AS_DESERIALIZE_FROM_FILE(as_serialized_scene, AS_PATH_DEFAULT_SCENE);
+			as_deserialize_scene(engine.scene, serialized_scene, engine.render, engine.render_queue);
+			AS_FREE(serialized_scene); // same issue as above
+			as_asset_register(serialized_scene, 0);
+			return;
+		}
+	}
+
+	if (as_is_released(AS_KEY_S))
+	{
+		scene_being_saved = false;
+	}
+	if (as_is_released(AS_KEY_L))
+	{
+		scene_being_loaded = false;
 	}
 
 	if (engine.camera && engine.camera->type == AS_CAMERA_FREE)

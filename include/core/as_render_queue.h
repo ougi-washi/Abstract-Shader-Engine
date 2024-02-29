@@ -17,13 +17,13 @@ typedef struct as_render_command
 	void (*func_ptr)(void*);
 	void* arg[AS_RENDER_QUEUE_MAX_ARG_SIZE];
 } as_render_command;
-AS_ARRAY_DECLARE(as_render_commands_1024, AS_RENDER_QUEUE_SIZE, as_render_command);
+AS_ARRAY_DECLARE(as_render_commands, AS_RENDER_QUEUE_SIZE, as_render_command);
 
 typedef struct as_render_queue
 {
 	bool is_running;
 	as_thread thread;
-	as_render_commands_1024 commands;
+	as_render_commands commands;
 
 	AS_DECLARE_TYPE;
 } as_render_queue;

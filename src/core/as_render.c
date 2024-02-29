@@ -587,7 +587,7 @@ void create_descriptor_set_layout(as_shader* shader)
 	bindings[ubo_layout_binding.binding] = ubo_layout_binding;
 
 	for (sz i = 0 ; i < shader->uniforms.size ; i++)
-	{
+	{ 
 		as_shader_uniform* uniform = AS_ARRAY_GET(shader->uniforms, i);
 		VkDescriptorSetLayoutBinding uniform_layout_binding = { 0 };
 		uniform_layout_binding.binding = i + 1; // ubo is 0, so + 1
@@ -1310,7 +1310,7 @@ void as_render_end_draw_loop(as_render* render)
 void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene)
 {
 	if (AS_IS_INVALID(render)){ return;};
-	
+
 	vkWaitForFences(render->device, 1, &render->in_flight_fences.data[render->current_frame], VK_TRUE, UINT64_MAX);
 
 	u32 image_index = 0;
@@ -1325,6 +1325,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 	update_time(render);
 
+	AS_WAIT_AND_LOCK(scene);
 	if (scene)
 	{
 		for (sz obj_index = 0; obj_index < scene->objects.size; obj_index++)
@@ -1342,13 +1343,13 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 
 		as_scene_gpu_update_data(scene);
 		as_scene_gpu_update_buffer(render, scene);
+
+		vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
+
+		vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
+		record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene);
 	}
-
-	vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
-
-	vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
-	record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene);
-
+	AS_UNLOCK(scene);
 
 	VkSubmitInfo submit_info = { 0 };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1788,6 +1789,8 @@ void as_shader_update(as_render* render, as_shader* shader)
 	AS_ASSERT(render, "Trying to update shader, but render is NULL");
 	AS_ASSERT(shader, "Trying to update shader, but shader is NULL");
 
+	shader->device = &render->device;
+	shader->render_pass = &render->render_pass;
 	create_descriptor_set_layout(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
 	as_shader_create_graphics_pipeline(shader);
@@ -1922,6 +1925,8 @@ void as_object_update(as_render* render, as_object* object, as_shape* shape, as_
 	AS_ASSERT(object, "Trying to update object, but render is NULL");
 	AS_ASSERT(shape, "Trying to update object, but shape is NULL");
 	AS_ASSERT(shader, "Trying to update object, but shader is NULL");
+
+	object->shape = shape;
 
 	// vertex buffer
 	VkDeviceSize vertex_buffer_size = sizeof(shape->vertices[0]) * shape->vertices_size;
@@ -2066,6 +2071,7 @@ as_scene* as_scene_create(as_render* render, const char* scene_path)
 	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
 	as_scene_gpu_update_data(scene);
 	as_scene_gpu_update_buffer(render, scene);
+	AS_SET_VALID(scene);
 	return scene;
 }
 
@@ -2073,30 +2079,30 @@ as_scene* as_scene_load(as_render* render, const char* scene_path)
 {
 	AS_ASSERT(render, "Cannot load scene, render is NULL");
 	AS_ASSERT(scene_path, "Cannot load scene, scene_path is NULL");
-
+	return NULL;
 	//for (scene->cameras)
 	//{
 	//}
-	as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
+	/*as_scene* scene = AS_DESERIALIZE(as_scene, AS_PATH_DEFAULT_SCENE);
 	if(!scene)
 	{
 		AS_LOG(LV_LOG, "Could not find scene to load, creating a new one")
 		return as_scene_create(render, scene_path);
-	}
+	}*/
 
 	//AS_ARRAY_FOR_EACH(scene->objects, as_object, object,
 	//{
 	//	as_object_update(render, object, )
 	//});
 
-	AS_ARRAY_FOR_EACH(scene->cameras, as_camera, camera,
+	/*AS_ARRAY_FOR_EACH(scene->cameras, as_camera, camera,
 	{
 		AS_SET_VALID(camera);
-	});
+	});*/
 
-	VkDeviceSize size = as_scene_get_size(render);
+	//VkDeviceSize size = as_scene_get_size(render);
 	//create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &scene->gpu_buffer.buffer, &scene->gpu_buffer.memory);
-	return scene;
+	//return scene;
 }
 
 void as_scene_gpu_update_data(as_scene* scene)

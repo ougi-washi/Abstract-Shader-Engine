@@ -31,4 +31,5 @@ extern as_asset* as_asset_register(void* ptr, const as_asset_type type);
 extern sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture);
 
 extern bool as_is_pressed(const i32 key);
+extern bool as_is_released(const i32 key);
 extern void as_input_loop_tick();

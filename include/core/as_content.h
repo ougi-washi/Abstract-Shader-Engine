@@ -6,6 +6,7 @@
 
 typedef enum as_asset_type
 {
+	AS_ASSET_TYPE_UNKOWN,
 	AS_ASSET_TYPE_TEXTURE,
 	AS_ASSET_TYPE_SHADER,
 	AS_ASSET_TYPE_OBJECT,

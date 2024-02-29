@@ -239,8 +239,7 @@ void sleep_seconds(const f64 seconds)
 #endif
 }
 
-
-void as_serialize(void* data, const sz size, const char* path)
+void as_serialize_to_file(void* data, const sz size, const char* path)
 {
 	as_util_ensure_directory_exists(path);
     FILE* file = fopen(path, "wb");
@@ -249,7 +248,7 @@ void as_serialize(void* data, const sz size, const char* path)
     fclose(file); 
 }
 
-void* as_deserialize(const sz size, const char* path)
+void* as_deserialize_from_file(const sz size, const char* path)
 {
 	void* data = (void*)AS_MALLOC(size); 
     FILE* file = fopen(path, "rb"); 
