@@ -37,6 +37,20 @@ bool as_input_is_pressed(as_input_buffer* buffer, const i32 key)
     return false;
 }
 
+bool as_input_is_released(as_input_buffer* buffer, const i32 key)
+{
+	AS_ASSERT(buffer, "Trying to read buffer, but buffer is NULL");
+	for (sz i = 0; i < buffer->keys.size; i++)
+	{
+		as_input_key* current_key = AS_ARRAY_GET(buffer->keys, i);
+		if (current_key && current_key->key == key)
+		{
+			return (current_key->action == AS_RELEASE);
+		}
+	}
+	return false;
+}
+
 as_input_buffer* as_input_create()
 {
     as_input_buffer* new_buffer = AS_MALLOC_SINGLE(as_input_buffer);

@@ -65,21 +65,21 @@ typedef struct as_serialized_scene
 	as_serialized_scene_objects objects;
 	as_serialized_scene_lights lights;
 	as_serialized_scene_cameras cameras;
-	
+
 } as_serialized_scene;
 
-extern as_serialized_shader* as_serialize_shader(as_shader* shader);
-extern as_shader* as_deserialize_shader(as_serialized_shader* serialized_shader, as_render* render, as_render_queue* render_queue);
+extern void as_serialize_shader(as_shader* shader, as_serialized_shader* serialized_shader);
+extern void as_deserialize_shader(as_shader* shader, as_serialized_shader* serialized_shader, as_render* render, as_render_queue* render_queue);
 
-extern as_serialized_object* as_serialize_object(as_object* object);
-extern as_object* as_deserialize_object(as_serialized_object* serialized_object, as_render* render, as_render_queue* render_queue);
+extern void as_serialize_object(as_object* object, as_serialized_object* serialized_object);
+extern void as_deserialize_object(as_object* object, as_serialized_object* serialized_object, as_render* render, as_render_queue* render_queue);
 
-extern as_serialized_light* as_serialize_light(as_light* light);
-extern as_light* as_deserialize_light(as_serialized_light* serialized_light, as_render* render, as_render_queue* render_queue);
+extern void as_serialize_light(as_light* light, as_serialized_light* serialized_light);
+extern void as_deserialize_light(as_light* light, as_serialized_light* serialized_light, as_render* render, as_render_queue* render_queue);
 
-extern as_serialized_camera* as_serialize_camera(as_camera* camera);
-extern as_camera* as_deserialize_camera(as_serialized_camera* serialized_camera, as_render* render, as_render_queue* render_queue);
+extern void as_serialize_camera(as_camera* camera, as_serialized_camera* serialized_camera);
+extern void as_deserialize_camera(as_camera* camera, as_serialized_camera* serialized_camera, as_render* render, as_render_queue* render_queue);
 
-extern as_serialized_scene* as_serialize_scene(as_scene* scene);
-extern as_scene* as_deserialize_scene(as_serialized_scene* serialized_scene, as_render* render, as_render_queue* render_queue);
+extern void as_serialize_scene(as_scene* scene, as_serialized_scene* serialized_scene);
+extern void as_deserialize_scene(as_scene* scene, as_serialized_scene* serialized_scene, as_render* render, as_render_queue* render_queue);
 extern void as_serialized_scene_destroy(as_serialized_scene* serializaed_scene);

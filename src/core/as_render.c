@@ -1789,6 +1789,8 @@ void as_shader_update(as_render* render, as_shader* shader)
 	AS_ASSERT(render, "Trying to update shader, but render is NULL");
 	AS_ASSERT(shader, "Trying to update shader, but shader is NULL");
 
+	shader->device = &render->device;
+	shader->render_pass = &render->render_pass;
 	create_descriptor_set_layout(shader);
 	create_graphics_pipeline_layout(render, &shader->graphics_pipeline_layout, &shader->descriptor_set_layout);
 	as_shader_create_graphics_pipeline(shader);

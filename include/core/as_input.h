@@ -25,4 +25,5 @@ extern as_input_buffer* as_input_create();
 extern void as_input_destory(as_input_buffer* buffer);
 extern void as_input_add(as_input_buffer* buffer, const i32 key, const i32 action);
 extern bool as_input_is_pressed(as_input_buffer* buffer, const i32 key);
+extern bool as_input_is_released(as_input_buffer* buffer, const i32 key);
 // preferably run on separate thread and cache without locking
