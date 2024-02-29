@@ -113,11 +113,14 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 
 bool as_shader_has_changed(const char* path)
 {
+	char proxy_path[AS_MAX_PATH_SIZE] = "";
+	strcpy(proxy_path, path);
+
 	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_SHADER_SOURCE_SIZE);
-	as_util_expand_file_includes(path, processed_source);
+	as_util_expand_file_includes(proxy_path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
-	as_shader_get_cached_path(cached_path, path);
+	as_shader_get_cached_path(cached_path, proxy_path);
 
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;

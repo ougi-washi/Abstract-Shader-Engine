@@ -105,9 +105,10 @@ typedef struct as_shader
 typedef struct as_object // TODO: Get GPU data out so they can loop faster in the drawcommands
 {
 	as_transform transform;
+	as_shape* shape;
 	as_shader* shader;
 	u32 instance_count;
-
+	
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
 	VkBuffer index_buffer;
@@ -115,7 +116,7 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 	u32 indices_size;
 
 	i32 scene_gpu_index; // index of the object in the GPU scene 
-
+	
 	AS_DECLARE_TYPE;
 } as_object;
 AS_ARRAY_DECLARE(as_scene_objects, AS_MAX_SCENE_OBJECTS, as_object);
@@ -173,6 +174,7 @@ typedef struct as_scene
 
 	as_scene_gpu_data gpu_data;
 	//as_scene_gpu_buffer gpu_buffer;
+	AS_DECLARE_TYPE;
 } as_scene;
 
 typedef struct as_render

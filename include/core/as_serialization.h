@@ -65,7 +65,7 @@ typedef struct as_serialized_scene
 	as_serialized_scene_objects objects;
 	as_serialized_scene_lights lights;
 	as_serialized_scene_cameras cameras;
-
+	
 } as_serialized_scene;
 
 extern as_serialized_shader* as_serialize_shader(as_shader* shader);
@@ -82,3 +82,4 @@ extern as_camera* as_deserialize_camera(as_serialized_camera* serialized_camera,
 
 extern as_serialized_scene* as_serialize_scene(as_scene* scene);
 extern as_scene* as_deserialize_scene(as_serialized_scene* serialized_scene, as_render* render, as_render_queue* render_queue);
+extern void as_serialized_scene_destroy(as_serialized_scene* serializaed_scene);

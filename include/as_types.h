@@ -113,7 +113,8 @@ if (!result) { AS_LOG(LV_ERROR, text); assert(result); }
 
 #define AS_WARNING_RETURN_IF_FALSE(result, format, ...)                                                     \
 if (!result) { AS_FLOG(LV_WARNING, format, __VA_ARGS__); return; }
-
+#define AS_WARNING_RETURN_VAL_IF_FALSE(result, return_val, format, ...)                                                     \
+if (!result) { AS_FLOG(LV_WARNING, format, __VA_ARGS__); return return_val; }
 
 #else
 #define AS_LOG(level, text) {};
