@@ -21,6 +21,7 @@
 // DEFAULT
 #define AS_PATH_DEFAULT_VERT_SHADER "../resources/shaders/default_vertex.glsl"
 #define AS_PATH_DEFAULT_FRAG_SHADER "../resources/shaders/default_fragment.glsl"
+#define AS_PATH_EMPTY_GRAY_FRAG_SHADER "../resources/shaders/empty_gray_fragment.glsl"
 #define AS_PATH_DEFAULT_TEXTURE "../resources/textures/default_texture.png"
 #define AS_PATH_DEFAULT_SCENE "../resources/scenes/default_scene.as_scene"
 

@@ -82,16 +82,15 @@ extern f32 as_vec3_dot(const as_vec3* a, const as_vec3* b);
 extern as_vec3 as_vec3_unit_z();
 extern as_vec3 as_vec3_cross(const as_vec3* a, const as_vec3* b);
 extern f32 as_vec3_length(const as_vec3* v);
+extern f32 as_vec3_squared_distance(const as_vec3* a, const as_vec3* b);
 
 // mat4
 extern as_mat4 as_mat4_identity();
 extern void as_mat4_set_identity(as_mat4* m);
 as_mat4 as_mat4_multiply(const as_mat4* a, const as_mat4* b);
-
 extern as_vec3 as_mat4_get_translation(const as_mat4* m);
 extern void as_mat4_translate(as_mat4* m, const as_vec3* translation);
 extern void as_mat4_set_translation(as_mat4* m, const as_vec3* translation);
-
 extern as_quat as_mat4_get_rotation(const as_mat4* m);
 extern void  as_mat4_rotate(as_mat4* m, const f32 angle, const as_vec3* axis);
 extern void as_mat4_rotate_around_pivot(as_mat4* m, const f32 angle, const as_vec3* axis, const as_vec3* pivot);
@@ -101,7 +100,6 @@ extern as_vec3 as_mat4_multiply_vec3(const as_mat4* m, const as_vec3* v);
 extern as_vec4 as_mat4_multiply_vec4(const as_mat4* m, const as_vec4* v);
 extern as_vec3 as_mat4_get_scale(const as_mat4* m);
 extern void as_mat4_set_scale(as_mat4* m, const as_vec3* scale);
-
 extern as_mat4 as_mat4_look_at(const as_vec3* eye, const as_vec3* center, const as_vec3* up);
 extern as_mat4 as_mat4_perspective(const f32 fov, const f32 aspect, const f32 near_plane, const f32 far_plane);
 

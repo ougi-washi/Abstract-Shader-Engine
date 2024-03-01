@@ -65,6 +65,14 @@ f32 as_vec3_length(const as_vec3* v)
     return sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
+f32 as_vec3_squared_distance(const as_vec3* a, const as_vec3* b)
+{
+	f32 dx = a->x - b->x;
+	f32 dy = a->y - b->y;
+	f32 dz = a->z - b->z;
+	return dx * dx + dy * dy + dz * dz;
+}
+
 as_mat4 as_mat4_identity()
 {
 	as_mat4 result = { 0 };
