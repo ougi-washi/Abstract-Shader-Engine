@@ -33,7 +33,7 @@ sdf_result sdf_scene(vec3 p)
             sphere_dist = sd_sphere(p - get_object_position(i), 0.3);
             sphere_color =   vec3(0., .0, 1.);
         }
-        float color_weight = 1. - smoothstep(0.0, 0.5, sphere_dist);
+        float color_weight = 1. - smoothstep(0.0, 1., sphere_dist);
         blended_dist = op_smooth_union(blended_dist, sphere_dist, 1.);
         blended_color = mix(blended_color, sphere_color, color_weight);
     }
