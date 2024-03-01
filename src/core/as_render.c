@@ -1857,7 +1857,7 @@ as_camera* as_camera_make(as_scene* scene, const as_vec3* position, const as_vec
 as_camera* as_camera_get_main(as_scene* scene)
 {
 	// no checks for speed's sake, this will be called every frame
-	return &scene->cameras.data[0];
+	return AS_ARRAY_GET(scene->cameras, 0);
 }
 
 void as_camera_set_main(as_scene* scene, as_camera* camera)
@@ -1912,7 +1912,7 @@ as_object* as_object_consturct(as_render* render, as_scene* scene)
 {
 	AS_ASSERT(scene, "Trying to construct object, but scene is NULL");
 
-	as_object* object = AS_ARRAY_INCREMENT(scene->objects); 
+	as_object* object = AS_ARRAY_INCREMENT(scene->objects);
 	as_mat4_set_identity(&object->transform);
 	object->instance_count = 1;
 
@@ -2032,6 +2032,16 @@ void as_object_set_scale(as_object* object, const as_vec3* scale)
 	as_mat4_set_scale(&object->transform, scale);
 }
 
+as_mat4* as_object_get_transform(const as_object* object)
+{
+	return &object->transform;
+}
+
+as_vec3 as_object_get_translation(const as_object* object)
+{
+	return as_mat4_get_translation(as_object_get_transform(object));
+}
+
 void as_object_destroy(as_render* render, as_object* object)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
@@ -2105,6 +2115,35 @@ as_scene* as_scene_load(as_render* render, const char* scene_path)
 	//return scene;
 }
 
+static as_vec3 cached_camera_position = { 0 }; // used for compare by distance to camera
+i32 compare_objects_by_distance_to_camera(const void* a, const void* b)
+{
+	const as_object* object_a = (const as_object*)a;
+	const as_object* object_b = (const as_object*)b;
+
+	const as_vec3 position_a = as_object_get_translation(object_a);
+	const as_vec3 position_b = as_object_get_translation(object_b);
+
+	const f32 distance_a = as_vec3_squared_distance(&position_a, &cached_camera_position);
+	const f32 distance_b = as_vec3_squared_distance(&position_b, &cached_camera_position);
+
+	if (distance_a < distance_b) return -1;
+	else if (distance_a > distance_b) return 1;
+	else return 0;
+}
+
+void as_order_scene_objects_by_distance_to_camera(as_scene* scene)
+{
+	as_camera* main_camera = as_camera_get_main(scene);
+	if (main_camera)
+	{
+		cached_camera_position = main_camera->position;
+	}
+
+	qsort(scene->objects.data, scene->objects.size, sizeof(as_object),
+		compare_objects_by_distance_to_camera);
+}
+
 void as_scene_gpu_update_data(as_scene* scene)
 {
 	AS_ASSERT(scene, "Cannot make GPU scene data, invalid scene");
@@ -2112,8 +2151,13 @@ void as_scene_gpu_update_data(as_scene* scene)
 	// scene->gpu_data.lights = scene->lights; // need to pack the lights in mat4 for alignments
 	// AS_ARRAY_CLEAR(scene->gpu_data.objects_transforms);
 
-	scene->gpu_data.info.m[0][0] = (f32)scene->objects.size;
-	for (sz i = 0; i < scene->objects.size; i++) // TODO:get only closest
+	// info
+	scene->gpu_data.info.m[0][0] = (f32)AS_ARRAY_GET_SIZE(scene->objects);
+	
+	//as_order_scene_objects_by_distance_to_camera(scene);
+
+	// assign
+	for (sz i = 0; i < AS_ARRAY_GET_SIZE(scene->objects); i++)
 	{
 		if (i >= AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE)
 		{

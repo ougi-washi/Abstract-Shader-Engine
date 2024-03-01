@@ -2,14 +2,18 @@
 
 #include "core/as_shader_monitor.h"
 #include "as_memory.h"
+#include <math.h>
 
 void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 {
 	AS_ASSERT(thread_data, "cannot execute as_shader_monitor_thread_run, params nullptr");
 	AS_ASSERT(thread_data->frame_count, "cannot execute as_shader_monitor_thread_run, frame count invalid");
 	AS_ASSERT(thread_data->shader_update_func, "cannot execute as_shader_monitor_thread_run, shader update function invalid");
+	b8 run_once = false;
 	while (thread_data->is_running)
 	{
+		if (run_once) continue;
+		run_once = true;
 		const u64 frame_count = *thread_data->frame_count;
 		as_shader* shader = thread_data->shader;
 		as_render_queue* render_queue = thread_data->render_queue;
@@ -22,7 +26,6 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 				as_shader_set_unlocked(shader);
 			}
 		}
-		sleep_seconds(.1f); // wait time 100ms
 	}
 	return NULL;
 }

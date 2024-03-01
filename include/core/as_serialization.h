@@ -9,14 +9,6 @@
 #include "core/as_render_queue.h"
 #include "core/as_shapes.h"
 #include "defines/as_global.h"
-//
-//struct as_shader;
-//struct as_object;
-//struct as_camera;
-//struct as_light;
-//struct as_scene;
-//struct as_render_queue;
-//struct as_render;
 
 typedef struct as_serialized_shader
 {
