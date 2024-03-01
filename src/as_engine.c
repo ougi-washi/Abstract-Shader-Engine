@@ -349,7 +349,7 @@ void as_input_loop_tick()
 			scene_being_loaded = true;
 			as_serialized_scene* serialized_scene = AS_DESERIALIZE_FROM_FILE(as_serialized_scene, AS_PATH_DEFAULT_SCENE);
 			as_deserialize_scene(engine.scene, serialized_scene, engine.render, engine.render_queue);
-			AS_FREE(serialized_scene); // same issue as above
+			//AS_FREE(serialized_scene); // same issue as above
 			as_asset_register(serialized_scene, 0);
 			return;
 		}
