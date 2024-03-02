@@ -2032,7 +2032,7 @@ void as_object_set_scale(as_object* object, const as_vec3* scale)
 	as_mat4_set_scale(&object->transform, scale);
 }
 
-as_mat4* as_object_get_transform(const as_object* object)
+const as_mat4* as_object_get_transform(const as_object* object)
 {
 	return &object->transform;
 }

@@ -263,7 +263,7 @@ extern void as_object_set_rotation(as_object* object, const as_vec3* rotation);
 extern void as_object_rotate(as_object* object, const f32 angle, const as_vec3* axis);
 extern void as_object_rotate_around_pivot(as_object* object, const f32 angle, const as_vec3* axis, const as_vec3* pivot);
 extern void as_object_set_scale(as_object* object, const as_vec3* scale);
-extern as_mat4* as_object_get_transform(const as_object* object);
+extern const as_mat4* as_object_get_transform(const as_object* object);
 extern as_vec3 as_object_get_translation(const as_object* object);
 extern void as_object_destroy(as_render* render, as_object* object);
 
