@@ -145,6 +145,6 @@ typedef enum as_flag
 #define AS_SET_DIRTY(_obj)  	(_obj)->obj_flag = AS_DIRTY
 
 #define AS_WAIT_AND_LOCK(_obj) 																\
-u64 loop_counter = 0; 																		\
+do{ u64 loop_counter = 0; 																		\
 while (AS_IS_LOCKED(_obj) && loop_counter < 9000000) { loop_counter++; };					\
-AS_LOCK(_obj)
+AS_LOCK(_obj); } while(0)

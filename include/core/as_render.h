@@ -177,6 +177,33 @@ typedef struct as_scene
 	AS_DECLARE_TYPE;
 } as_scene;
 
+typedef struct as_ui_object
+{
+	VkDevice* device;
+	VkRenderPass* render_pass;
+
+	VkPipeline pipeline;
+	VkPipelineLayout pipeline_layout;
+
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorSet descriptor_set;
+	VkDescriptorSetLayout descriptor_set_layout;
+
+	as_shader_uniforms_32 uniforms;
+
+	VkBuffer vertex_buffer;
+	VkDeviceMemory vertex_buffer_memory;
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
+	u32 indices_size;
+
+	char filename_vertex[AS_MAX_PATH_SIZE];
+	char filename_fragment[AS_MAX_PATH_SIZE];
+
+	AS_DECLARE_TYPE;
+} as_ui_object;
+AS_ARRAY_DECLARE(as_ui_objects, AS_MAX_UI_OBJECTS, as_ui_object);
+
 typedef struct as_render
 {
 	VkInstance instance;
@@ -223,17 +250,21 @@ typedef struct as_render
 	AS_DECLARE_TYPE;
 } as_render;
 
-
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
-extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene);
+extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects* ui_objects);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
 extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);
+
+void as_ui_object_update(as_ui_object* ui_object, as_render* render, as_texture* texture);
+void as_ui_object_destroy(as_ui_object* ui_object, const b8 free_ptr);
+as_ui_objects* as_ui_objects_create();
+void as_ui_objects_destroy(as_ui_objects* ui_objects);
 
 extern as_texture* as_texture_make(const char* path);
 extern bool as_texture_update(as_render* render, as_texture* texture);
