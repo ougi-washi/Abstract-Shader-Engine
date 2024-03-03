@@ -16,7 +16,7 @@ typedef struct as_engine
 	void* display_context;
 	as_camera* camera;
 	as_scene* scene;
-	as_ui_objects_group* ui_objects_group;
+	as_screen_objects_group* ui_objects_group;
 	as_input_buffer* input_buffer;
 	as_tick_system* tick_system;
 	as_content* content;
@@ -44,7 +44,7 @@ void as_command_create_texture(const char* texture_path, const char* extra_0, co
 		AS_LOG(LV_WARNING, "Could not create texture");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE);
+	const i32 content_index = as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE, NULL);
 	AS_FLOG(LV_LOG, "Created texture asset at %d", content_index);
 }
 
@@ -62,7 +62,7 @@ void as_command_create_shader(const char* vertex_shader_path, const char* fragme
 		AS_LOG(LV_WARNING, "Could not create shader");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER);
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER, NULL);
 	AS_FLOG(LV_LOG, "Created shader asset at %d", content_index);
 }
 
@@ -78,7 +78,7 @@ void as_command_create_sphere(const char* size, const char* latitude_divisions, 
 
 	as_shape* generated_sphere = as_generate_sphere(size_float, latitude_divisions_int, longitude_divisions_int);
 
-	const i32 content_index = as_content_add_asset(engine.content, generated_sphere, AS_ASSET_TYPE_SHAPE);
+	const i32 content_index = as_content_add_asset(engine.content, generated_sphere, AS_ASSET_TYPE_SHAPE, NULL);
 	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
@@ -111,7 +111,7 @@ void as_command_create_object(const char* shape_index, const char* shader_index,
 		AS_LOG(LV_WARNING, "Could not create object");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT);
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT, NULL);
 	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
@@ -148,11 +148,11 @@ void as_engine_init()
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.render_queue = as_rq_create();
-	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, &as_rq_shader_recompile, engine.render_queue);
+	engine.shader_monitor = as_shader_monitor_create(&engine.render->frame_counter, engine.render_queue);
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
 	engine.content = as_content_create();
-	engine.ui_objects_group = as_ui_objects_group_create();
+	engine.ui_objects_group = as_screen_objects_group_create();
 	as_engine_init_console();
 
 	while (AS_IS_INVALID(engine.render)) {};
@@ -163,7 +163,7 @@ void as_engine_clear()
 	AS_LOG(LV_LOG, "Clearing the engine");
 
 	as_input_destory(engine.input_buffer);
-	as_ui_objects_group_destroy(engine.ui_objects_group);
+	as_screen_objects_group_destroy(engine.ui_objects_group);
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_rq_destroy(engine.render_queue);
 
@@ -256,7 +256,8 @@ as_shader* as_shader_create(const char* vertex_shader_path, const char* fragment
 		return found_shader;
 	}
 	as_shader* shader = as_shader_make(engine.render, vertex_shader_path, fragment_shader_path);
-	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader);
+	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader, shader->filename_vertex, as_rq_shader_recompile);
+	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, shader, shader->filename_fragment, as_rq_shader_recompile);
 	return shader;
 }
 
@@ -293,15 +294,31 @@ void as_camera_set_view(as_camera* camera, const as_camera_type type)
 
 as_asset* as_asset_register(void* ptr, const as_asset_type type)
 {
-	const sz index = as_content_add_asset(engine.content, ptr, type);
+	const sz index = as_content_add_asset(engine.content, ptr, type, NULL);
 	return as_content_get_asset(engine.content, index);
 }
 
-as_ui_object* as_ui_object_create(as_texture* texture)
+as_screen_object* as_screen_object_create(const char* fragment_shader_path)
 {
-	as_ui_object* ui_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
-	as_ui_object_update(ui_object, engine.render, texture);
-	return ui_object;
+	as_screen_object* screen_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
+	
+	if (fragment_shader_path)
+	{
+		strcpy(screen_object->filename_fragment, fragment_shader_path);
+	}
+	else
+	{
+		strcpy(screen_object->filename_fragment, AS_PATH_DEFAULT_UI_FRAG_SHADER);
+	}
+
+	as_rq_screen_object_update(engine.render_queue, screen_object);
+	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
+	return screen_object;
+}
+
+void as_screen_object_assign_texture(as_texture* texture)
+{
+
 }
 
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)

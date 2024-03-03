@@ -28,7 +28,8 @@ extern as_camera* as_camera_create(const as_vec3* position, const as_vec3* targe
 extern void as_camera_set_view(as_camera* camera, const as_camera_type type);
 extern as_asset* as_asset_register(void* ptr, const as_asset_type type);
 
-extern as_ui_object* as_ui_object_create(as_texture* texture);
+extern as_screen_object* as_screen_object_create(const char* fragment_shader_path);
+extern void as_screen_object_assign_texture(as_texture* texture);
 
 extern sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture);
 

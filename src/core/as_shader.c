@@ -79,7 +79,7 @@ void as_shader_get_cached_path(char* out_path, const char* original_path)
 
 as_shader_binary* as_shader_read_code(const char* path, const as_shader_type shader_type)
 {
-	char processed_source[AS_MAX_SHADER_SOURCE_SIZE] = { 0 };
+	char processed_source[AS_MAX_FILE_SIZE] = { 0 };
 	as_util_expand_file_includes(path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
@@ -96,7 +96,7 @@ as_shader_binary* as_shader_read_code(const char* path, const as_shader_type sha
 	i32 compile_result = as_shader_compile(ouput_binary, processed_source, "main", shader_type);
 	
 	strcpy(ouput_binary->source, processed_source);
-	ouput_binary->source_size = AS_MAX_SHADER_SOURCE_SIZE;
+	ouput_binary->source_size = AS_MAX_FILE_SIZE;
 
 	as_shader_binary_serialize(ouput_binary, cached_path);
 	return ouput_binary;
@@ -111,12 +111,15 @@ void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
 	}
 }
 
-bool as_shader_has_changed(const char* path)
+bool as_shader_has_changed(const char* path, as_file_pool* file_pool)
 {
+	AS_WARNING_RETURN_VAL_IF_FALSE(file_pool, false, "Cannot check shader, invalid file pool");
+
 	char proxy_path[AS_MAX_PATH_SIZE] = "";
 	strcpy(proxy_path, path);
 
-	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_SHADER_SOURCE_SIZE);
+	//char* processed_source = as_fp_make_handle_c(file_pool);
+	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
 	as_util_expand_file_includes(proxy_path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};

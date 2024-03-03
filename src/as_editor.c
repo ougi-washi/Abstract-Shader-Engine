@@ -26,10 +26,8 @@ void as_editor_set_default_scene()
 	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, -15.f, -15.f, 10.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 0.f));
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
-	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
-	//as_assign_texture_to_shader(shader, texture);
 	as_shape* shape_sphere = as_generate_sphere(1., 8, 8);
 	as_asset_register(shape_sphere, AS_ASSET_TYPE_SHAPE); // registering it as asset to make sure it's cleared when shutting down the engine 
 
@@ -51,6 +49,10 @@ void as_editor_set_default_scene()
 	as_object_set_translation(object4, AS_VEC_PTR(as_vec3, 0., 0., -5.));
 	as_object_set_translation(object5, AS_VEC_PTR(as_vec3, 0., 3., -5.));
 	as_object_set_translation(object6, AS_VEC_PTR(as_vec3, 0., -3., -5.));
+		
+	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
+	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);
+	//as_asset_register(texture, AS_ASSET_TYPE_TEXTURE);
 }
 
 bool as_editor_should_loop()

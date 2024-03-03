@@ -20,6 +20,7 @@ typedef struct as_asset
 	AS_DECLARE_TYPE;
 	as_asset_type type;
 	void* ptr;
+	void (*destory_func_ptr)(void*);
 } as_asset;
 AS_ARRAY_DECLARE(as_assets_1024, 1024, as_asset);
 
@@ -31,6 +32,6 @@ typedef struct as_content
 
 extern as_content* as_content_create();
 extern void as_content_destroy(as_content* content);
-extern i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type);
+extern i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type, void destroy_func_ptr(void*));
 extern void as_content_remove_asset(as_content* content, const sz index);
 extern as_asset* as_content_get_asset(as_content* content, const sz index);

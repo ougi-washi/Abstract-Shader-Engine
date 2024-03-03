@@ -22,13 +22,17 @@ void as_content_destroy(as_content* content)
 		as_asset* asset = AS_ARRAY_GET(content->assets, i);
 		if (AS_IS_VALID(asset))
 		{
+			if (asset->destory_func_ptr)
+			{
+				asset->destory_func_ptr(asset->ptr);
+			}
 			AS_FREE(asset->ptr); // Maybe have to check each type and clear it accordingly
 		}
 	}
 	AS_FREE(content);
 }
 
-i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type)
+extern i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type type, void destroy_func_ptr(void*))
 {
 	AS_ASSERT(content, "Cannot add asset to content, NULL content");
 	AS_ASSERT(ptr, "Cannot add asset to content, NULL ptr");
@@ -38,6 +42,7 @@ i32 as_content_add_asset(as_content* content, void* ptr, const as_asset_type typ
 
 	asset->ptr = ptr;
 	asset->type = type;
+	asset->destory_func_ptr = destroy_func_ptr;
 	AS_SET_VALID(asset);
 
 	return AS_ARRAY_GET_LAST_INDEX(content->assets);

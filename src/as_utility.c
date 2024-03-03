@@ -217,6 +217,27 @@ void as_util_ensure_directory_exists(const char* path)
     }
 }
 
+as_file_handle* as_fp_make_handle(as_file_pool* pool)
+{
+	AS_WARNING_RETURN_VAL_IF_FALSE(pool, NULL, "invalid pool, cannot make handle");
+	return AS_ARRAY_INCREMENT(*pool);
+}
+
+extern char* as_fp_make_handle_c(as_file_pool* pool)
+{
+	return as_fp_make_handle(pool)->content;
+}
+
+void as_fp_remove_handle(as_file_pool* pool, as_file_handle* handle)
+{
+	AS_WARNING_RETURN_IF_FALSE(pool, "invalid pool, cannot remove handle");
+	AS_WARNING_RETURN_IF_FALSE(handle, "invalid handle, cannot remove handle");
+	
+	i32 found_index = -1;
+	AS_ARRAY_FIND_PTR(*pool, handle, found_index);
+	AS_ARRAY_REMOVE_AT(*pool, found_index);
+}
+
 clock_t get_current_time()
 {
 	return clock();

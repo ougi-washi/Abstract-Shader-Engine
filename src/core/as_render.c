@@ -1038,7 +1038,7 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	};
 }
 
-void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_ui_objects_group* ui_objects_group)
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_screen_objects_group* ui_objects_group)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1103,19 +1103,18 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 
 		if (ui_objects_group)
 		{
-			for (i32 i = 0 ; i < AS_ARRAY_GET_SIZE(*ui_objects_group) ; i++)
+			for (i32 i = 0; i < AS_ARRAY_GET_SIZE(*ui_objects_group); i++)
 			{
-				as_ui_object* ui_object = AS_ARRAY_GET(*ui_objects_group, i);
-				if (!ui_object) { continue; }
-				if (!ui_object->pipeline) { continue; }
+				as_screen_object* screen_object = AS_ARRAY_GET(*ui_objects_group, i);
+				if (!screen_object) { continue; }
+				if (!screen_object->pipeline) { continue; }
 
-				vkCmdBindPipeline(render->command_buffers.data[render->current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, ui_object->pipeline);
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(render->command_buffers.data[render->current_frame], 0, 1, &ui_object->vertex_buffer, offsets);
-				vkCmdBindIndexBuffer(render->command_buffers.data[render->current_frame], ui_object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				vkCmdBindDescriptorSets(render->command_buffers.data[render->current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, ui_object->pipeline_layout, 0, 1, &ui_object->descriptor_set, 0, NULL);
-				vkCmdDrawIndexed(render->command_buffers.data[render->current_frame], ui_object->indices_size, 1, 0, 0, 0);
-
+				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline);
+				//VkDeviceSize offsets[] = { 0 };
+				//vkCmdBindVertexBuffers(command_buffer, 0, 1, &screen_object->vertex_buffer, offsets);
+				//vkCmdBindIndexBuffer(command_buffer, screen_object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
+				//vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline_layout, 0, 1, &screen_object->descriptor_set, 0, NULL);
+				vkCmdDraw(command_buffer, 3, 1, 0, 0);
 			}
 		}
 	}
@@ -1326,7 +1325,7 @@ void as_render_end_draw_loop(as_render* render)
 	render->last_frame_time = get_current_time();
 }
 
-void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects_group* ui_objects_group)
+void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* ui_objects_group)
 {
 	if (AS_IS_INVALID(render)){ return;};
 
@@ -1482,10 +1481,10 @@ f64 as_render_get_delta_time(as_render* render)
 	return render->delta_time;
 }
 
-void as_ui_create_pipeline(as_ui_object* ui_object) 
+void as_screen_create_pipeline(as_screen_object* screen_object)
 {
-	as_shader_binary* vert_shader_bin = as_shader_read_code(ui_object->filename_vertex, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(ui_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
@@ -1494,8 +1493,8 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 		return;
 	}
 
-	VkShaderModule vert_shader_module = create_shader_module(*ui_object->device, vert_shader_bin);
-	VkShaderModule frag_shader_module = create_shader_module(*ui_object->device, frag_shader_bin);
+	VkShaderModule vert_shader_module = create_shader_module(*screen_object->device, vert_shader_bin);
+	VkShaderModule frag_shader_module = create_shader_module(*screen_object->device, frag_shader_bin);
 
 	// Shader stage info
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
@@ -1527,9 +1526,7 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 	VkPipelineViewportStateCreateInfo viewport_state = { 0 };
 	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	viewport_state.viewportCount = 1;
-	viewport_state.pViewports = NULL; // Dynamic viewport state
 	viewport_state.scissorCount = 1;
-	viewport_state.pScissors = NULL; // Dynamic scissor state
 
 	VkPipelineRasterizationStateCreateInfo rasterizer = { 0 };
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -1537,7 +1534,7 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f;
@@ -1551,7 +1548,13 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 
 	VkPipelineColorBlendAttachmentState color_blend_attachment = { 0 };
 	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment.blendEnable = VK_FALSE;
+	color_blend_attachment.blendEnable = VK_TRUE;
+	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+	color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 	VkPipelineColorBlendStateCreateInfo color_blending = { 0 };
 	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1560,6 +1563,18 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 	color_blending.attachmentCount = 1;
 	color_blending.pAttachments = &color_blend_attachment;
 
+	VkPipelineDepthStencilStateCreateInfo depth_stencil_state = { 0 };
+	depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil_state.depthTestEnable = VK_TRUE;
+	depth_stencil_state.depthWriteEnable = VK_TRUE;
+	depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+	VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	VkPipelineDynamicStateCreateInfo dynamic_state = { 0 };
+	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
+	dynamic_state.pDynamicStates = dynamic_states;
+
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 0;
@@ -1567,7 +1582,7 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 	pipeline_layout_info.pushConstantRangeCount = 0;
 	pipeline_layout_info.pPushConstantRanges = NULL;
 
-	AS_ASSERT(vkCreatePipelineLayout(*ui_object->device, &pipeline_layout_info, NULL, &ui_object->pipeline_layout) == VK_SUCCESS,
+	AS_ASSERT(vkCreatePipelineLayout(*screen_object->device, &pipeline_layout_info, NULL, &screen_object->pipeline_layout) == VK_SUCCESS,
 		"Could not create graphics pipeline layout for UI");
 
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
@@ -1577,24 +1592,26 @@ void as_ui_create_pipeline(as_ui_object* ui_object)
 	pipeline_info.pVertexInputState = &vertex_input_info;
 	pipeline_info.pInputAssemblyState = &input_assembly;
 	pipeline_info.pViewportState = &viewport_state;
+	pipeline_info.pDynamicState = &dynamic_state;
 	pipeline_info.pRasterizationState = &rasterizer;
+	pipeline_info.pDepthStencilState = &depth_stencil_state;
 	pipeline_info.pMultisampleState = &multisampling;
 	pipeline_info.pColorBlendState = &color_blending;
-	pipeline_info.layout = ui_object->pipeline_layout;
-	pipeline_info.renderPass = *ui_object->render_pass;
+	pipeline_info.layout = screen_object->pipeline_layout;
+	pipeline_info.renderPass = *screen_object->render_pass;
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-	AS_ASSERT(vkCreateGraphicsPipelines(*ui_object->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &ui_object->pipeline) == VK_SUCCESS,
+	AS_ASSERT(vkCreateGraphicsPipelines(*screen_object->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &screen_object->pipeline) == VK_SUCCESS,
 		"Could not create graphics pipeline for UI");
 
-	vkDestroyShaderModule(*ui_object->device, vert_shader_module, NULL);
-	vkDestroyShaderModule(*ui_object->device, frag_shader_module, NULL);
+	vkDestroyShaderModule(*screen_object->device, vert_shader_module, NULL);
+	vkDestroyShaderModule(*screen_object->device, frag_shader_module, NULL);
 
 	as_shader_destroy_binary(frag_shader_bin, true);
 	as_shader_destroy_binary(vert_shader_bin, true);
 }
-VkDescriptorSetLayout as_ui_create_descriptor_set_layout(VkDevice device)
+void as_screen_create_descriptor_set_layout(as_screen_object* screen_object)
 {
 	VkDescriptorSetLayoutBinding layout_binding = { 0 };
 	layout_binding.binding = 0;
@@ -1608,13 +1625,11 @@ VkDescriptorSetLayout as_ui_create_descriptor_set_layout(VkDevice device)
 	layout_info.bindingCount = 1;
 	layout_info.pBindings = &layout_binding;
 
-	VkDescriptorSetLayout descriptor_set_layout;
-	vkCreateDescriptorSetLayout(device, &layout_info, NULL, &descriptor_set_layout);
-
-	return descriptor_set_layout;
+	AS_ASSERT(vkCreateDescriptorSetLayout(*screen_object->device, &layout_info, NULL, &screen_object->descriptor_set_layout), 
+		"Could not create descriptor set layout");
 }
 
-VkDescriptorPool as_ui_create_descriptor_pool(VkDevice device)
+void as_screen_create_descriptor_pool(as_screen_object* screen_object)
 {
 	VkDescriptorPoolSize pool_size = { 0 };
 	pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1626,121 +1641,133 @@ VkDescriptorPool as_ui_create_descriptor_pool(VkDevice device)
 	pool_info.pPoolSizes = &pool_size;
 	pool_info.maxSets = 1;
 
-	VkDescriptorPool descriptor_pool;
-	vkCreateDescriptorPool(device, &pool_info, NULL, &descriptor_pool);
-
-	return descriptor_pool;
+	vkCreateDescriptorPool(*screen_object->device, &pool_info, NULL, &screen_object->descriptor_pool);
 }
 
-VkDescriptorSet as_ui_allocate_descriptor_set(VkDevice device, VkDescriptorSetLayout descriptor_set_layout, VkDescriptorPool descriptor_pool, VkImageView texture_image_view, VkSampler texture_sampler)
+void as_screen_allocate_descriptor_set(as_screen_object* screen_object, as_texture* texture)
 {
 	VkDescriptorSetAllocateInfo alloc_info = { 0 };
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = descriptor_pool;
+	alloc_info.descriptorPool = screen_object->descriptor_pool;
 	alloc_info.descriptorSetCount = 1;
-	alloc_info.pSetLayouts = &descriptor_set_layout;
+	alloc_info.pSetLayouts = &screen_object->descriptor_set_layout;
 
-	VkDescriptorSet descriptor_set;
-	vkAllocateDescriptorSets(device, &alloc_info, &descriptor_set);
+	AS_ASSERT(vkAllocateDescriptorSets(*screen_object->device, &alloc_info, &screen_object->descriptor_set) == VK_SUCCESS, "ui allocate descriptor set cannot create descriptor sets");
 
 	VkDescriptorImageInfo image_info = { 0 };
 	image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	image_info.imageView = texture_image_view;
-	image_info.sampler = texture_sampler;
+	image_info.imageView = texture->image_view;
+	image_info.sampler = texture->sampler;
 
 	VkWriteDescriptorSet descriptor_write = { 0 };
 	descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptor_write.dstSet = descriptor_set;
+	descriptor_write.dstSet = screen_object->descriptor_set;
 	descriptor_write.dstBinding = 0;
 	descriptor_write.dstArrayElement = 0;
 	descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptor_write.descriptorCount = 1;
 	descriptor_write.pImageInfo = &image_info;
 
-	vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, NULL);
-
-	return descriptor_set;
+	vkUpdateDescriptorSets(*screen_object->device, 1, &descriptor_write, 0, NULL);
 }
 
-void as_ui_object_update(as_ui_object* ui_object, as_render* render, as_texture* texture)
+void as_screen_object_init(as_render* render, as_screen_object* screen_object, const char* fragment_path)
 {
-	AS_ASSERT(ui_object, "Cannot update ui object, invalid ui_object");
-	AS_ASSERT(render, "Cannot update ui object, invalid render");
+	AS_ASSERT(render, "Cannot init screen object, invalid render");
+	AS_ASSERT(screen_object, "Cannot init screen object, invalid screen_object");
+	AS_ASSERT(fragment_path, "Cannot init screen object, invalid fragment_path");
 
-	ui_object->filename_vertex;
-	ui_object->filename_fragment;
-
-	ui_object->device = &render->device;
-	ui_object->render_pass = &render->render_pass;
-	as_ui_create_pipeline(ui_object);
-	
-	if (texture)
-	{
-		as_shader_add_uniform_texture(&ui_object->uniforms, texture);
-		ui_object->descriptor_set_layout = as_ui_create_descriptor_set_layout(render->device);
-		ui_object->descriptor_pool = as_ui_create_descriptor_pool(render->device);
-		ui_object->descriptor_set = as_ui_allocate_descriptor_set(render->device, ui_object->descriptor_set_layout, ui_object->descriptor_pool, texture->image_view, texture->sampler);
-	}
-	
-	float vertices[] = 
-	{
-		-0.5f, -0.5f, 0.0f, 1.0f,
-		 0.5f, -0.5f, 1.0f, 1.0f,
-		 0.5f,  0.5f, 1.0f, 0.0f,
-		-0.5f,  0.5f, 0.0f, 0.0f
-	};
-
-	uint16_t indices[] = { 0, 1, 2, 2, 3, 0 };
-
-	create_buffer(render, sizeof(vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ui_object->vertex_buffer, &ui_object->vertex_buffer_memory);
-	create_buffer(render, sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ui_object->index_buffer, &ui_object->index_buffer_memory);
-
-	void* data;
-	vkMapMemory(render->device, ui_object->vertex_buffer_memory, 0, sizeof(vertices), 0, &data);
-	memcpy(data, vertices, sizeof(vertices));
-	vkUnmapMemory(render->device, ui_object->vertex_buffer_memory);
-
-	vkMapMemory(render->device, ui_object->index_buffer_memory, 0, sizeof(indices), 0, &data);
-	memcpy(data, indices, sizeof(indices));
-	vkUnmapMemory(render->device, ui_object->index_buffer_memory);
-
-	AS_SET_VALID(ui_object);
+	screen_object->device = &render->device;
+	screen_object->render_pass = &render->render_pass;
+	strcpy(screen_object->filename_fragment, fragment_path);
 }
 
-void as_ui_object_destroy(as_ui_object* ui_object, const b8 free_ptr)
+void as_screen_object_update(as_screen_object* screen_object)
 {
-	AS_SET_INVALID(ui_object);
+	AS_ASSERT(screen_object, "Cannot update screen object, invalid screen_object");
+	as_screen_create_pipeline(screen_object);
 
-	vkDestroyPipeline(*ui_object->device, ui_object->pipeline, NULL);
-	vkDestroyPipelineLayout(*ui_object->device, ui_object->pipeline_layout, NULL);
-	vkFreeDescriptorSets(*ui_object->device, ui_object->descriptor_pool, 1, &ui_object->descriptor_set);
-	if (ui_object->vertex_buffer != VK_NULL_HANDLE)
+	//if (texture)
+	//{
+	//	as_shader_add_uniform_texture(&screen_object->uniforms, texture);
+	//	as_screen_create_descriptor_set_layout(screen_object);
+	//	as_screen_create_descriptor_pool(screen_object);
+	//	as_screen_allocate_descriptor_set(screen_object, texture);
+	//}
+
+	//float vertices[] =
+	//{
+	//	-0.5f, -0.5f, 0.0f, 1.0f,
+	//	 0.5f, -0.5f, 1.0f, 1.0f,
+	//	 0.5f,  0.5f, 1.0f, 0.0f,
+	//	-0.5f,  0.5f, 0.0f, 0.0f
+	//};
+
+	//uint16_t indices[] = { 0, 1, 2, 2, 3, 0 };
+
+	//create_buffer(render, sizeof(vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &screen_object->vertex_buffer, &screen_object->vertex_buffer_memory);
+	//create_buffer(render, sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &screen_object->index_buffer, &screen_object->index_buffer_memory);
+
+	//void* data;
+	//vkMapMemory(render->device, screen_object->vertex_buffer_memory, 0, sizeof(vertices), 0, &data);
+	//memcpy(data, vertices, sizeof(vertices));
+	//vkUnmapMemory(render->device, screen_object->vertex_buffer_memory);
+
+	//vkMapMemory(render->device, screen_object->index_buffer_memory, 0, sizeof(indices), 0, &data);
+	//memcpy(data, indices, sizeof(indices));
+	//vkUnmapMemory(render->device, screen_object->index_buffer_memory);
+	AS_SET_VALID(screen_object);
+}
+
+void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr)
+{
+	if (!screen_object) { return; }
+	if (AS_IS_INVALID(screen_object)) { return; }
+
+	AS_SET_INVALID(screen_object);
+
+	if (screen_object->device)
 	{
-		vkDestroyBuffer(*ui_object->device, ui_object->vertex_buffer, NULL);
-		vkFreeMemory(*ui_object->device, ui_object->vertex_buffer_memory, NULL);
+		if (screen_object->pipeline)
+		{
+			vkDestroyPipeline(*screen_object->device, screen_object->pipeline, NULL);
+		}
+		if (screen_object->pipeline_layout)
+		{
+			vkDestroyPipelineLayout(*screen_object->device, screen_object->pipeline_layout, NULL);
+		}
+		if (screen_object->descriptor_pool && screen_object->descriptor_set)
+		{
+			vkFreeDescriptorSets(*screen_object->device, screen_object->descriptor_pool, 1, &screen_object->descriptor_set);
+		}
 	}
-	if (ui_object->index_buffer != VK_NULL_HANDLE)
-	{
-		vkDestroyBuffer(*ui_object->device, ui_object->index_buffer, NULL);
-		vkFreeMemory(*ui_object->device, ui_object->index_buffer_memory, NULL);
-	}
+	//if (screen_object->vertex_buffer != VK_NULL_HANDLE)
+	//{
+	//	vkDestroyBuffer(*screen_object->device, screen_object->vertex_buffer, NULL);
+	//	vkFreeMemory(*screen_object->device, screen_object->vertex_buffer_memory, NULL);
+	//}
+	//if (screen_object->index_buffer != VK_NULL_HANDLE)
+	//{
+	//	vkDestroyBuffer(*screen_object->device, screen_object->index_buffer, NULL);
+	//	vkFreeMemory(*screen_object->device, screen_object->index_buffer_memory, NULL);
+	//}
 
 	if (free_ptr)
 	{
-		AS_FREE(ui_object);
+		AS_FREE(screen_object);
 	}
 }
 
-as_ui_objects_group* as_ui_objects_group_create()
+as_screen_objects_group* as_screen_objects_group_create()
 {
-	return AS_MALLOC_SINGLE(as_ui_objects_group);
+	return AS_MALLOC_SINGLE(as_screen_objects_group);
 }
 
-void as_ui_objects_group_destroy(as_ui_objects_group* ui_objects_group)
+void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group)
 {
-	AS_ARRAY_FOR_EACH(*ui_objects_group, as_ui_object, ui_object,
+	AS_ARRAY_FOR_EACH(*ui_objects_group, as_screen_object, screen_object,
 	{
-		as_ui_object_destroy(ui_object, false);
+		as_screen_object_destroy(screen_object, false);
 	});
 	AS_FREE(ui_objects_group);
 }
@@ -1940,7 +1967,6 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	color_blending.blendConstants[1] = 0.0f;
 	color_blending.blendConstants[2] = 0.0f;
 	color_blending.blendConstants[3] = 0.0f;
-
 
 	VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamic_state = { 0 };

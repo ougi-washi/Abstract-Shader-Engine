@@ -148,3 +148,6 @@ typedef enum as_flag
 do{ u64 loop_counter = 0; 																		\
 while (AS_IS_LOCKED(_obj) && loop_counter < 9000000) { loop_counter++; };					\
 AS_LOCK(_obj); } while(0)
+
+// This is a dummy type to avoid compilation errors when using void pointers
+typedef struct as_flagged_struct { AS_DECLARE_TYPE; } as_flagged_struct;

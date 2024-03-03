@@ -109,7 +109,7 @@ typedef struct as_render_draw_frame_arg
 	void* display_context;
 	as_camera* camera;
 	as_scene* scene;
-	as_ui_objects_group* ui_objects_group;
+	as_screen_objects_group* ui_objects_group;
 } as_render_draw_frame_arg;
 void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
@@ -117,7 +117,7 @@ void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->scene, draw_frame_arg->ui_objects_group);
 	AS_UNLOCK(draw_frame_arg->render);
 }
-void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene, as_ui_objects_group* ui_objects_group)
+void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene, as_screen_objects_group* ui_objects_group)
 {
 	AS_WAIT_AND_LOCK(render);
 	as_render_draw_frame_arg draw_frame_arg = { 0 };
@@ -140,27 +140,21 @@ void as_rq_render_destroy(as_render_queue* render_queue, as_render* render)
 	as_rq_submit(render_queue, &as_render_destroy_func, render, sizeof(render));
 }
 
-typedef struct as_ui_object_update_arg
+typedef struct as_screen_object_update_arg
 {
-	as_render* render;
-	as_ui_object* ui_object;
-	as_texture* texture;
-} as_ui_object_update_arg;
-void as_ui_object_update_func(as_ui_object_update_arg* ui_object_update_arg)
+	as_screen_object* screen_object;
+} as_screen_object_update_arg;
+void as_screen_object_update_func(as_screen_object_update_arg* ui_object_update_arg)
 {
-	AS_WAIT_AND_LOCK(ui_object_update_arg->render);
-	AS_WAIT_AND_LOCK(ui_object_update_arg->ui_object);
-	as_ui_object_update(ui_object_update_arg->ui_object, ui_object_update_arg->render, ui_object_update_arg->texture);
-	AS_UNLOCK(ui_object_update_arg->ui_object);
-	AS_UNLOCK(ui_object_update_arg->render);
+	AS_WAIT_AND_LOCK(ui_object_update_arg->screen_object);
+	as_screen_object_update(ui_object_update_arg->screen_object);
+	AS_UNLOCK(ui_object_update_arg->screen_object);
 }
-void as_rq_ui_object_update(as_render_queue* render_queue, as_render* render, as_ui_object* ui_object, as_texture* texture)
+void as_rq_screen_object_update(as_render_queue* render_queue, as_screen_object* screen_object)
 {
-	as_ui_object_update_arg ui_object_update_arg = {0};
-	ui_object_update_arg.render = render;
-	ui_object_update_arg.ui_object = ui_object;
-	ui_object_update_arg.texture = texture;
-	as_rq_submit(render_queue, &as_ui_object_update_func, &ui_object_update_arg, sizeof(ui_object_update_arg));
+	as_screen_object_update_arg ui_object_update_arg = {0};
+	ui_object_update_arg.screen_object = screen_object;
+	as_rq_submit(render_queue, &as_screen_object_update_func, &ui_object_update_arg, sizeof(ui_object_update_arg));
 }
 
 typedef struct as_texture_update_arg
