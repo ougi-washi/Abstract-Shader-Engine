@@ -2,6 +2,7 @@
 
 #pragma once
 #include "as_types.h"
+#include "as_array.h"
 
 #include <time.h>
 #ifdef _WIN32
@@ -13,6 +14,13 @@
 #define AS_MAX_PATH_SIZE 1024
 #define AS_MAX_FILE_NAME_SIZE 128
 #define AS_MAX_FILE_SIZE 128 * 1024
+#define AS_FILE_POOL_SIZE 32
+
+typedef struct as_file_handle 
+{ 
+	char content[AS_MAX_FILE_SIZE]; 
+} as_file_handle;
+AS_ARRAY_DECLARE(as_file_pool, AS_FILE_POOL_SIZE, as_file_handle);
 
 extern void as_i32_to_str(const i32 integer, char* out_str);
 
@@ -25,6 +33,12 @@ extern void as_util_extract_base_path(const char* path, char* base_path);
 extern void as_util_extract_file_name(const char* path, char* file_name);
 extern void as_util_combine_path_and_file(const char* base_path, const char* file_name, char* output_path);
 extern void as_util_ensure_directory_exists(const char* path);
+
+// file pool
+extern as_file_handle* as_fp_make_handle(as_file_pool* pool);
+extern char* as_fp_make_handle_c(as_file_pool* pool);
+extern void as_fp_remove_handle(as_file_pool* pool, as_file_handle* handle);
+
 
 // time
 extern clock_t get_current_time();

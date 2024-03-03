@@ -48,6 +48,7 @@ void* as_realloc_fn(void* _ptr, const size_t _size, const char* _file, const u32
 
 void as_free_fn(void* _ptr)
 {
+	if (!_ptr) { return; };
 	i64 removed_index = -1;
 	for (u32 i = 0; i < allocations_count; i++)
 	{

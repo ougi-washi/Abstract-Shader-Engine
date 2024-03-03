@@ -24,8 +24,11 @@
 #define AS_PATH_EMPTY_GRAY_FRAG_SHADER "../resources/shaders/empty_gray_fragment.glsl"
 #define AS_PATH_DEFAULT_TEXTURE "../resources/textures/default_texture.png"
 #define AS_PATH_DEFAULT_SCENE "../resources/scenes/default_scene.as_scene"
+#define AS_PATH_DEFAULT_UI_VERT_SHADER "../resources/shaders/ui/default_ui_vertex.glsl"
+#define AS_PATH_DEFAULT_UI_FRAG_SHADER "../resources/shaders/ui/default_ui_fragment.glsl"
 
 // Render
 #define AS_MAX_SCENE_OBJECTS 1024
 #define AS_MAX_SCENE_LIGHTS 128
 #define AS_MAX_SCENE_CAMERAS 128
+#define AS_MAX_screen_objectS 128
