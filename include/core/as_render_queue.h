@@ -36,7 +36,7 @@ extern void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), vo
 
 extern void as_rq_render_start_draw_loop(as_render_queue* render_queue, as_render* render);
 extern void as_rq_render_end_draw_loop(as_render_queue* render_queue, as_render* render);
-extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects* ui_objects);
+extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects_group* ui_objects_group);
 extern void as_rq_render_destroy(as_render_queue* render_queue, as_render* render);
 
 extern void as_rq_ui_object_update(as_render_queue* render_queue, as_render* render, as_ui_object* ui_object, as_texture* texture);

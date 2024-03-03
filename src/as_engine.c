@@ -16,7 +16,7 @@ typedef struct as_engine
 	void* display_context;
 	as_camera* camera;
 	as_scene* scene;
-	as_ui_objects* ui_objects;
+	as_ui_objects_group* ui_objects_group;
 	as_input_buffer* input_buffer;
 	as_tick_system* tick_system;
 	as_content* content;
@@ -152,7 +152,7 @@ void as_engine_init()
 	engine.input_buffer = as_input_create();
 	engine.tick_system = as_tick_system_create();
 	engine.content = as_content_create();
-	engine.ui_objects = as_ui_objects_create();
+	engine.ui_objects_group = as_ui_objects_group_create();
 	as_engine_init_console();
 
 	while (AS_IS_INVALID(engine.render)) {};
@@ -163,7 +163,7 @@ void as_engine_clear()
 	AS_LOG(LV_LOG, "Clearing the engine");
 
 	as_input_destory(engine.input_buffer);
-	as_ui_objects_destroy(engine.ui_objects);
+	as_ui_objects_group_destroy(engine.ui_objects_group);
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_rq_destroy(engine.render_queue);
 
@@ -198,7 +198,7 @@ void as_engine_draw()
 	}
 	if (engine.camera)
 	{
-		as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene, engine.ui_objects);
+		as_rq_render_draw_frame(engine.render_queue, engine.render, engine.display_context, engine.camera, engine.scene, engine.ui_objects_group);
 	}
 	as_rq_wait_queue(engine.render_queue);
 	as_render_end_draw_loop(engine.render);
@@ -299,7 +299,7 @@ as_asset* as_asset_register(void* ptr, const as_asset_type type)
 
 as_ui_object* as_ui_object_create(as_texture* texture)
 {
-	as_ui_object* ui_object = AS_ARRAY_INCREMENT(*engine.ui_objects);
+	as_ui_object* ui_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
 	as_ui_object_update(ui_object, engine.render, texture);
 	return ui_object;
 }

@@ -1038,7 +1038,7 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	};
 }
 
-void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_ui_objects* ui_objects)
+void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_ui_objects_group* ui_objects_group)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1101,11 +1101,11 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 			}
 		}
 
-		if (ui_objects)
+		if (ui_objects_group)
 		{
-			for (i32 i = 0 ; i < AS_ARRAY_GET_SIZE(*ui_objects) ; i++)
+			for (i32 i = 0 ; i < AS_ARRAY_GET_SIZE(*ui_objects_group) ; i++)
 			{
-				as_ui_object* ui_object = AS_ARRAY_GET(*ui_objects, i);
+				as_ui_object* ui_object = AS_ARRAY_GET(*ui_objects_group, i);
 				if (!ui_object) { continue; }
 				if (!ui_object->pipeline) { continue; }
 
@@ -1326,7 +1326,7 @@ void as_render_end_draw_loop(as_render* render)
 	render->last_frame_time = get_current_time();
 }
 
-void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects* ui_objects)
+void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_ui_objects_group* ui_objects_group)
 {
 	if (AS_IS_INVALID(render)){ return;};
 
@@ -1366,7 +1366,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 		vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 		vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
-		record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene, ui_objects);
+		record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene, ui_objects_group);
 	}
 	AS_UNLOCK(scene);
 
@@ -1731,18 +1731,18 @@ void as_ui_object_destroy(as_ui_object* ui_object, const b8 free_ptr)
 	}
 }
 
-as_ui_objects* as_ui_objects_create()
+as_ui_objects_group* as_ui_objects_group_create()
 {
-	return AS_MALLOC_SINGLE(as_ui_objects);
+	return AS_MALLOC_SINGLE(as_ui_objects_group);
 }
 
-void as_ui_objects_destroy(as_ui_objects* ui_objects)
+void as_ui_objects_group_destroy(as_ui_objects_group* ui_objects_group)
 {
-	AS_ARRAY_FOR_EACH(*ui_objects, as_ui_object, ui_object,
+	AS_ARRAY_FOR_EACH(*ui_objects_group, as_ui_object, ui_object,
 	{
 		as_ui_object_destroy(ui_object, false);
 	});
-	AS_FREE(ui_objects);
+	AS_FREE(ui_objects_group);
 }
 
 as_texture* as_texture_make(const char* path)

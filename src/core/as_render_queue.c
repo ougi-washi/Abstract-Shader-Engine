@@ -109,15 +109,15 @@ typedef struct as_render_draw_frame_arg
 	void* display_context;
 	as_camera* camera;
 	as_scene* scene;
-	as_ui_objects* ui_objects;
+	as_ui_objects_group* ui_objects_group;
 } as_render_draw_frame_arg;
 void as_render_draw_frame_func(as_render_draw_frame_arg* draw_frame_arg)
 {
 	AS_WAIT_AND_LOCK(draw_frame_arg->render);
-	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->scene, draw_frame_arg->ui_objects);
+	as_render_draw_frame(draw_frame_arg->render, draw_frame_arg->display_context, draw_frame_arg->camera, draw_frame_arg->scene, draw_frame_arg->ui_objects_group);
 	AS_UNLOCK(draw_frame_arg->render);
 }
-void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene, as_ui_objects* ui_objects)
+void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, void* display_context, as_camera* camera,  as_scene* scene, as_ui_objects_group* ui_objects_group)
 {
 	AS_WAIT_AND_LOCK(render);
 	as_render_draw_frame_arg draw_frame_arg = { 0 };
@@ -125,7 +125,7 @@ void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* render, v
 	draw_frame_arg.display_context = display_context;
 	draw_frame_arg.scene = scene;
 	draw_frame_arg.camera = camera;
-	draw_frame_arg.ui_objects = ui_objects;
+	draw_frame_arg.ui_objects_group = ui_objects_group;
 	as_rq_submit(render_queue, &as_render_draw_frame_func, &draw_frame_arg, sizeof(draw_frame_arg));
 	AS_UNLOCK(render);
 }
