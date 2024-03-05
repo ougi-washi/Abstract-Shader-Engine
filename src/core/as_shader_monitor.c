@@ -10,12 +10,9 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 	AS_ASSERT(thread_data->frame_count, "cannot execute as_shader_monitor_thread_run, frame count invalid");
 	AS_ASSERT(thread_data->shader_update_func, "cannot execute as_shader_monitor_thread_run, shader update function invalid");
 	AS_ASSERT(thread_data->file_pool, "cannot execute as_shader_monitor_thread_run, file pool invalid");
-	b8 run_once = false;
 	while (thread_data->is_running)
 	{
 		if (AS_IS_INVALID(thread_data)) { continue; }
-		//if (run_once) continue;
-		//run_once = true;
 		const u64 frame_count = *thread_data->frame_count;
 		as_flagged_struct* shader = thread_data->shader;
 		as_render_queue* render_queue = thread_data->render_queue;

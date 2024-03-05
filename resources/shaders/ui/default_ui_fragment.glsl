@@ -9,8 +9,9 @@ layout(location = 0) out vec4 out_color;
 void main()
 {
     //out_color = texture(tex_sampler, out_uv);
-    vec2 center_uv = uv + vec2(.5);
+    vec2 center_uv = uv - vec2(.5);
     float sphere_mask = length(center_uv) - .1f;
-    sphere_mask = smoothstep(0.1, 0.2, sphere_mask);
-    out_color = vec4(.4, 0., .5, 1.);
+    sphere_mask = smoothstep(0.1, 1., sphere_mask);
+    out_color = vec4(uv.y, uv.x, 1., sphere_mask);
 }
+
