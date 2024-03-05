@@ -35,6 +35,7 @@ as_render_queue* as_rq_create()
 	queue->is_running = true;
 	queue->thread = as_thread_create(&as_render_queue_thread_run, queue);
 	as_thread_set_priority(queue->thread, 2);
+	AS_LOG(LV_LOG, "Created render queue");
 	return queue;
 }
 
@@ -44,6 +45,7 @@ void as_rq_destroy(as_render_queue* render_queue)
 	as_rq_wait_queue(render_queue);
 	render_queue->is_running = false;
 	as_thread_join(render_queue->thread);
+	AS_LOG(LV_LOG, "Destroyed render queue");
 	AS_FREE(render_queue);
 }
 
@@ -159,8 +161,8 @@ void as_rq_screen_object_update(as_render_queue* render_queue, as_screen_object*
 
 typedef struct as_texture_update_arg
 {
-	as_texture* texture;
 	as_render* render;
+	as_texture* texture;
 } as_texture_update_arg;
 void as_texture_update_func(as_texture_update_arg* texture_update_arg)
 {
@@ -179,18 +181,14 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  typedef struct as_texture_destroy_arg
  {
 	 as_texture* texture;
-	 as_render* render;
  } as_texture_destroy_arg;
  void as_texture_destroy_func(as_texture_destroy_arg* texture_destroy_arg)
  {
-	 AS_WAIT_AND_LOCK(texture_destroy_arg->render);
-	 as_texture_destroy(texture_destroy_arg->render, texture_destroy_arg->texture);
-	 AS_UNLOCK(texture_destroy_arg->render);
+	 as_texture_destroy(texture_destroy_arg->texture);
  }
- void as_rq_texture_destroy(as_render_queue* render_queue, as_render* render, as_texture* texture)
+ void as_rq_texture_destroy(as_render_queue* render_queue, as_texture* texture)
 {
 	 as_texture_destroy_arg texture_destroy_arg = { 0 };
-	 texture_destroy_arg.render = render;
 	 texture_destroy_arg.texture = texture;
 	 as_rq_submit(render_queue, &as_texture_destroy_func, &texture_destroy_arg, sizeof(texture_destroy_arg));
 }

@@ -14,3 +14,4 @@ void main()
     sphere_mask = smoothstep(0.1, 1., sphere_mask);
     out_color = vec4(uv.y, uv.x, 1., sphere_mask);
 }
+

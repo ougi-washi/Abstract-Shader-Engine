@@ -60,6 +60,8 @@ typedef struct as_uniform_buffers
 
 typedef struct as_texture
 {
+	VkDevice* device;
+
 	VkImage image;
 	VkDeviceMemory memory;
 	VkImageView image_view;
@@ -69,6 +71,7 @@ typedef struct as_texture
 
 	AS_DECLARE_TYPE;
 } as_texture;
+AS_ARRAY_DECLARE(as_textures_pool, AS_MAX_TEXTURE_POOL_SIZE, as_texture);
 
 typedef struct as_shader_uniform
 {
@@ -201,7 +204,7 @@ typedef struct as_screen_object
 
 	AS_DECLARE_TYPE;
 } as_screen_object;
-AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_screen_objectS, as_screen_object);
+AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 
 typedef struct as_render
 {
@@ -267,8 +270,11 @@ as_screen_objects_group* as_screen_objects_group_create();
 void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group);
 
 extern as_texture* as_texture_make(const char* path);
+extern void as_texture_init(as_texture* texture, const char* path);
 extern bool as_texture_update(as_render* render, as_texture* texture);
-extern void as_texture_destroy(as_render* render, as_texture* texture);
+extern void as_texture_destroy(as_texture* texture);
+extern as_textures_pool* as_textures_pool_create();
+extern void as_textures_pool_destroy(as_textures_pool* textures_pool);
 
 void as_shader_create_graphics_pipeline(as_shader* shader);
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);

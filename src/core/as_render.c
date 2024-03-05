@@ -1304,6 +1304,7 @@ as_render* as_render_create(void* display_context)
 	create_command_buffers(render);
 	create_sync_objects(render);
 	AS_SET_VALID(render);
+	AS_LOG(LV_LOG, "Created render");
 	return render;
 }
 
@@ -1444,6 +1445,7 @@ void as_render_destroy(as_render* render)
 
 	AS_IS_INVALID(render);
 	AS_FREE(render);
+	AS_LOG(LV_LOG, "Destroyed render");
 }
 
 u64 as_render_get_frame_count(as_render* render)
@@ -1782,14 +1784,28 @@ as_texture* as_texture_make(const char* path)
 {
 	as_texture* texture = AS_MALLOC_SINGLE(as_texture);
 	strcpy(texture->filename, path);
-	AS_SET_VALID(texture);
 	return texture;
+}
+
+void as_texture_init(as_texture* texture, const char* path)
+{
+	AS_ASSERT(texture, "Cannot init texture, invalid pointer");
+	strcpy(texture->filename, path);
 }
 
 bool as_texture_update(as_render* render, as_texture* texture)
 {
-	AS_ASSERT(render, "Trying to update texture but texture is NULL");
 	AS_ASSERT(render, "Trying to update texture but render is NULL");
+	AS_ASSERT(texture, "Trying to update texture but texture is NULL");
+
+	AS_SET_INVALID(texture);
+
+	if (texture->device)
+	{
+		as_texture_destroy(texture);
+	}
+
+	texture->device = &render->device;
 
 	u32 tex_width, tex_height, tex_channels;
 	stbi_uc* pixels = stbi_load(texture->filename, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
@@ -1846,33 +1862,48 @@ bool as_texture_update(as_render* render, as_texture* texture)
 
 	const VkResult create_sampler_result = vkCreateSampler(render->device, &sampler_info, NULL, &texture->sampler);
 	AS_ASSERT(create_sampler_result == VK_SUCCESS, "Failed to create texture sampler!");
+	AS_SET_VALID(texture);
 	return true;
 }
 
-void as_texture_destroy(as_render* render, as_texture* texture)
+void as_texture_destroy(as_texture* texture)
 {
-	AS_ASSERT(render, "Trying to destroy texture but render is NULL");
 	if (!texture) { return; }
 	if (AS_IS_INVALID(texture)) { return; }
-
+	
+	AS_LOCK(texture);
 	if (texture->image)
 	{
-		vkDestroyImage(render->device, texture->image, NULL);
+		vkDestroyImage(*texture->device, texture->image, NULL);
 	}
 	if (texture->image_view)
 	{
-		vkDestroyImageView(render->device, texture->image_view, NULL);
+		vkDestroyImageView(*texture->device, texture->image_view, NULL);
 	}
 	if (texture->sampler)
 	{
-		vkDestroySampler(render->device, texture->sampler, NULL);
+		vkDestroySampler(*texture->device, texture->sampler, NULL);
 	}
 	if (texture->memory)
 	{
-		vkFreeMemory(render->device, texture->memory, NULL);
+		vkFreeMemory(*texture->device, texture->memory, NULL);
 	}
-	AS_FREE(texture);
 	AS_SET_INVALID(texture);
+}
+
+as_textures_pool* as_textures_pool_create()
+{
+	return AS_MALLOC_SINGLE(as_textures_pool);
+}
+
+void as_textures_pool_destroy(as_textures_pool* textures_pool)
+{
+	if (!textures_pool) { return; }
+	AS_ARRAY_FOR_EACH(*textures_pool, as_texture, texture,
+	{
+		as_texture_destroy(texture);
+	});
+	AS_FREE(textures_pool);
 }
 
 void as_shader_create_graphics_pipeline(as_shader* shader)
@@ -2118,7 +2149,7 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 		{
 			as_texture* texture = (as_texture*)shader->uniforms.data[i].data;
 			if (!texture) { continue; }
-			as_texture_destroy(render, texture);
+			as_texture_destroy(texture);
 		}
 		AS_FREE(shader->uniforms.data[i].data);
 	}

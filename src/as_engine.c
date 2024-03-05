@@ -16,6 +16,7 @@ typedef struct as_engine
 	void* display_context;
 	as_camera* camera;
 	as_scene* scene;
+	as_textures_pool* textures_pool;
 	as_screen_objects_group* ui_objects_group;
 	as_input_buffer* input_buffer;
 	as_tick_system* tick_system;
@@ -44,7 +45,7 @@ void as_command_create_texture(const char* texture_path, const char* extra_0, co
 		AS_LOG(LV_WARNING, "Could not create texture");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE, NULL);
+	const i32 content_index = as_content_add_asset(engine.content, texture, AS_ASSET_TYPE_TEXTURE, false, as_texture_destroy);
 	AS_FLOG(LV_LOG, "Created texture asset at %d", content_index);
 }
 
@@ -62,7 +63,7 @@ void as_command_create_shader(const char* vertex_shader_path, const char* fragme
 		AS_LOG(LV_WARNING, "Could not create shader");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER, NULL);
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_SHADER, true, NULL);
 	AS_FLOG(LV_LOG, "Created shader asset at %d", content_index);
 }
 
@@ -78,7 +79,7 @@ void as_command_create_sphere(const char* size, const char* latitude_divisions, 
 
 	as_shape* generated_sphere = as_generate_sphere(size_float, latitude_divisions_int, longitude_divisions_int);
 
-	const i32 content_index = as_content_add_asset(engine.content, generated_sphere, AS_ASSET_TYPE_SHAPE, NULL);
+	const i32 content_index = as_content_add_asset(engine.content, generated_sphere, AS_ASSET_TYPE_SHAPE, true, NULL);
 	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
@@ -111,7 +112,7 @@ void as_command_create_object(const char* shape_index, const char* shader_index,
 		AS_LOG(LV_WARNING, "Could not create object");
 		return;
 	}
-	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT, NULL);
+	const i32 content_index = as_content_add_asset(engine.content, shader, AS_ASSET_TYPE_OBJECT, true, NULL);
 	AS_FLOG(LV_LOG, "Created object asset at %d", content_index);
 }
 
@@ -153,6 +154,7 @@ void as_engine_init()
 	engine.tick_system = as_tick_system_create();
 	engine.content = as_content_create();
 	engine.ui_objects_group = as_screen_objects_group_create();
+	engine.textures_pool = as_textures_pool_create();
 	as_engine_init_console();
 
 	while (AS_IS_INVALID(engine.render)) {};
@@ -165,6 +167,8 @@ void as_engine_clear()
 	as_input_destory(engine.input_buffer);
 	as_screen_objects_group_destroy(engine.ui_objects_group);
 	as_shader_monitored_destroy(engine.shader_monitor);
+	as_textures_pool_destroy(engine.textures_pool);
+	as_content_destroy(engine.content);
 	as_rq_destroy(engine.render_queue);
 
 	as_tick_system_destroy(engine.tick_system);
@@ -174,7 +178,6 @@ void as_engine_clear()
 	as_display_context_destroy(engine.display_context);
 	as_display_context_terminate();
 
-	as_content_destroy(engine.content);
 	as_console_destroy(engine.console);
 
 	AS_LOG_MEMORY();
@@ -243,7 +246,9 @@ f64 as_get_delta_time()
 
 as_texture* as_texture_create(const char* texture_path)
 {
-	as_texture* texture = as_texture_make(texture_path);
+	as_texture* texture = AS_ARRAY_INCREMENT(*engine.textures_pool);
+	as_texture_init(texture, texture_path);
+
 	as_rq_texture_update(engine.render_queue, texture, engine.render);
 	return texture;
 }
@@ -294,7 +299,21 @@ void as_camera_set_view(as_camera* camera, const as_camera_type type)
 
 as_asset* as_asset_register(void* ptr, const as_asset_type type)
 {
-	const sz index = as_content_add_asset(engine.content, ptr, type, NULL);
+	void (*destory_func_ptr)(void*);
+	destory_func_ptr = NULL;
+	bool free_on_destroy = true;
+
+	if (type == AS_ASSET_TYPE_TEXTURE) 
+	{
+		destory_func_ptr = as_texture_destroy; 
+		free_on_destroy = false;
+	}
+	//else if (type == AS_ASSET_TYPE_SHADER) { destory_func_ptr = as_engine_texture_destroy; }
+	//else if (type == AS_ASSET_TYPE_OBJECT) { destory_func_ptr = as_engine_texture_destroy; }
+	//else if (type == AS_ASSET_TYPE_TEXTURE) { destory_func_ptr = as_engine_texture_destroy; }
+	//else if (type == AS_ASSET_TYPE_TEXTURE) { destory_func_ptr = as_engine_texture_destroy; }
+
+	const sz index = as_content_add_asset(engine.content, ptr, type, free_on_destroy, destory_func_ptr);
 	return as_content_get_asset(engine.content, index);
 }
 
