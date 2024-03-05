@@ -275,6 +275,8 @@ extern bool as_texture_update(as_render* render, as_texture* texture);
 extern void as_texture_destroy(as_texture* texture);
 extern as_textures_pool* as_textures_pool_create();
 extern void as_textures_pool_destroy(as_textures_pool* textures_pool);
+extern as_texture* as_texture_get_from_pool(as_textures_pool* textures_pool);
+extern void as_texture_remove_from_pool(as_textures_pool* textures_pool, as_texture* texture, const bool destory);
 
 void as_shader_create_graphics_pipeline(as_shader* shader);
 extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);

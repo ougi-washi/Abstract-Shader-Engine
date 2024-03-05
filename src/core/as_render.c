@@ -1906,6 +1906,30 @@ void as_textures_pool_destroy(as_textures_pool* textures_pool)
 	AS_FREE(textures_pool);
 }
 
+as_texture* as_texture_get_from_pool(as_textures_pool* textures_pool)
+{
+	AS_ASSERT(textures_pool, "Cannot get texture from pool, invalid textures_pool ptr");
+	return AS_ARRAY_INCREMENT(*textures_pool);
+}
+
+void as_texture_remove_from_pool(as_textures_pool* textures_pool, as_texture* texture, const bool destory)
+{
+	AS_ASSERT(texture, "Cannot remove texture from pool, invalid texture ptr");
+	AS_ASSERT(textures_pool, "Cannot remove texture from pool, invalid textures_pool ptr");
+
+	if (destory)
+	{
+		as_texture_destroy(texture);
+	}
+
+	sz found_index = -1;
+	AS_ARRAY_FIND_PTR(*textures_pool, texture, found_index);
+	if (found_index > -1)
+	{
+		AS_ARRAY_REMOVE_AT(*textures_pool, found_index);
+	}
+}
+
 void as_shader_create_graphics_pipeline(as_shader* shader)
 {
 	if (strcmp(shader->filename_vertex, "") == 0 || strcmp(shader->filename_fragment, "") == 0)

@@ -246,9 +246,8 @@ f64 as_get_delta_time()
 
 as_texture* as_texture_create(const char* texture_path)
 {
-	as_texture* texture = AS_ARRAY_INCREMENT(*engine.textures_pool);
+	as_texture* texture = as_texture_get_from_pool(engine.textures_pool);
 	as_texture_init(texture, texture_path);
-
 	as_rq_texture_update(engine.render_queue, texture, engine.render);
 	return texture;
 }
