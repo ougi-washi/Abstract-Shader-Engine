@@ -143,18 +143,18 @@ void as_rq_render_destroy(as_render_queue* render_queue, as_render* render)
 typedef struct as_screen_object_update_arg
 {
 	as_screen_object* screen_object;
-} as_screen_object_update_arg;
-void as_screen_object_update_func(as_screen_object_update_arg* ui_object_update_arg)
+}as_screen_object_update_arg;
+void as_screen_object_update_func(as_screen_object_update_arg* arg)
 {
-	AS_WAIT_AND_LOCK(ui_object_update_arg->screen_object);
-	as_screen_object_update(ui_object_update_arg->screen_object);
-	AS_UNLOCK(ui_object_update_arg->screen_object);
+	AS_WAIT_AND_LOCK(arg->screen_object);
+	as_screen_object_update(arg->screen_object);
+	AS_UNLOCK(arg->screen_object);
 }
 void as_rq_screen_object_update(as_render_queue* render_queue, as_screen_object* screen_object)
 {
-	as_screen_object_update_arg ui_object_update_arg = {0};
-	ui_object_update_arg.screen_object = screen_object;
-	as_rq_submit(render_queue, &as_screen_object_update_func, &ui_object_update_arg, sizeof(ui_object_update_arg));
+	as_screen_object_update_arg arg = { 0 };
+	arg.screen_object = screen_object;
+	as_rq_submit(render_queue, &as_screen_object_update_func, &arg, sizeof(arg));
 }
 
 typedef struct as_texture_update_arg

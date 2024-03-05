@@ -1675,11 +1675,17 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 {
 	AS_ASSERT(render, "Cannot init screen object, invalid render");
 	AS_ASSERT(screen_object, "Cannot init screen object, invalid screen_object");
-	AS_ASSERT(fragment_path, "Cannot init screen object, invalid fragment_path");
 
 	screen_object->device = &render->device;
 	screen_object->render_pass = &render->render_pass;
-	strcpy(screen_object->filename_fragment, fragment_path);
+	if (fragment_path)
+	{
+		strcpy(screen_object->filename_fragment, fragment_path);
+	}
+	else
+	{
+		strcpy(screen_object->filename_fragment, AS_PATH_DEFAULT_UI_FRAG_SHADER);
+	}
 }
 
 void as_screen_object_update(as_screen_object* screen_object)

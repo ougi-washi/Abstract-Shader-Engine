@@ -302,17 +302,9 @@ as_screen_object* as_screen_object_create(const char* fragment_shader_path)
 {
 	as_screen_object* screen_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
 	
-	if (fragment_shader_path)
-	{
-		strcpy(screen_object->filename_fragment, fragment_shader_path);
-	}
-	else
-	{
-		strcpy(screen_object->filename_fragment, AS_PATH_DEFAULT_UI_FRAG_SHADER);
-	}
-
+	as_screen_object_init(engine.render, screen_object, fragment_shader_path);
 	as_rq_screen_object_update(engine.render_queue, screen_object);
-	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
+	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
 	return screen_object;
 }
 
