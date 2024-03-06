@@ -1678,6 +1678,8 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 	AS_ASSERT(render, "Cannot init screen object, invalid render");
 	AS_ASSERT(screen_object, "Cannot init screen object, invalid screen_object");
 
+	AS_FLOG(LV_LOG, "Init screen object %p", screen_object);
+
 	screen_object->device = &render->device;
 	screen_object->render_pass = &render->render_pass;
 	if (fragment_path)
@@ -1693,8 +1695,10 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 void as_screen_object_update(as_screen_object* screen_object)
 {
 	AS_ASSERT(screen_object, "Cannot update screen object, invalid screen_object");
-	as_screen_create_pipeline(screen_object);
 
+	AS_FLOG(LV_LOG, "Update screen object %p", screen_object);
+
+	as_screen_create_pipeline(screen_object);
 	//if (texture)
 	//{
 	//	as_shader_add_uniform_texture(&screen_object->uniforms, texture);
@@ -1731,6 +1735,8 @@ void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr
 {
 	if (!screen_object) { return; }
 	if (AS_IS_INVALID(screen_object)) { return; }
+
+	AS_FLOG(LV_LOG, "Destroy screen object %p", screen_object);
 
 	AS_SET_INVALID(screen_object);
 
@@ -1790,6 +1796,7 @@ as_texture* as_texture_make(const char* path)
 void as_texture_init(as_texture* texture, const char* path)
 {
 	AS_ASSERT(texture, "Cannot init texture, invalid pointer");
+	AS_FLOG(LV_LOG, "Init texture %p", texture);
 	strcpy(texture->filename, path);
 }
 
@@ -1798,9 +1805,12 @@ bool as_texture_update(as_render* render, as_texture* texture)
 	AS_ASSERT(render, "Trying to update texture but render is NULL");
 	AS_ASSERT(texture, "Trying to update texture but texture is NULL");
 
+	AS_FLOG(LV_LOG, "Update texture %p", texture);
+
+
 	AS_SET_INVALID(texture);
 
-	if (texture->device)
+	if (texture->filename)
 	{
 		as_texture_destroy(texture);
 	}
@@ -1870,23 +1880,28 @@ void as_texture_destroy(as_texture* texture)
 {
 	if (!texture) { return; }
 	if (AS_IS_INVALID(texture)) { return; }
-	
+
+	AS_FLOG(LV_LOG, "Destroy texture %p", texture);
+
 	AS_LOCK(texture);
-	if (texture->image)
+	if (texture->device && *texture->device)
 	{
-		vkDestroyImage(*texture->device, texture->image, NULL);
-	}
-	if (texture->image_view)
-	{
-		vkDestroyImageView(*texture->device, texture->image_view, NULL);
-	}
-	if (texture->sampler)
-	{
-		vkDestroySampler(*texture->device, texture->sampler, NULL);
-	}
-	if (texture->memory)
-	{
-		vkFreeMemory(*texture->device, texture->memory, NULL);
+		if (texture->image)
+		{
+			vkDestroyImage(*texture->device, texture->image, NULL);
+		}
+		if (texture->image_view)
+		{
+			vkDestroyImageView(*texture->device, texture->image_view, NULL);
+		}
+		if (texture->sampler)
+		{
+			vkDestroySampler(*texture->device, texture->sampler, NULL);
+		}
+		if (texture->memory)
+		{
+			vkFreeMemory(*texture->device, texture->memory, NULL);
+		}
 	}
 	AS_SET_INVALID(texture);
 }
@@ -1898,6 +1913,8 @@ as_textures_pool* as_textures_pool_create()
 
 void as_textures_pool_destroy(as_textures_pool* textures_pool)
 {
+	AS_FLOG(LV_LOG, "Destroy texture pool %p", textures_pool);
+
 	if (!textures_pool) { return; }
 	AS_ARRAY_FOR_EACH(*textures_pool, as_texture, texture,
 	{

@@ -101,10 +101,13 @@ typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
     do {                                                                                                    \
         if (level == LV_LOG) {                                                                              \
             printf("LOG : " format, __VA_ARGS__);                                                           \
+            printf("\n");                                                                                   \
         } else if (level == LV_WARNING) {                                                                   \
             printf("[%s|%d] WARNING: " format, __FILE__, __LINE__, __VA_ARGS__);                            \
+            printf("\n");                                                                                   \
         } else if (level == LV_ERROR) {                                                                     \
             printf("[%s|%d] ERROR: " format, __FILE__, __LINE__, __VA_ARGS__);                              \
+            printf("\n");                                                                                   \
         }                                                                                                   \
     } while(0)
 

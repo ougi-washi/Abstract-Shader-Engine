@@ -12,6 +12,5 @@ void main()
     vec2 center_uv = uv - vec2(.5);
     float sphere_mask = length(center_uv) - .1f;
     sphere_mask = smoothstep(0.1, 1., sphere_mask);
-    out_color = vec4(uv.y, uv.x, 1., sphere_mask);
+    out_color = vec4(uv.y, 0.f, 1., sphere_mask);
 }
-

@@ -60,6 +60,8 @@ typedef struct as_uniform_buffers
 
 typedef struct as_texture
 {
+	AS_DECLARE_TYPE;
+
 	VkDevice* device;
 
 	VkImage image;
@@ -68,8 +70,6 @@ typedef struct as_texture
 	VkSampler sampler;
 
 	char filename[AS_MAX_PATH_SIZE];
-
-	AS_DECLARE_TYPE;
 } as_texture;
 AS_ARRAY_DECLARE(as_textures_pool, AS_MAX_TEXTURE_POOL_SIZE, as_texture);
 
@@ -107,6 +107,8 @@ typedef struct as_shader
 
 typedef struct as_object // TODO: Get GPU data out so they can loop faster in the drawcommands
 {
+	AS_DECLARE_TYPE;
+
 	as_transform transform;
 	as_shape* shape;
 	as_shader* shader;
@@ -120,7 +122,6 @@ typedef struct as_object // TODO: Get GPU data out so they can loop faster in th
 
 	i32 scene_gpu_index; // index of the object in the GPU scene 
 	
-	AS_DECLARE_TYPE;
 } as_object;
 AS_ARRAY_DECLARE(as_scene_objects, AS_MAX_SCENE_OBJECTS, as_object);
 
@@ -140,6 +141,8 @@ typedef enum as_camera_type
 } as_camera_type;
 typedef struct as_camera
 {
+	AS_DECLARE_TYPE;
+
 	as_vec3 position;
 	as_vec3 target;
 	as_vec3 up;
@@ -148,7 +151,6 @@ typedef struct as_camera
 	f64 movement_speed;
 
 	as_vec3 cached_direction;
-	AS_DECLARE_TYPE;
 } as_camera;
 AS_ARRAY_DECLARE(as_scene_cameras, AS_MAX_SCENE_CAMERAS, as_camera);
 
@@ -182,6 +184,8 @@ typedef struct as_scene
 
 typedef struct as_screen_object
 {
+	AS_DECLARE_TYPE;
+
 	VkDevice* device;
 	VkRenderPass* render_pass;
 
@@ -202,7 +206,6 @@ typedef struct as_screen_object
 
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
-	AS_DECLARE_TYPE;
 } as_screen_object;
 AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 

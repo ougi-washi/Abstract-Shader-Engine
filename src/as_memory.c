@@ -9,18 +9,27 @@ as_allocation allocations[MAX_ALLOCATIONS_COUNT] = { 0 };
 
 void* as_malloc_fn(const size_t _size, const char* _file, const u32 _line, const char* _type)
 {
+	void* new_ptr = malloc(_size);
+	AS_ASSERT(new_ptr, "Could not allocate memory.");
+
 	strcpy(allocations[allocations_count].file, _file);
 	strcpy(allocations[allocations_count].type, _type);
 	allocations[allocations_count].line = _line;
 	allocations[allocations_count].size = _size;
-	allocations[allocations_count].ptr = malloc(_size);
+	allocations[allocations_count].ptr = new_ptr;
 	if (allocations[allocations_count].ptr)
 	{
 		memset(allocations[allocations_count].ptr, 0, _size);
 	}
 	allocated_memory += _size;
 	allocations_count++;
-	return allocations[allocations_count - 1].ptr;
+	void* out_ptr = allocations[allocations_count - 1].ptr;
+	u32 wait_iteration = 0;
+	while (!out_ptr && wait_iteration < 1000000)
+	{
+		wait_iteration++;
+	}
+	return out_ptr;
 }
 
 void* as_realloc_fn(void* _ptr, const size_t _size, const char* _file, const u32 _line)
@@ -35,7 +44,7 @@ void* as_realloc_fn(void* _ptr, const size_t _size, const char* _file, const u32
 				allocated_memory -= allocations[i].size;
 				allocated_memory += _size;
 
-				memcpy(allocations[i].file, _file, 265);
+				strcpy(allocations[i].file, _file);
 				allocations[i].line = _line;
 				allocations[i].ptr = _ptr;
 				allocations[i].size = _size;

@@ -9,15 +9,20 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 	while (queue->is_running)
 	{
 		const sz queue_size = queue->commands.size;
+		const sz command_index = queue->commands.size - 1;
 		if (queue_size > 0)
 		{
 			AS_WAIT_AND_LOCK(queue);
-			as_render_command* command = &queue->commands.data[queue_size - 1];
+			as_render_command* command = &queue->commands.data[command_index];
 			if (command)
 			{
-				command->func_ptr(command->arg);
+				if (!command->executed)
+				{
+					command->executed = true;
+					command->func_ptr(command->arg);
+				}
 			}
-			AS_ARRAY_REMOVE_AT(queue->commands, queue_size - 1);
+			AS_ARRAY_REMOVE_AT(queue->commands, command_index);
 			AS_UNLOCK(queue);
 		}
 		else
