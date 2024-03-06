@@ -223,11 +223,6 @@ as_file_handle* as_fp_make_handle(as_file_pool* pool)
 	return AS_ARRAY_INCREMENT(*pool);
 }
 
-extern char* as_fp_make_handle_c(as_file_pool* pool)
-{
-	return as_fp_make_handle(pool)->content;
-}
-
 void as_fp_remove_handle(as_file_pool* pool, as_file_handle* handle)
 {
 	AS_WARNING_RETURN_IF_FALSE(pool, "invalid pool, cannot remove handle");
