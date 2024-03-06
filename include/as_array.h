@@ -27,12 +27,6 @@
         else { AS_LOG(LV_ERROR,"Array overflow"); }                                                     \
     } else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
 
-#define AS_ARRAY_REMOVE_AT(_array, _index)                                                              \
-    if ((_index) >= 0 && (_index) < (_array).size) {                                                    \
-         for (sz i = (_index); i < (_array).size - 1; ++i) { (_array).data[i] = (_array).data[i + 1]; } \
-        --(_array).size; }                                                                              \
-    else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
-
 #define AS_ARRAY_GET(_array, _index)                                                               \
     (((_index) >= 0 && (_index) < (_array).size) ? &((_array).data[_index]) : NULL)
 
@@ -59,6 +53,17 @@ for (sz _i = 0; _i < (_array).size; ++_i) { \
         break; \
     } \
 }
+
+#define AS_ARRAY_REMOVE_AT(_array, _index)                                                              \
+    if ((_index) >= 0 && (_index) < (_array).size) {                                                    \
+         for (sz i = (_index); i < (_array).size - 1; ++i) { (_array).data[i] = (_array).data[i + 1]; } \
+        --(_array).size; }                                                                              \
+    else { AS_LOG(LV_ERROR,"Array index out of bounds"); }
+
+#define AS_ARRAY_REMOVE_PTR(_array, _element_ptr)                                                               \
+    do{sz _found_index = -1;                                                                                       \
+    AS_ARRAY_FIND_PTR(_array, _element_ptr, _found_index);                                                      \
+    if(_found_index > -1) { AS_ARRAY_REMOVE_AT(_array, _found_index); }} while(0)
 
 #define AS_ARRAY_FOR_EACH(_array, _type, _it, _exec)    \
 for (sz _i = 0; _i < (_array).size; ++_i) {             \
