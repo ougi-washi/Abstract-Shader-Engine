@@ -16,6 +16,7 @@ typedef struct as_render_command
 {
 	void (*func_ptr)(void*);
 	void* arg[AS_RENDER_QUEUE_MAX_ARG_SIZE];
+	u8 executed : 1;
 } as_render_command;
 AS_ARRAY_DECLARE(as_render_commands, AS_RENDER_QUEUE_SIZE, as_render_command);
 
