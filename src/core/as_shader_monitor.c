@@ -13,6 +13,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 	while (thread_data->is_running)
 	{
 		if (AS_IS_INVALID(thread_data)) { continue; }
+		AS_WAIT_AND_LOCK(thread_data);
 		const u64 frame_count = *thread_data->frame_count;
 		as_flagged_struct* shader = thread_data->shader;
 		as_render_queue* render_queue = thread_data->render_queue;
@@ -25,6 +26,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 				AS_UNLOCK(shader);
 			}
 		}
+		AS_UNLOCK(thread_data);
 	}
 	return NULL;
 }
