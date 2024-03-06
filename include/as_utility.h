@@ -16,16 +16,27 @@
 #define AS_MAX_FILE_SIZE 128 * 1024
 #define AS_FILE_POOL_SIZE 64
 
-typedef struct as_file_handle 
-{ 
-	char string[AS_MAX_FILE_SIZE];
+// file pool system
+typedef struct as_file_handle
+{
+	char content[AS_MAX_FILE_SIZE];
 } as_file_handle;
-AS_ARRAY_DECLARE(as_file_pool, AS_FILE_POOL_SIZE, as_file_handle);
+AS_STATIC_ARRAY_DECLARE(as_file_handles, AS_FILE_POOL_SIZE, as_file_handle);
 
-static as_file_pool file_pool = {0};
+typedef struct as_file_pool
+{
+	AS_DECLARE_TYPE;
+	as_file_handles handles;
+} as_file_pool;
 
+static as_file_pool file_pool = { 0 };
+extern as_file_handle* as_fp_make_handle();
+extern void as_fp_remove_handle(as_file_handle* handle);
+
+// conversions
 extern void as_i32_to_str(const i32 integer, char* out_str);
 
+// files
 extern char* as_util_read_file(const char* path, sz* size);
 extern sz as_util_get_file_size(FILE* file);
 extern void as_util_expand_file_includes(const char* path, char* output);
@@ -35,10 +46,6 @@ extern void as_util_extract_base_path(const char* path, char* base_path);
 extern void as_util_extract_file_name(const char* path, char* file_name);
 extern void as_util_combine_path_and_file(const char* base_path, const char* file_name, char* output_path);
 extern void as_util_ensure_directory_exists(const char* path);
-
-// file pool
-extern as_file_handle* as_fp_make_handle(as_file_pool* pool);
-extern void as_fp_remove_handle(as_file_pool* pool, as_file_handle* handle);
 
 // time
 extern clock_t get_current_time();

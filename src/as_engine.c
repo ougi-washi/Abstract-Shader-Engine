@@ -322,7 +322,7 @@ as_screen_object* as_screen_object_create(const char* fragment_shader_path)
 	
 	as_screen_object_init(engine.render, screen_object, fragment_shader_path);
 	as_rq_screen_object_update(engine.render_queue, screen_object);
-	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
+	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
 	return screen_object;
 }
 

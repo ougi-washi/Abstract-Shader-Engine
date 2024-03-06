@@ -79,7 +79,10 @@ void as_shader_get_cached_path(char* out_path, const char* original_path)
 
 as_shader_binary* as_shader_read_code(const char* path, const as_shader_type shader_type)
 {
-	char processed_source[AS_MAX_FILE_SIZE] = { 0 };
+	//char processed_source[AS_MAX_FILE_SIZE] = { 0 };
+
+	as_file_handle* processed_source_handle = as_fp_make_handle();
+	char* processed_source = processed_source_handle->content;
 	as_util_expand_file_includes(path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
@@ -88,6 +91,7 @@ as_shader_binary* as_shader_read_code(const char* path, const as_shader_type sha
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0)
 	{
+		as_fp_remove_handle(processed_source_handle);
 		return cached_binary;
 	}
 	as_shader_destroy_binary(cached_binary, true);
@@ -97,6 +101,8 @@ as_shader_binary* as_shader_read_code(const char* path, const as_shader_type sha
 	
 	strcpy(ouput_binary->source, processed_source);
 	ouput_binary->source_size = AS_MAX_FILE_SIZE;
+
+	as_fp_remove_handle(processed_source_handle);
 
 	as_shader_binary_serialize(ouput_binary, cached_path);
 	return ouput_binary;
@@ -118,8 +124,10 @@ bool as_shader_has_changed(const char* path, as_file_pool* file_pool)
 	char proxy_path[AS_MAX_PATH_SIZE] = "";
 	strcpy(proxy_path, path);
 
-	//char* processed_source = as_fp_make_handle_c(file_pool);
-	char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
+	//char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
+	as_file_handle* processed_source_handle = as_fp_make_handle();
+	char* processed_source = processed_source_handle->content;
+
 	as_util_expand_file_includes(proxy_path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
@@ -127,7 +135,8 @@ bool as_shader_has_changed(const char* path, as_file_pool* file_pool)
 
 	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
 	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;
-	AS_FREE(processed_source);
+	//AS_FREE(processed_source);
+	as_fp_remove_handle(processed_source_handle);
 	AS_FREE(cached_binary);
 	return !is_same;
 }
