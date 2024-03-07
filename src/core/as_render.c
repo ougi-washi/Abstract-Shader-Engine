@@ -1485,13 +1485,17 @@ f64 as_render_get_delta_time(as_render* render)
 
 void as_screen_create_pipeline(as_screen_object* screen_object)
 {
-	as_shader_binary* vert_shader_bin = as_shader_read_code(AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
+	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
+
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
-		as_shader_destroy_binary(frag_shader_bin, true);
-		as_shader_destroy_binary(vert_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+		AS_FREE(shader_binary_pool);
 		return;
 	}
 
@@ -1610,8 +1614,11 @@ void as_screen_create_pipeline(as_screen_object* screen_object)
 	vkDestroyShaderModule(*screen_object->device, vert_shader_module, NULL);
 	vkDestroyShaderModule(*screen_object->device, frag_shader_module, NULL);
 
-	as_shader_destroy_binary(frag_shader_bin, true);
-	as_shader_destroy_binary(vert_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+
+	AS_FREE(shader_binary_pool);
+	AS_FREE(file_pool);
 }
 void as_screen_create_descriptor_set_layout(as_screen_object* screen_object)
 {
@@ -1954,13 +1961,16 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 		return;
 	}
 
-	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
+	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
-		as_shader_destroy_binary(frag_shader_bin, true);
-		as_shader_destroy_binary(vert_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+		AS_FREE(shader_binary_pool);
 		return;
 	}
 
@@ -2082,10 +2092,12 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	vkDestroyShaderModule(*shader->device, frag_shader_module, NULL);
 	vkDestroyShaderModule(*shader->device, vert_shader_module, NULL);
 
-	as_shader_destroy_binary(frag_shader_bin, true);
-	as_shader_destroy_binary(vert_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
 
 	AS_FREE(attribute_descriptions);
+	AS_FREE(shader_binary_pool);
+	AS_FREE(file_pool);
 }
 
 sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)

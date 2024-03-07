@@ -25,6 +25,7 @@ void* as_shader_monitor_thread_run(as_shader_monitor_thread* thread_data)
 				thread_data->shader_update_func(render_queue, shader);
 				AS_UNLOCK(shader);
 			}
+			sleep_seconds(1/100.);
 		}
 		AS_UNLOCK(thread_data);
 	}

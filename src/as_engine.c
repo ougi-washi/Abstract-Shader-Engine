@@ -146,6 +146,8 @@ void as_engine_init_console()
 void as_engine_init()
 {
 	AS_LOG(LV_LOG, "Initializing the engine");
+
+	//as_shader_binary_pool_create();
 	engine.display_context = as_display_context_create(AS_ENGINE_WINDOW_WIDTH, AS_ENGINE_WINDOW_HEIGHT, AS_ENGINE_WINDOW_NAME, &key_callback);
 	engine.render = as_render_create(engine.display_context);
 	engine.render_queue = as_rq_create();
@@ -322,7 +324,7 @@ as_screen_object* as_screen_object_create(const char* fragment_shader_path)
 	
 	as_screen_object_init(engine.render, screen_object, fragment_shader_path);
 	as_rq_screen_object_update(engine.render_queue, screen_object);
-	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
+	//as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
 	return screen_object;
 }
 

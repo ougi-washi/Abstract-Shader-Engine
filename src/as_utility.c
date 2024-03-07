@@ -4,12 +4,24 @@
 #include "as_memory.h"
 #include <stdlib.h>
 
-as_file_handle* as_fp_make_handle()
+//void as_file_pool_create()
+//{
+//	file_pool = AS_MALLOC_SINGLE(as_file_pool);
+//	AS_SET_VALID(file_pool);
+//}
+//
+//void as_file_pool_destroy()
+//{
+//	AS_SET_INVALID(file_pool);
+//	AS_FREE(file_pool);
+//}
+
+as_file_handle* as_fp_make_handle(as_file_pool* file_pool)
 {
-	AS_WAIT_AND_LOCK(&file_pool);
+	AS_WAIT_AND_LOCK(file_pool);
 	sz out_index = -1;
-	AS_STATIC_ARRAY_ADD(file_pool.handles, out_index);
-	as_file_handle* out_handle = AS_STATIC_ARRAY_GET(file_pool.handles, out_index);
+	AS_STATIC_ARRAY_ADD(file_pool->handles, out_index);
+	as_file_handle* out_handle = AS_STATIC_ARRAY_GET(file_pool->handles, out_index);
 	if (out_handle)
 	{
 		memset(&out_handle->content, 0, sizeof(out_handle->content));
@@ -18,16 +30,16 @@ as_file_handle* as_fp_make_handle()
 	{
 		AS_LOG(LV_ERROR, "Could not make file handle from pool");
 	}
-	AS_UNLOCK(&file_pool);
+	AS_UNLOCK(file_pool);
 	return out_handle;
 }
 
-void as_fp_remove_handle(as_file_handle* handle)
+void as_fp_remove_handle(as_file_pool* file_pool, as_file_handle* handle)
 {
 	AS_WARNING_RETURN_IF_FALSE(handle, "invalid handle, cannot remove handle");
-	AS_WAIT_AND_LOCK(&file_pool);
-	AS_STATIC_ARRAY_REMOVE_PTR(file_pool.handles, handle);
-	AS_UNLOCK(&file_pool);
+	AS_WAIT_AND_LOCK(file_pool);
+	AS_STATIC_ARRAY_REMOVE_PTR(file_pool->handles, handle);
+	AS_UNLOCK(file_pool);
 }
 
 void as_i32_to_str(const i32 integer, char* out_str)
@@ -88,7 +100,7 @@ void append_base_path(const char* base_path, const char* path, char* output_path
 	snprintf(output_path, AS_MAX_PATH_SIZE, "%s/%s", base_path, path);
 }
 
-void as_util_expand_file_includes(const char* path, char* output) 
+void as_util_expand_file_includes(as_file_pool* file_pool, const char* path, char* output)
 {
 	if (!output || !path) 
 	{
@@ -109,7 +121,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 
 	//char* file_contents = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
 	
-	as_file_handle* file_contents_handle = as_fp_make_handle();
+	as_file_handle* file_contents_handle = as_fp_make_handle(file_pool);
 	char* file_contents = file_contents_handle->content;
 
 	size_t read_bytes = fread(file_contents, 1, as_util_get_file_size(file), file);
@@ -118,7 +130,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 		AS_FLOG(LV_WARNING, "Error reading file: %s", path);
 		fclose(file);
 		//AS_FREE(file_contents);
-		as_fp_remove_handle(file_contents_handle);
+		as_fp_remove_handle(file_pool, file_contents_handle);
 		return;
 	}
 	fclose(file);
@@ -128,7 +140,7 @@ void as_util_expand_file_includes(const char* path, char* output)
 	{
 		strcpy(output, file_contents); // No includes found, copy the entire file content
 		//AS_FREE(file_contents);
-		as_fp_remove_handle(file_contents_handle);
+		as_fp_remove_handle(file_pool, file_contents_handle);
 		return;
 	}
 
@@ -139,9 +151,6 @@ void as_util_expand_file_includes(const char* path, char* output)
 	// Find and replace all includes
 	while (include_pos && strcmp(include_pos, "") != 0)
 	{
-		//char* include_file = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
-		as_file_handle* include_file_handle = as_fp_make_handle();
-		char* include_file = include_file_handle->content;
 
 		char* quote_start = strchr(include_pos, '"');
 		char* quote_end = strchr(quote_start + 1, '"');
@@ -151,16 +160,20 @@ void as_util_expand_file_includes(const char* path, char* output)
 			AS_FLOG(LV_WARNING, "Invalid include directive: %s", include_pos);
 		}
 
+		//char* include_file = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
+		as_file_handle* include_file_handle = as_fp_make_handle(file_pool);
+		char* include_file = include_file_handle->content;
+
 		strncpy(include_file, quote_start + 1, quote_end - quote_start - 1);
 		include_file[quote_end - quote_start - 1] = '\0';
 
 		//char* included_file = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
-		as_file_handle* included_file_handle = as_fp_make_handle();
+		as_file_handle* included_file_handle = as_fp_make_handle(file_pool);
 		char* included_file = included_file_handle->content;
 
 		char included_file_path[AS_MAX_PATH_SIZE] = "";
 		append_base_path(file_path, include_file, included_file_path);
-		as_util_expand_file_includes(included_file_path, included_file);
+		as_util_expand_file_includes(file_pool, included_file_path, included_file);
 
 		// Append the included file content to the output
 		strcat(output, included_file);
@@ -177,13 +190,13 @@ void as_util_expand_file_includes(const char* path, char* output)
 			strncat(output, quote_end + 1, include_pos - quote_end - 1);
 		}
 
-		as_fp_remove_handle(include_file_handle);
-		as_fp_remove_handle(included_file_handle);
+		as_fp_remove_handle(file_pool, include_file_handle);
+		as_fp_remove_handle(file_pool, included_file_handle);
 		//AS_FREE(include_file);
 		//AS_FREE(included_file);
 	}
 	//AS_FREE(file_contents);
-	as_fp_remove_handle(file_contents_handle);
+	as_fp_remove_handle(file_pool, file_contents_handle);
 }
 
 void as_util_write_file(const char* path, const void* data, const sz size, const bool is_binary)

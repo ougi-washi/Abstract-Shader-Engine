@@ -130,8 +130,7 @@ static const sz _name##_max = _capacity;
 #define AS_STATIC_ARRAY_REMOVE(_array, _index)                                  \
     do {                                                                        \
         if ((_index) >= 0 && (_index) < AS_ARRAY_SIZE((_array).data)) {         \
-            memset(&(_array).data[_index], 0, sizeof((_array).data[_index]));   \
-            (_array).valid[_index] = false; }                                       \
+            (_array).valid[_index] = false; }                                   \
 	    else { AS_LOG(LV_ERROR, "Array index out of bounds"); }                 \
     } while(0)
 
