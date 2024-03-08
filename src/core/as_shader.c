@@ -106,7 +106,6 @@ as_shader_binary* as_shader_read_code(as_shader_binary_pool* shader_binary_pool,
 		as_fp_remove_handle(file_pool, processed_source_handle);
 		return cached_binary;
 	}
-	AS_STATIC_ARRAY_REMOVE_PTR(*shader_binary_pool, cached_binary);
 
 	//as_shader_binary* ouput_binary = AS_MALLOC_SINGLE(as_shader_binary);
 	sz found_index = -1;
