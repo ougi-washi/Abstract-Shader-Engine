@@ -23,13 +23,8 @@ void* as_malloc_fn(const size_t _size, const char* _file, const u32 _line, const
 	}
 	allocated_memory += _size;
 	allocations_count++;
-	void* out_ptr = allocations[allocations_count - 1].ptr;
-	u32 wait_iteration = 0;
-	while (!out_ptr && wait_iteration < 1000000)
-	{
-		wait_iteration++;
-	}
-	return out_ptr;
+	//void* out_ptr = allocations[allocations_count - 1].ptr;
+	return new_ptr;
 }
 
 void* as_realloc_fn(void* _ptr, const size_t _size, const char* _file, const u32 _line)

@@ -158,7 +158,10 @@ bool as_shader_has_changed(as_shader_binary_pool* shader_binary_pool, as_file_po
 	//AS_FREE(processed_source);
 	as_fp_remove_handle(file_pool, processed_source_handle);
 	//AS_FREE(cached_binary);
-	AS_STATIC_ARRAY_REMOVE_PTR(*shader_binary_pool, cached_binary);
+	if (cached_binary)
+	{
+		AS_STATIC_ARRAY_REMOVE_PTR(*shader_binary_pool, cached_binary);
+	}
 
 	AS_UNLOCK(file_pool);
 	return !is_same;
