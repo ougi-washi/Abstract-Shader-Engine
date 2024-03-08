@@ -104,7 +104,12 @@ static const sz _name##_max = _capacity;
     (((_index) >= 0 && (_index) < AS_STATIC_ARRAY_SIZE(_array)) ? &((_array).data[_index]) : NULL)
 
 #define AS_STATIC_ARRAY_IS_VALID(_array, _index)                                          \
-    (((_index) >= 0 && (_index) < AS_STATIC_ARRAY_SIZE(_array)) ? &((_array).valid[_index]) : false)
+    (((_index) >= 0 && (_index) < AS_STATIC_ARRAY_SIZE(_array)) ? ((_array).valid[_index]) : false)
+
+#define AS_STATIC_ARRAY_VALID_SIZE(_array, _output_size)                    \
+    _output_size = 0;                                                       \
+    for (sz _index = 0 ; _index < AS_STATIC_ARRAY_SIZE(_array) ; _index++)  \
+    {if (AS_STATIC_ARRAY_IS_VALID(_array, _index)) { _output_size++; }}
 
 #define AS_STATIC_ARRAY_ADD(_array, _out_index)                     \
     do {                                                            \
@@ -121,17 +126,21 @@ static const sz _name##_max = _capacity;
 #define AS_STATIC_ARRAY_FIND_PTR(_array, _ptr, _out_index)          \
     do { _out_index = -1;                                           \
         for (sz _i = 0; _i < AS_ARRAY_SIZE((_array).data); ++_i) {  \
-                if (&(_array).data[_i] == _ptr)                      \
+                if (&(_array).data[_i] == _ptr)                     \
                 {   _out_index = _i;                                \
                     break; }                                        \
             }                                                       \
         } while(0)
 
+#define AS_STATIC_ARRAY_ADD_DATA(_array, _data, _size, _out_index)  \
+    do{ AS_STATIC_ARRAY_ADD(_array, _out_index);                    \
+    void* _added_data = AS_STATIC_ARRAY_GET(_array, _out_index);    \
+    memcpy(_added_data, _data, _size);} while(0)
+
 #define AS_STATIC_ARRAY_REMOVE(_array, _index)                                  \
     do {                                                                        \
         if ((_index) >= 0 && (_index) < AS_ARRAY_SIZE((_array).data)) {         \
-            memset(&(_array).data[_index], 0, sizeof((_array).data[_index]));   \
-            (_array).valid[_index] = false; }                                       \
+            (_array).valid[_index] = false; }                                   \
 	    else { AS_LOG(LV_ERROR, "Array index out of bounds"); }                 \
     } while(0)
 

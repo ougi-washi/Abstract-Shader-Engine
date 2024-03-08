@@ -149,7 +149,7 @@ typedef enum as_flag
 
 #define AS_WAIT_AND_LOCK(_obj) 																\
 do{ u64 loop_counter = 0; 																		\
-while (AS_IS_LOCKED(_obj) && loop_counter < 9000000) { loop_counter++; };					\
+while (AS_IS_LOCKED(_obj) && loop_counter < 1000000000) { loop_counter++; };					\
 AS_LOCK(_obj); } while(0)
 
 // This is a dummy type to avoid compilation errors when using void pointers

@@ -18,6 +18,18 @@ const char* compilation_status_texts[] =
 	"shaderc_compilation_status_configuration_error",
 };
 
+//static as_shader_binary_pool* shader_binary_pool = NULL;
+
+//void as_shader_binary_pool_create()
+//{
+//	shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
+//}
+//
+//void as_shader_binary_pool_destroy()
+//{
+//	AS_FREE(shader_binary_pool);
+//}
+
 i32 as_shader_compile(as_shader_binary* binary, const char* source, const char* entry_point, const as_shader_type shader_type)
 {
 	size_t out_size = 0;
@@ -77,67 +89,81 @@ void as_shader_get_cached_path(char* out_path, const char* original_path)
 	sprintf(out_path, "%s%s.as_shader_binary", AS_PATH_CACHED_SHADERS, file_name);
 }
 
-as_shader_binary* as_shader_read_code(const char* path, const as_shader_type shader_type)
+as_shader_binary* as_shader_read_code(as_shader_binary_pool* shader_binary_pool, as_file_pool* file_pool, const char* path, const as_shader_type shader_type)
 {
 	//char processed_source[AS_MAX_FILE_SIZE] = { 0 };
 
-	as_file_handle* processed_source_handle = as_fp_make_handle();
+	as_file_handle* processed_source_handle = as_fp_make_handle(file_pool);
 	char* processed_source = processed_source_handle->content;
-	as_util_expand_file_includes(path, processed_source);
+	as_util_expand_file_includes(file_pool, path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
 	as_shader_get_cached_path(cached_path, path);
 
-	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(shader_binary_pool, cached_path);
 	if (cached_binary && strcmp(cached_binary->source, processed_source) == 0)
 	{
-		as_fp_remove_handle(processed_source_handle);
+		as_fp_remove_handle(file_pool, processed_source_handle);
 		return cached_binary;
 	}
-	as_shader_destroy_binary(cached_binary, true);
 
-	as_shader_binary* ouput_binary = AS_MALLOC_SINGLE(as_shader_binary);
+	//as_shader_binary* ouput_binary = AS_MALLOC_SINGLE(as_shader_binary);
+	sz found_index = -1;
+	AS_STATIC_ARRAY_ADD(*shader_binary_pool, found_index);
+	as_shader_binary* ouput_binary = AS_STATIC_ARRAY_GET(*shader_binary_pool, found_index);
+	AS_ASSERT(ouput_binary, "Could not retrieve shader binary from shader binaries pool");
+
 	i32 compile_result = as_shader_compile(ouput_binary, processed_source, "main", shader_type);
 	
 	strcpy(ouput_binary->source, processed_source);
 	ouput_binary->source_size = AS_MAX_FILE_SIZE;
 
-	as_fp_remove_handle(processed_source_handle);
+	as_fp_remove_handle(file_pool, processed_source_handle);
 
 	as_shader_binary_serialize(ouput_binary, cached_path);
 	return ouput_binary;
 }
 
-void as_shader_destroy_binary(as_shader_binary* shader_bin, const bool is_ptr)
+void as_shader_destroy_binary(as_shader_binary_pool* shader_binary_pool, as_shader_binary* shader_bin, const bool is_ptr)
 {
+	AS_STATIC_ARRAY_REMOVE_PTR(*shader_binary_pool, shader_bin);
+	/*
 	AS_FREE(shader_bin->binaries);
 	if (is_ptr)
 	{
 		AS_FREE(shader_bin);
-	}
+	}*/
 }
 
-bool as_shader_has_changed(const char* path, as_file_pool* file_pool)
+bool as_shader_has_changed(as_shader_binary_pool* shader_binary_pool, as_file_pool* file_pool, const char* path)
 {
 	AS_WARNING_RETURN_VAL_IF_FALSE(file_pool, false, "Cannot check shader, invalid file pool");
-
+	
+	AS_WAIT_AND_LOCK(file_pool);
+	
 	char proxy_path[AS_MAX_PATH_SIZE] = "";
 	strcpy(proxy_path, path);
 
 	//char* processed_source = (char*)AS_MALLOC(sizeof(char) * AS_MAX_FILE_SIZE);
-	as_file_handle* processed_source_handle = as_fp_make_handle();
+	as_file_handle* processed_source_handle = as_fp_make_handle(file_pool);
 	char* processed_source = processed_source_handle->content;
 
-	as_util_expand_file_includes(proxy_path, processed_source);
+	as_util_expand_file_includes(file_pool, proxy_path, processed_source);
 
 	char cached_path[AS_MAX_PATH_SIZE] = {0};
 	as_shader_get_cached_path(cached_path, proxy_path);
 
-	as_shader_binary* cached_binary = as_shader_binary_deserialize(cached_path);
+	as_shader_binary* cached_binary = as_shader_binary_deserialize(shader_binary_pool, cached_path);
 	bool is_same = cached_binary && strcmp(cached_binary->source, processed_source) == 0;
 	//AS_FREE(processed_source);
-	as_fp_remove_handle(processed_source_handle);
-	AS_FREE(cached_binary);
+	as_fp_remove_handle(file_pool, processed_source_handle);
+	//AS_FREE(cached_binary);
+	if (cached_binary)
+	{
+		AS_STATIC_ARRAY_REMOVE_PTR(*shader_binary_pool, cached_binary);
+	}
+
+	AS_UNLOCK(file_pool);
 	return !is_same;
 }
 
@@ -153,21 +179,29 @@ void as_shader_binary_serialize(const as_shader_binary* data, const char* path)
 	fclose(file);
 }
 
-as_shader_binary* as_shader_binary_deserialize(const char* path)
+as_shader_binary* as_shader_binary_deserialize(as_shader_binary_pool* shader_binary_pool, const char* path)
 {
+	AS_ASSERT(shader_binary_pool, "Cannot deserialize shader binary");
 	char directory[AS_MAX_PATH_SIZE];
     as_util_extract_base_path(path, directory);
     as_util_ensure_directory_exists(directory);
 
-	as_shader_binary* data = AS_MALLOC_SINGLE(as_shader_binary);
+	//as_shader_binary* data = AS_MALLOC_SINGLE(as_shader_binary);
+
+	sz found_index = -1;
+	AS_STATIC_ARRAY_ADD(*shader_binary_pool, found_index);
+	as_shader_binary* shader_binary = AS_STATIC_ARRAY_GET(*shader_binary_pool, found_index);
+	AS_ASSERT(shader_binary, "Could not retrieve shader binary from shader binaries pool");
+
 	FILE* file = fopen(path, "rb");
 	if (!file)
 	{
-		AS_FREE(data);
+		//AS_FREE(data);
+		AS_STATIC_ARRAY_REMOVE(*shader_binary_pool, found_index);
 		return NULL;
 	}
 
-	fread(data, sizeof(as_shader_binary), 1, file);
+	fread(shader_binary, sizeof(as_shader_binary), 1, file);
 	fclose(file);
-	return data;
+	return shader_binary;
 }

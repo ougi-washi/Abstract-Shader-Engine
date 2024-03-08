@@ -8,21 +8,26 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 	if (AS_IS_INVALID(queue)) { return NULL; }
 	while (queue->is_running)
 	{
-		const sz queue_size = queue->commands.size;
-		const sz command_index = queue->commands.size - 1;
+		sz queue_size = 0;
+		AS_STATIC_ARRAY_VALID_SIZE(queue->commands, queue_size);
+		//const sz command_index = queue->commands.size - 1;
 		if (queue_size > 0)
 		{
 			AS_WAIT_AND_LOCK(queue);
-			as_render_command* command = &queue->commands.data[command_index];
-			if (command)
+			for (sz command_index = 0; command_index < AS_STATIC_ARRAY_SIZE(queue->commands); command_index++)
 			{
-				if (!command->executed)
+				//as_render_command* command = &queue->commands.data[command_index];
+				as_render_command* command = AS_STATIC_ARRAY_GET(queue->commands, command_index);
+				if (command && AS_STATIC_ARRAY_IS_VALID(queue->commands, command_index))
 				{
-					command->executed = true;
-					command->func_ptr(command->arg);
+					if (!command->executed && command->func_ptr)
+					{
+						command->executed = true;
+						command->func_ptr(command->arg);
+					}
+					AS_STATIC_ARRAY_REMOVE(queue->commands, command_index);
 				}
 			}
-			AS_ARRAY_REMOVE_AT(queue->commands, command_index);
 			AS_UNLOCK(queue);
 		}
 		else
@@ -33,10 +38,11 @@ void* as_render_queue_thread_run(as_render_queue* queue)
 	return NULL;
 }
 
-as_render_queue* as_rq_create()
+as_render_queue* as_rq_create(as_render* render)
 {
 	as_render_queue* queue = AS_MALLOC_SINGLE(as_render_queue);
 	AS_SET_VALID(queue);
+	queue->render = render;
 	queue->is_running = true;
 	queue->thread = as_thread_create(&as_render_queue_thread_run, queue);
 	as_thread_set_priority(queue->thread, 2);
@@ -49,6 +55,7 @@ void as_rq_destroy(as_render_queue* render_queue)
 	if (AS_IS_INVALID(render_queue)) { return; }
 	as_rq_wait_queue(render_queue);
 	render_queue->is_running = false;
+	render_queue->render = NULL;
 	as_thread_join(render_queue->thread);
 	AS_LOG(LV_LOG, "Destroyed render queue");
 	AS_FREE(render_queue);
@@ -57,7 +64,10 @@ void as_rq_destroy(as_render_queue* render_queue)
 sz as_rq_get_queue_size(as_render_queue* render_queue)
 {
 	if (AS_IS_INVALID(render_queue)) { return 0; }
-	return render_queue->commands.size;
+	//return render_queue->commands.size;
+	sz current_size = 0;
+	AS_STATIC_ARRAY_VALID_SIZE(render_queue->commands, current_size);
+	return current_size;
 }
 
 void as_rq_wait_queue(as_render_queue* render_queue)
@@ -77,11 +87,16 @@ void as_rq_submit(as_render_queue* render_queue, void func_ptr(void*), void* arg
 	AS_ASSERT(func_ptr, "Cannot submit to renderer queue, func_ptr is null");
 
 	AS_WAIT_AND_LOCK(render_queue);
+
 	as_render_command command = { 0 };
 	command.func_ptr = func_ptr;
 	memcpy(command.arg, arg, arg_size);
-	AS_ARRAY_INSERT_AT(render_queue->commands, 0, command);
-	if (render_queue->commands.size > AS_RENDER_QUEUE_SIZE)
+	sz command_index = -1;
+	//AS_STATIC_ARRAY_ADD(render_queue->commands, command_index);
+	//AS_STATIC_ARRAY_GET(queue)
+	AS_STATIC_ARRAY_ADD_DATA(render_queue->commands, &command, sizeof(command), command_index);
+	
+	if (as_rq_get_queue_size(render_queue) > AS_RENDER_QUEUE_SIZE)
 	{
 		AS_LOG(LV_ERROR, "Overflowing render queue, please check your update/submission rates, potential crash.");
 	}
@@ -250,15 +265,15 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  }
  extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader)
  {
-	 if (render_queue)
+	 if (shader->graphics_pipeline_layout) // check whether it is possible to create the pipeline (valid layout)
 	 {
 		 as_shader_create_graphics_pipeline_arg shader_create_graphics_pipeline_arg = { 0 };
 		 shader_create_graphics_pipeline_arg.shader = shader;
 		 as_rq_submit(render_queue, &as_shader_create_graphics_pipeline_func, &shader_create_graphics_pipeline_arg, sizeof(shader_create_graphics_pipeline_arg));
 	 }
-	 else
+	 else if (AS_IS_VALID(render_queue->render))
 	 {
-		 as_shader_create_graphics_pipeline(shader);
+		 as_rq_shader_update(render_queue, render_queue->render, shader);
 	 }
  }
 

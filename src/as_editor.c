@@ -52,7 +52,7 @@ void as_editor_set_default_scene()
 		
 	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	as_screen_object* screen_obj_test = as_screen_object_create(NULL);
-	as_asset_register(texture, AS_ASSET_TYPE_TEXTURE);
+	//as_asset_register(texture, AS_ASSET_TYPE_TEXTURE);
 }
 
 bool as_editor_should_loop()

@@ -18,18 +18,18 @@ typedef struct as_render_command
 	void* arg[AS_RENDER_QUEUE_MAX_ARG_SIZE];
 	u8 executed : 1;
 } as_render_command;
-AS_ARRAY_DECLARE(as_render_commands, AS_RENDER_QUEUE_SIZE, as_render_command);
+AS_STATIC_ARRAY_DECLARE(as_render_commands, AS_RENDER_QUEUE_SIZE, as_render_command);
 
 typedef struct as_render_queue
 {
 	bool is_running;
 	as_thread thread;
 	as_render_commands commands;
-
+	as_render* render;
 	AS_DECLARE_TYPE;
 } as_render_queue;
 
-extern as_render_queue* as_rq_create();
+extern as_render_queue* as_rq_create(as_render* render);
 extern void as_rq_destroy(as_render_queue* render_queue);
 extern sz as_rq_get_queue_size(as_render_queue* render_queue);
 extern void as_rq_wait_queue(as_render_queue* render_queue);

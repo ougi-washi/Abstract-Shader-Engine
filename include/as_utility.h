@@ -13,7 +13,7 @@
 
 #define AS_MAX_PATH_SIZE 1024
 #define AS_MAX_FILE_NAME_SIZE 128
-#define AS_MAX_FILE_SIZE 128 * 1024
+#define AS_MAX_FILE_SIZE 512 * 1024
 #define AS_FILE_POOL_SIZE 64
 
 // file pool system
@@ -29,9 +29,11 @@ typedef struct as_file_pool
 	as_file_handles handles;
 } as_file_pool;
 
-static as_file_pool file_pool = { 0 };
-extern as_file_handle* as_fp_make_handle();
-extern void as_fp_remove_handle(as_file_handle* handle);
+//static as_file_pool* file_pool = NULL;
+extern void as_file_pool_create();
+extern void as_file_pool_destroy();
+extern as_file_handle* as_fp_make_handle(as_file_pool* file_pool);
+extern void as_fp_remove_handle(as_file_pool* file_pool, as_file_handle* handle);
 
 // conversions
 extern void as_i32_to_str(const i32 integer, char* out_str);
@@ -39,7 +41,7 @@ extern void as_i32_to_str(const i32 integer, char* out_str);
 // files
 extern char* as_util_read_file(const char* path, sz* size);
 extern sz as_util_get_file_size(FILE* file);
-extern void as_util_expand_file_includes(const char* path, char* output);
+extern void as_util_expand_file_includes(as_file_pool* file_pool, const char* path, char* output);
 extern void as_util_write_file(const char* path, const void* data, const sz size, const bool is_binary);
 extern void as_util_make_path(char* output, const char* base_path, const char* file_path);
 extern void as_util_extract_base_path(const char* path, char* base_path);

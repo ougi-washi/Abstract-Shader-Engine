@@ -1355,7 +1355,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 			if (AS_IS_INVALID(shader)) { continue; }
 			if (!shader->graphics_pipeline)
 			{
-				as_shader_update(render, shader);
+				//as_shader_update(render, shader);
 			}
 			update_shader_uniform_buffer(render, scene, shader, camera, render->current_frame);
 		}
@@ -1485,13 +1485,17 @@ f64 as_render_get_delta_time(as_render* render)
 
 void as_screen_create_pipeline(as_screen_object* screen_object)
 {
-	as_shader_binary* vert_shader_bin = as_shader_read_code(AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
+	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
+
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
-		as_shader_destroy_binary(frag_shader_bin, true);
-		as_shader_destroy_binary(vert_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+		AS_FREE(shader_binary_pool);
 		return;
 	}
 
@@ -1604,14 +1608,24 @@ void as_screen_create_pipeline(as_screen_object* screen_object)
 	pipeline_info.subpass = 0;
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
+	if (screen_object->pipeline != VK_NULL_HANDLE)
+	{
+		vkDeviceWaitIdle(*screen_object->device);
+		vkDestroyPipeline(*screen_object->device, screen_object->pipeline, NULL);
+	}
+	vkDeviceWaitIdle(*screen_object->device);
+
 	AS_ASSERT(vkCreateGraphicsPipelines(*screen_object->device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, &screen_object->pipeline) == VK_SUCCESS,
 		"Could not create graphics pipeline for UI");
 
 	vkDestroyShaderModule(*screen_object->device, vert_shader_module, NULL);
 	vkDestroyShaderModule(*screen_object->device, frag_shader_module, NULL);
 
-	as_shader_destroy_binary(frag_shader_bin, true);
-	as_shader_destroy_binary(vert_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+
+	AS_FREE(shader_binary_pool);
+	AS_FREE(file_pool);
 }
 void as_screen_create_descriptor_set_layout(as_screen_object* screen_object)
 {
@@ -1697,8 +1711,8 @@ void as_screen_object_update(as_screen_object* screen_object)
 	AS_ASSERT(screen_object, "Cannot update screen object, invalid screen_object");
 
 	AS_FLOG(LV_LOG, "Update screen object %p", screen_object);
-
 	as_screen_create_pipeline(screen_object);
+	AS_SET_VALID(screen_object);
 	//if (texture)
 	//{
 	//	as_shader_add_uniform_texture(&screen_object->uniforms, texture);
@@ -1728,7 +1742,6 @@ void as_screen_object_update(as_screen_object* screen_object)
 	//vkMapMemory(render->device, screen_object->index_buffer_memory, 0, sizeof(indices), 0, &data);
 	//memcpy(data, indices, sizeof(indices));
 	//vkUnmapMemory(render->device, screen_object->index_buffer_memory);
-	AS_SET_VALID(screen_object);
 }
 
 void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr)
@@ -1949,18 +1962,22 @@ void as_texture_remove_from_pool(as_textures_pool* textures_pool, as_texture* te
 
 void as_shader_create_graphics_pipeline(as_shader* shader)
 {
+	AS_FLOG(LV_LOG, "Creating graphics pipeline for shader %p", shader);
 	if (strcmp(shader->filename_vertex, "") == 0 || strcmp(shader->filename_fragment, "") == 0)
 	{
 		return;
 	}
 
-	as_shader_binary* vert_shader_bin = as_shader_read_code(shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
-	as_shader_binary* frag_shader_bin = as_shader_read_code(shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
+	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
+	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, shader->filename_vertex, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* frag_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, shader->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
 	{
-		as_shader_destroy_binary(frag_shader_bin, true);
-		as_shader_destroy_binary(vert_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+		as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
+		AS_FREE(shader_binary_pool);
 		return;
 	}
 
@@ -2082,10 +2099,12 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	vkDestroyShaderModule(*shader->device, frag_shader_module, NULL);
 	vkDestroyShaderModule(*shader->device, vert_shader_module, NULL);
 
-	as_shader_destroy_binary(frag_shader_bin, true);
-	as_shader_destroy_binary(vert_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, frag_shader_bin, true);
+	as_shader_destroy_binary(shader_binary_pool, vert_shader_bin, true);
 
 	AS_FREE(attribute_descriptions);
+	AS_FREE(shader_binary_pool);
+	AS_FREE(file_pool);
 }
 
 sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
@@ -2163,6 +2182,7 @@ void as_shader_update(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to update shader, but render is NULL");
 	AS_ASSERT(shader, "Trying to update shader, but shader is NULL");
+	AS_FLOG(LV_LOG, "Updating shader %p", shader);
 
 	shader->device = &render->device;
 	shader->render_pass = &render->render_pass;
@@ -2172,14 +2192,17 @@ void as_shader_update(as_render* render, as_shader* shader)
 	create_uniform_buffers_direct(&shader->uniform_buffers, render);
 	create_descriptor_pool(render->device, &shader->descriptor_pool);
 	create_descriptor_sets_from_shader(render->device, shader);
+	AS_SET_VALID(shader);
 }
 
 void as_shader_destroy(as_render* render, as_shader* shader)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
-	
+
 	if (!shader) { return; }
 	if (AS_IS_INVALID(shader)) { return; }
+
+	AS_FLOG(LV_LOG, "Destroying shader %p", shader);
 
 	vkDestroyPipeline(render->device, shader->graphics_pipeline, NULL);
 	vkDestroyPipelineLayout(render->device, shader->graphics_pipeline_layout, NULL);
@@ -2282,6 +2305,7 @@ as_object* as_object_consturct(as_render* render, as_scene* scene)
 	as_mat4_set_identity(&object->transform);
 	object->instance_count = 1;
 
+	AS_FLOG(LV_LOG, "Constructed object %p", object);
 	return object;
 }
 
@@ -2341,6 +2365,8 @@ void as_object_update(as_render* render, as_object* object, as_shape* shape, as_
 
 	object->shader = shader;
 	AS_SET_VALID(object);
+
+	AS_FLOG(LV_LOG, "Updated object %p", object);
 }
 
 void as_object_set_instance_count(as_object* object, const u32 instance_count)
@@ -2411,7 +2437,7 @@ as_vec3 as_object_get_translation(const as_object* object)
 void as_object_destroy(as_render* render, as_object* object)
 {
 	AS_ASSERT(render, "Trying to delete object, but object is NULL");
-
+	AS_FLOG(LV_LOG, "Destroying object %p", object);
 	if (!object || AS_IS_INVALID(object)) { return; }
 
 	as_shader_destroy(render, object->shader);
