@@ -291,6 +291,16 @@ as_camera* as_camera_create(const as_vec3* position, const as_vec3* target)
 	return as_camera_make(engine.scene, position, target);
 }
 
+as_screen_object* as_screen_object_create(const char* fragment_shader_path)
+{
+	as_screen_object* screen_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
+
+	as_screen_object_init(engine.render, screen_object, fragment_shader_path);
+	as_rq_screen_object_update(engine.render_queue, screen_object);
+	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
+	return screen_object;
+}
+
 void as_camera_set_view(as_camera* camera, const as_camera_type type)
 {
 	AS_ASSERT(camera, "Trying to set camera as view, but camera is NULL");
@@ -319,19 +329,12 @@ as_asset* as_asset_register(void* ptr, const as_asset_type type)
 	return as_content_get_asset(engine.content, index);
 }
 
-as_screen_object* as_screen_object_create(const char* fragment_shader_path)
-{
-	as_screen_object* screen_object = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
-	
-	as_screen_object_init(engine.render, screen_object, fragment_shader_path);
-	as_rq_screen_object_update(engine.render_queue, screen_object);
-	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, screen_object, screen_object->filename_fragment, as_rq_screen_object_update);
-	return screen_object;
-}
 
-void as_screen_object_assign_texture(as_texture* texture)
+sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* texture)
 {
-
+	sz index = as_shader_add_uniform_texture(&object->uniforms, texture);
+	as_screen_object_update(engine.render, object);
+	return index;
 }
 
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)

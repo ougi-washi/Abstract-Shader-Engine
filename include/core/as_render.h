@@ -40,9 +40,18 @@ typedef struct as_uniform_buffer_object
 	as_mat4 object_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE];
 } as_uniform_buffer_object;
 
+typedef struct as_uniform_buffer_screen_object
+{
+	as_mat4 data;
+	// position	x[0][0] y[0][1]
+	// rotation	x[0][2] y[0][3]
+	// extent	min_x[1][0] min_y[1][1] max_x[1][2] max_y[1][3]
+	// [2][...]	empty
+	// [3][...]	empty
+} as_uniform_buffer_screen_object;
+
 typedef struct as_push_const_buffer
 {
-	// as_mat4 obj_transform;
 	as_mat4 data;
 	// camera_position  X[0][0] Y[0][1] Z[0][2]
 	// camera_direction X[1][0] Y[1][1] Z[1][2]
@@ -79,7 +88,7 @@ typedef struct as_shader_uniform
 	VkShaderStageFlagBits stage;
 	void* data;
 } as_shader_uniform;
-AS_ARRAY_DECLARE(as_shader_uniforms_32, 32, as_shader_uniform);
+AS_ARRAY_DECLARE(as_shader_uniforms, AS_MAX_SHADER_UNIFORMS_SIZE, as_shader_uniform);
 
 typedef struct as_shader
 {
@@ -96,7 +105,7 @@ typedef struct as_shader
 	VkDescriptorSets32 descriptor_sets;
 
 	as_uniform_buffers uniform_buffers;
-	as_shader_uniforms_32 uniforms;
+	as_shader_uniforms uniforms;
 
 	char filename_vertex[AS_MAX_PATH_SIZE];
 	char filename_fragment[AS_MAX_PATH_SIZE];
@@ -193,10 +202,11 @@ typedef struct as_screen_object
 	VkPipelineLayout pipeline_layout;
 
 	VkDescriptorPool descriptor_pool;
-	VkDescriptorSet descriptor_set;
 	VkDescriptorSetLayout descriptor_set_layout;
+	VkDescriptorSets32 descriptor_sets;
 
-	as_shader_uniforms_32 uniforms;
+	as_uniform_buffers uniform_buffers;
+	as_shader_uniforms uniforms;
 
 	//VkBuffer vertex_buffer;
 	//VkDeviceMemory vertex_buffer_memory;
@@ -266,11 +276,12 @@ extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);
 
-void as_screen_object_init(as_render* render, as_screen_object* screen_object,const char* fragment_path);
-void as_screen_object_update(as_screen_object* screen_object);
-void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr);
-as_screen_objects_group* as_screen_objects_group_create();
-void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group);
+extern void as_screen_object_init(as_render* render, as_screen_object* screen_object,const char* fragment_path);
+extern void as_screen_object_update(as_render* render, as_screen_object* screen_object);
+extern void as_screen_object_create_pipeline(as_screen_object* screen_object);
+extern void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr);
+extern as_screen_objects_group* as_screen_objects_group_create();
+extern void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group);
 
 extern as_texture* as_texture_make(const char* path);
 extern void as_texture_init(as_texture* texture, const char* path);
@@ -281,12 +292,12 @@ extern void as_textures_pool_destroy(as_textures_pool* textures_pool);
 extern as_texture* as_texture_get_from_pool(as_textures_pool* textures_pool);
 extern void as_texture_remove_from_pool(as_textures_pool* textures_pool, as_texture* texture, const bool destory);
 
-void as_shader_create_graphics_pipeline(as_shader* shader);
-extern sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value);
-extern sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture);
-extern sz as_shader_add_scene_gpu(as_shader_uniforms_32* uniforms, as_scene_gpu_buffer* scene_gpu_buffer);
+extern void as_shader_create_graphics_pipeline(as_shader* shader);
+extern sz as_shader_add_uniform_float(as_shader_uniforms* uniforms, f32* value);
+extern sz as_shader_add_uniform_texture(as_shader_uniforms* uniforms, as_texture* texture);
+extern sz as_shader_add_scene_gpu(as_shader_uniforms* uniforms, as_scene_gpu_buffer* scene_gpu_buffer);
 extern as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, const char* fragment_shader_path);
-extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
+extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms* uniforms);
 extern void as_shader_update(as_render* render, as_shader* shader);
 extern void as_shader_destroy(as_render* render, as_shader* shader);
 

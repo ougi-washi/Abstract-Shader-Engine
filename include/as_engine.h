@@ -25,12 +25,11 @@ extern as_shader* as_shader_create(const char* vertex_shader_path, const char* f
 extern as_object* as_object_create(as_shape* shape, as_shader* shader);
 extern as_object* as_object_create_with_tick(as_shape* shape, as_shader* shader, void tick_func_ptr(as_object*, const f64));
 extern as_camera* as_camera_create(const as_vec3* position, const as_vec3* target);
+extern as_screen_object* as_screen_object_create(const char* fragment_shader_path);
 extern void as_camera_set_view(as_camera* camera, const as_camera_type type);
 extern as_asset* as_asset_register(void* ptr, const as_asset_type type);
 
-extern as_screen_object* as_screen_object_create(const char* fragment_shader_path);
-extern void as_screen_object_assign_texture(as_texture* texture);
-
+extern sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* texture);
 extern sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture);
 
 extern bool as_is_pressed(const i32 key);
