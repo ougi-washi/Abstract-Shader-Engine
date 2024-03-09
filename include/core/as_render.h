@@ -40,9 +40,18 @@ typedef struct as_uniform_buffer_object
 	as_mat4 object_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE];
 } as_uniform_buffer_object;
 
+typedef struct as_uniform_buffer_screen_object
+{
+	as_mat4 data;
+	// position	x[0][0] y[0][1]
+	// rotation	x[0][2] y[0][3]
+	// extent	min_x[1][0] min_y[1][1] max_x[1][2] max_y[1][3]
+	// [2][...]	empty
+	// [3][...]	empty
+} as_uniform_buffer_screen_object;
+
 typedef struct as_push_const_buffer
 {
-	// as_mat4 obj_transform;
 	as_mat4 data;
 	// camera_position  X[0][0] Y[0][1] Z[0][2]
 	// camera_direction X[1][0] Y[1][1] Z[1][2]
@@ -193,9 +202,10 @@ typedef struct as_screen_object
 	VkPipelineLayout pipeline_layout;
 
 	VkDescriptorPool descriptor_pool;
-	VkDescriptorSet descriptor_set;
 	VkDescriptorSetLayout descriptor_set_layout;
+	VkDescriptorSets32 descriptor_sets;
 
+	as_uniform_buffers uniform_buffers;
 	as_shader_uniforms_32 uniforms;
 
 	//VkBuffer vertex_buffer;
