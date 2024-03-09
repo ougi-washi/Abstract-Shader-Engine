@@ -1483,7 +1483,7 @@ f64 as_render_get_delta_time(as_render* render)
 	return render->delta_time;
 }
 
-void as_screen_create_pipeline(as_screen_object* screen_object)
+void as_screen_object_create_pipeline(as_screen_object* screen_object)
 {
 	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
 	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
@@ -1581,16 +1581,19 @@ void as_screen_create_pipeline(as_screen_object* screen_object)
 	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
 	dynamic_state.pDynamicStates = dynamic_states;
 
-	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
-	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipeline_layout_info.setLayoutCount = 0;
-	pipeline_layout_info.pSetLayouts = NULL;
-	pipeline_layout_info.pushConstantRangeCount = 0;
-	pipeline_layout_info.pPushConstantRanges = NULL;
+	if (screen_object->pipeline_layout == VK_NULL_HANDLE)
+	{
+		VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
+		pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipeline_layout_info.setLayoutCount = 0;
+		pipeline_layout_info.pSetLayouts = NULL;
+		pipeline_layout_info.pushConstantRangeCount = 0;
+		pipeline_layout_info.pPushConstantRanges = NULL;
 
-	AS_ASSERT(vkCreatePipelineLayout(*screen_object->device, &pipeline_layout_info, NULL, &screen_object->pipeline_layout) == VK_SUCCESS,
-		"Could not create graphics pipeline layout for UI");
-
+		AS_ASSERT(vkCreatePipelineLayout(*screen_object->device, &pipeline_layout_info, NULL, &screen_object->pipeline_layout) == VK_SUCCESS,
+			"Could not create graphics pipeline layout for UI");
+	}
+	
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
 	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipeline_info.stageCount = 2;
@@ -1627,7 +1630,7 @@ void as_screen_create_pipeline(as_screen_object* screen_object)
 	AS_FREE(shader_binary_pool);
 	AS_FREE(file_pool);
 }
-void as_screen_create_descriptor_set_layout(as_screen_object* screen_object)
+void as_screen_object_create_descriptor_set_layout(as_screen_object* screen_object)
 {
 	VkDescriptorSetLayoutBinding layout_binding = { 0 };
 	layout_binding.binding = 0;
@@ -1660,7 +1663,7 @@ void as_screen_create_descriptor_pool(as_screen_object* screen_object)
 	vkCreateDescriptorPool(*screen_object->device, &pool_info, NULL, &screen_object->descriptor_pool);
 }
 
-void as_screen_allocate_descriptor_set(as_screen_object* screen_object, as_texture* texture)
+void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object, as_texture* texture)
 {
 	VkDescriptorSetAllocateInfo alloc_info = { 0 };
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1711,7 +1714,7 @@ void as_screen_object_update(as_screen_object* screen_object)
 	AS_ASSERT(screen_object, "Cannot update screen object, invalid screen_object");
 
 	AS_FLOG(LV_LOG, "Update screen object %p", screen_object);
-	as_screen_create_pipeline(screen_object);
+	as_screen_object_create_pipeline(screen_object);
 	AS_SET_VALID(screen_object);
 	//if (texture)
 	//{
