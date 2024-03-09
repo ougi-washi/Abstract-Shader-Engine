@@ -41,11 +41,12 @@ extern void as_rq_render_draw_frame(as_render_queue* render_queue, as_render* re
 extern void as_rq_render_destroy(as_render_queue* render_queue, as_render* render);
 
 extern void as_rq_screen_object_update(as_render_queue* render_queue, as_screen_object* screen_object);
+extern void as_rq_screen_object_recompile(as_render_queue* render_queue, as_screen_object* screen_object);
 
 extern void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as_render* render);
 extern void as_rq_texture_destroy(as_render_queue* render_queue, as_texture* texture);
 
-extern void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms);
+extern void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms* uniforms);
 extern void as_rq_shader_update(as_render_queue* render_queue, as_render* render, as_shader* shader);
 extern void as_rq_shader_recompile(as_render_queue* render_queue, as_shader* shader);
 extern void as_rq_shader_destroy(as_render_queue* render_queue, as_render* render, as_shader* shader);

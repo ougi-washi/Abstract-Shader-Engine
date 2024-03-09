@@ -164,19 +164,45 @@ void as_rq_render_destroy(as_render_queue* render_queue, as_render* render)
 
 typedef struct as_screen_object_update_arg
 {
+	as_render* render;
 	as_screen_object* screen_object;
 }as_screen_object_update_arg;
 void as_screen_object_update_func(as_screen_object_update_arg* arg)
 {
 	AS_WAIT_AND_LOCK(arg->screen_object);
-	as_screen_object_update(arg->screen_object);
+	as_screen_object_update(arg->render, arg->screen_object);
 	AS_UNLOCK(arg->screen_object);
 }
 void as_rq_screen_object_update(as_render_queue* render_queue, as_screen_object* screen_object)
 {
 	as_screen_object_update_arg arg = { 0 };
+	arg.render = render_queue->render;
 	arg.screen_object = screen_object;
 	as_rq_submit(render_queue, &as_screen_object_update_func, &arg, sizeof(arg));
+}
+
+typedef struct as_screen_object_recompile_arg
+{
+	as_screen_object* screen_object;
+}as_screen_object_recompile_arg;
+void as_screen_object_recompile_func(as_screen_object_update_arg* arg)
+{
+	AS_WAIT_AND_LOCK(arg->screen_object);
+	as_screen_object_create_pipeline(arg->screen_object);
+	AS_UNLOCK(arg->screen_object);
+}
+void as_rq_screen_object_recompile(as_render_queue* render_queue, as_screen_object* screen_object)
+{
+	if (screen_object->pipeline)
+	{
+		as_screen_object_update_arg arg = { 0 };
+		arg.screen_object = screen_object;
+		as_rq_submit(render_queue, &as_screen_object_recompile_func, &arg, sizeof(arg));
+	}
+	else if (render_queue->render)
+	{
+		as_rq_screen_object_update(render_queue, screen_object);
+	}
 }
 
 typedef struct as_texture_update_arg
@@ -217,7 +243,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
  {
 	 as_render* render;
 	 as_shader* shader;
-	 as_shader_uniforms_32* uniforms;
+	 as_shader_uniforms* uniforms;
  } as_shader_set_uniforms_arg;
  void as_shader_set_uniforms_func(as_shader_set_uniforms_arg* shader_set_uniforms_arg)
  {
@@ -225,7 +251,7 @@ void as_rq_texture_update(as_render_queue* render_queue, as_texture* texture, as
 	 as_shader_set_uniforms(shader_set_uniforms_arg->render, shader_set_uniforms_arg->shader, shader_set_uniforms_arg->uniforms);
 	 AS_UNLOCK(shader_set_uniforms_arg->render);
  }
- void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
+ void as_rq_shader_set_uniforms(as_render_queue* render_queue, as_render* render, as_shader* shader, as_shader_uniforms* uniforms)
 {
 	 as_shader_set_uniforms_arg shader_set_uniforms_arg = {0};
 	 shader_set_uniforms_arg.render = render;

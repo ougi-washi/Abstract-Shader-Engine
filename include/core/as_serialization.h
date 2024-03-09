@@ -15,7 +15,7 @@ typedef struct as_serialized_shader
 	char filename_vertex[AS_MAX_PATH_SIZE];
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
-	//struct as_shader_uniforms_32 uniforms; resolve this later
+	//struct as_shader_uniforms uniforms; resolve this later
 } as_serialized_shader;
 
 typedef struct as_serialized_object

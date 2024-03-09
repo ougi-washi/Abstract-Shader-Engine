@@ -10,7 +10,7 @@ void main()
 {
     //out_color = texture(tex_sampler, out_uv);
     vec2 center_uv = uv - vec2(.5);
-    float sphere_mask = length(center_uv) - .1f;
-    sphere_mask = smoothstep(0.1, 1., sphere_mask);
-    out_color = vec4(uv.y, 1.f, 1., sphere_mask);
+    float sphere_mask = length(center_uv) - .3f;
+    sphere_mask = smoothstep(0.0, 1., sphere_mask);
+    out_color = vec4(uv.y, .5f, 1., sphere_mask);
 }

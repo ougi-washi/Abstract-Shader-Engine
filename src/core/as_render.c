@@ -882,6 +882,7 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 	alloc_info.pSetLayouts = layouts;
 
 	AS_ASSERT(vkAllocateDescriptorSets(device, &alloc_info, shader->descriptor_sets.data) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+	shader->descriptor_sets.size = MAX_FRAMES_IN_FLIGHT;
 
 	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
@@ -1633,7 +1634,7 @@ void as_screen_object_create_pipeline(as_screen_object* screen_object)
 void as_screen_object_create_descriptor_set_layout(as_screen_object* screen_object)
 {
 	const sz bindings_count = (screen_object->uniforms.size + 1); // ubo + uniforms
-	VkDescriptorSetLayoutBinding* bindings = AS_MALLOC(sizeof(VkDescriptorSetLayoutBinding) * bindings_count);
+	VkDescriptorSetLayoutBinding bindings[AS_MAX_SHADER_UNIFORMS_SIZE + 1] = {0};
 
 	VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
 	ubo_layout_binding.binding = 0;
@@ -1662,28 +1663,68 @@ void as_screen_object_create_descriptor_set_layout(as_screen_object* screen_obje
 	layout_info.bindingCount = bindings_count;
 	layout_info.pBindings = bindings;
 
+	if (screen_object->descriptor_set_layout)
+	{
+		vkDeviceWaitIdle(*screen_object->device);
+		vkDestroyDescriptorSetLayout(*screen_object->device, screen_object->descriptor_set_layout, NULL);
+	}
+	vkDeviceWaitIdle(*screen_object->device);
 	AS_ASSERT(vkCreateDescriptorSetLayout(*screen_object->device, &layout_info, NULL, &screen_object->descriptor_set_layout) == VK_SUCCESS,
 		"Failed to create descriptor set layout!");
-	AS_FREE(bindings);
+}
+
+void as_screen_object_create_uniform_buffers_direct(as_uniform_buffers* uniform_buffers, as_render* render)
+{
+	VkDeviceSize buffer_size = sizeof(as_uniform_buffer_screen_object);
+
+	uniform_buffers->buffers.size = MAX_FRAMES_IN_FLIGHT;
+	uniform_buffers->memories.size = MAX_FRAMES_IN_FLIGHT;
+	uniform_buffers->buffers_mapped.size = MAX_FRAMES_IN_FLIGHT;
+
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		if (uniform_buffers->buffers.data[i])
+		{
+			vkDestroyBuffer(render->device, uniform_buffers->buffers.data[i], NULL);
+		}
+		if (uniform_buffers->memories.data[i])
+		{
+			vkFreeMemory(render->device, uniform_buffers->memories.data[i], NULL);
+		}
+	}
+
+	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		create_buffer(render, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&uniform_buffers->buffers.data[i], &uniform_buffers->memories.data[i]);
+
+		vkMapMemory(render->device, uniform_buffers->memories.data[i], 0, buffer_size, 0, &uniform_buffers->buffers_mapped.data[i]);
+	}
 }
 
 void as_screen_object_create_descriptor_pool(as_screen_object* screen_object)
 {
 	VkDescriptorPoolSize pool_size = { 0 };
-	pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	pool_size.descriptorCount = 1;
+	pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_size.descriptorCount = (u32)MAX_FRAMES_IN_FLIGHT;
 
 	VkDescriptorPoolCreateInfo pool_info = { 0 };
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.poolSizeCount = 1;
 	pool_info.pPoolSizes = &pool_size;
-	pool_info.maxSets = 1;
+	pool_info.maxSets = (u32)MAX_FRAMES_IN_FLIGHT;
 
+	if (screen_object->descriptor_pool)
+	{
+		vkDeviceWaitIdle(*screen_object->device);
+		vkDestroyDescriptorPool(*screen_object->device, screen_object->descriptor_pool, NULL);
+	}
+	vkDeviceWaitIdle(*screen_object->device);
 	vkCreateDescriptorPool(*screen_object->device, &pool_info, NULL, &screen_object->descriptor_pool);
-
 }
 
-void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object, as_texture* texture)
+void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 {
 	VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
 	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -1698,6 +1739,7 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object, a
 	alloc_info.pSetLayouts = layouts;
 
 	AS_ASSERT(vkAllocateDescriptorSets(*screen_object->device, &alloc_info, screen_object->descriptor_sets.data) == VK_SUCCESS, "Failed to allocate descriptor sets!");
+	screen_object->descriptor_sets.size = MAX_FRAMES_IN_FLIGHT;
 
 	for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
@@ -1748,19 +1790,6 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object, a
 					descriptor_writes[descriptor_writes_index].pImageInfo = &image_info;
 				}
 			}
-			// else if (uniform->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
-			// {
-			// 	// currently used for scene only
-			// 	as_scene_gpu_buffer* scene_gpu = (as_scene_gpu_buffer*)uniform->data;
-			// 	if (scene_gpu)
-			// 	{
-			// 		VkDescriptorBufferInfo buffer_info = { 0 };
-			// 		buffer_info.buffer = scene_gpu->buffer;
-			// 		buffer_info.offset = 0;
-			// 		buffer_info.range = scene_gpu->size;
-			// 		descriptor_writes[descriptor_writes_index].pBufferInfo = &buffer_info;
-			// 	}
-			// }
 		}
 		vkUpdateDescriptorSets(*screen_object->device, descriptor_writes_count, descriptor_writes, 0, NULL);
 		AS_FREE(descriptor_writes);
@@ -1786,14 +1815,19 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 	}
 }
 
-void as_screen_object_update(as_screen_object* screen_object)
+void as_screen_object_update(as_render* render, as_screen_object* screen_object)
 {
+	AS_ASSERT(render, "Cannot update screen object, invalid render");
 	AS_ASSERT(screen_object, "Cannot update screen object, invalid screen_object");
 
 	AS_FLOG(LV_LOG, "Update screen object %p", screen_object);
+	
 	as_screen_object_create_descriptor_set_layout(screen_object);
 	as_screen_object_create_pipeline(screen_object);
+	as_screen_object_create_uniform_buffers_direct(&screen_object->uniform_buffers, render);
 	as_screen_object_create_descriptor_pool(screen_object);
+	as_screen_object_allocate_descriptor_set(screen_object);
+
 	AS_SET_VALID(screen_object);
 }
 
@@ -1808,6 +1842,23 @@ void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr
 
 	if (screen_object->device)
 	{
+		for (sz i = 0; i < screen_object->uniforms.size; i++)
+		{
+			if (screen_object->uniforms.data[i].type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			{
+				as_texture* texture = (as_texture*)screen_object->uniforms.data[i].data;
+				if (!texture) { continue; }
+				as_texture_destroy(texture);
+			}
+			AS_FREE(screen_object->uniforms.data[i].data);
+		}
+
+		for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			vkDestroyBuffer(*screen_object->device, screen_object->uniform_buffers.buffers.data[i], NULL);
+			vkFreeMemory(*screen_object->device, screen_object->uniform_buffers.memories.data[i], NULL);
+		}
+
 		if (screen_object->pipeline)
 		{
 			vkDestroyPipeline(*screen_object->device, screen_object->pipeline, NULL);
@@ -1816,14 +1867,6 @@ void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr
 		{
 			vkDestroyPipelineLayout(*screen_object->device, screen_object->pipeline_layout, NULL);
 		}
-
-		AS_ARRAY_FOR_EACH(screen_object->descriptor_sets, VkDescriptorSet, descriptor_set,
-		{
-			if (screen_object->descriptor_pool && descriptor_set)
-			{
-				vkFreeDescriptorSets(*screen_object->device, screen_object->descriptor_pool, 1, descriptor_set);
-			}
-		});
 		if (screen_object->descriptor_pool)
 		{
 			vkDestroyDescriptorPool(*screen_object->device, screen_object->descriptor_pool, NULL);
@@ -1833,16 +1876,6 @@ void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr
 			vkDestroyDescriptorSetLayout(*screen_object->device, screen_object->descriptor_set_layout, NULL);
 		}
 	}
-	//if (screen_object->vertex_buffer != VK_NULL_HANDLE)
-	//{
-	//	vkDestroyBuffer(*screen_object->device, screen_object->vertex_buffer, NULL);
-	//	vkFreeMemory(*screen_object->device, screen_object->vertex_buffer_memory, NULL);
-	//}
-	//if (screen_object->index_buffer != VK_NULL_HANDLE)
-	//{
-	//	vkDestroyBuffer(*screen_object->device, screen_object->index_buffer, NULL);
-	//	vkFreeMemory(*screen_object->device, screen_object->index_buffer_memory, NULL);
-	//}
 
 	if (free_ptr)
 	{
@@ -2172,7 +2205,7 @@ void as_shader_create_graphics_pipeline(as_shader* shader)
 	AS_FREE(file_pool);
 }
 
-sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
+sz as_shader_add_uniform_float(as_shader_uniforms* uniforms, f32* value)
 {
 	AS_ASSERT(uniforms, "Trying to add float uniform but uniforms array is NULL");
 	AS_ASSERT(value, "Trying to add float uniform but flaot value is NULL");
@@ -2187,7 +2220,7 @@ sz as_shader_add_uniform_float(as_shader_uniforms_32* uniforms, f32* value)
 	return index;
 }
 
-sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* texture)
+sz as_shader_add_uniform_texture(as_shader_uniforms* uniforms, as_texture* texture)
 {
 	AS_ASSERT(uniforms, "Trying to add texture uniform but uniforms array is NULL");
 	AS_ASSERT(texture, "Trying to add texture uniform but texture is NULL");
@@ -2202,7 +2235,7 @@ sz as_shader_add_uniform_texture(as_shader_uniforms_32* uniforms, as_texture* te
 	return index;
 }
 
-sz as_shader_add_scene_gpu(as_shader_uniforms_32* uniforms, as_scene_gpu_buffer* scene_gpu_buffer)
+sz as_shader_add_scene_gpu(as_shader_uniforms* uniforms, as_scene_gpu_buffer* scene_gpu_buffer)
 {
     AS_ASSERT(uniforms, "Trying to add scene GPU buffer but uniforms array is NULL");
     AS_ASSERT(scene_gpu_buffer, "Trying to add scene GPU buffer but buffer is NULL");
@@ -2233,7 +2266,7 @@ as_shader* as_shader_make(as_render* render, const char* vertex_shader_path, con
 	return shader;
 }
 
-extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms_32* uniforms)
+extern void as_shader_set_uniforms(as_render* render, as_shader* shader, as_shader_uniforms* uniforms)
 {
 	AS_ASSERT(render, "Trying to set shader uniforms, but render is NULL");
 	AS_ASSERT(shader, "Trying to set shader uniforms, but shader is NULL");

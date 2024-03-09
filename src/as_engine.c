@@ -333,7 +333,7 @@ as_asset* as_asset_register(void* ptr, const as_asset_type type)
 sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* texture)
 {
 	sz index = as_shader_add_uniform_texture(&object->uniforms, texture);
-	as_screen_object_update(object);
+	as_screen_object_update(engine.render, object);
 	return index;
 }
 
