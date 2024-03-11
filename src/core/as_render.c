@@ -1114,7 +1114,7 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				//VkDeviceSize offsets[] = { 0 };
 				//vkCmdBindVertexBuffers(command_buffer, 0, 1, &screen_object->vertex_buffer, offsets);
 				//vkCmdBindIndexBuffer(command_buffer, screen_object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
-				//vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline_layout, 0, 1, &screen_object->descriptor_set, 0, NULL);
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline_layout, 0, 1, &screen_object->descriptor_sets.data[render->current_frame], 0, 0);
 				vkCmdDraw(command_buffer, 3, 1, 0, 0);
 			}
 		}
@@ -1484,6 +1484,39 @@ f64 as_render_get_delta_time(as_render* render)
 	return render->delta_time;
 }
 
+void as_screen_object_create_pipeline_layout(as_render* render, as_screen_object* screen_object)
+{
+	AS_ASSERT(screen_object, "Cannot create pipeline layout for screen object, invalid screen object");
+	AS_ASSERT(render, "Cannot create pipeline layout for screen object, invalid render");
+	
+	VkPhysicalDeviceProperties device_properties;
+	vkGetPhysicalDeviceProperties(render->physical_device, &device_properties);
+	AS_ASSERT(device_properties.limits.maxPushConstantsSize >= sizeof(as_push_const_buffer_screen_object),
+		"Cannot create graphics pipeline layout, invalid size of push const buffer");
+
+	VkPushConstantRange push_constant_range_vert = { 0 };
+	push_constant_range_vert.offset = 0;
+	push_constant_range_vert.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	push_constant_range_vert.size = sizeof(as_push_const_buffer_screen_object);
+
+	VkPushConstantRange push_constant_range_frag = { 0 };
+	push_constant_range_frag.offset = 0;
+	push_constant_range_frag.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	push_constant_range_frag.size = sizeof(as_push_const_buffer_screen_object);
+
+	VkPushConstantRange ranges[] = { push_constant_range_vert, push_constant_range_frag };
+
+	VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
+	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipeline_layout_info.setLayoutCount = 1;
+	pipeline_layout_info.pSetLayouts = &screen_object->descriptor_set_layout;
+	pipeline_layout_info.pPushConstantRanges = ranges;
+	pipeline_layout_info.pushConstantRangeCount = 2;
+
+	VkResult create_pipeline_layout_result = vkCreatePipelineLayout(render->device, &pipeline_layout_info, NULL, &screen_object->pipeline_layout);
+	AS_ASSERT(create_pipeline_layout_result == VK_SUCCESS, "Failed to create pipeline layout");
+}
+
 void as_screen_object_create_pipeline(as_screen_object* screen_object)
 {
 	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
@@ -1503,7 +1536,6 @@ void as_screen_object_create_pipeline(as_screen_object* screen_object)
 	VkShaderModule vert_shader_module = create_shader_module(*screen_object->device, vert_shader_bin);
 	VkShaderModule frag_shader_module = create_shader_module(*screen_object->device, frag_shader_bin);
 
-	// Shader stage info
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info = { 0 };
 	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -1581,19 +1613,6 @@ void as_screen_object_create_pipeline(as_screen_object* screen_object)
 	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamic_state.dynamicStateCount = AS_ARRAY_SIZE(dynamic_states);
 	dynamic_state.pDynamicStates = dynamic_states;
-
-	if (screen_object->pipeline_layout == VK_NULL_HANDLE)
-	{
-		VkPipelineLayoutCreateInfo pipeline_layout_info = { 0 };
-		pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipeline_layout_info.setLayoutCount = 0;
-		pipeline_layout_info.pSetLayouts = NULL;
-		pipeline_layout_info.pushConstantRangeCount = 0;
-		pipeline_layout_info.pPushConstantRanges = NULL;
-
-		AS_ASSERT(vkCreatePipelineLayout(*screen_object->device, &pipeline_layout_info, NULL, &screen_object->pipeline_layout) == VK_SUCCESS,
-			"Could not create graphics pipeline layout for UI");
-	}
 	
 	VkGraphicsPipelineCreateInfo pipeline_info = { 0 };
 	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1752,7 +1771,8 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 		buffer_info.range = sizeof(as_uniform_buffer_screen_object);
 
 		const sz descriptor_writes_count = screen_object->uniforms.size + 1; // ubo + uniforms
-		VkWriteDescriptorSet* descriptor_writes = (VkWriteDescriptorSet*)AS_MALLOC(sizeof(VkWriteDescriptorSet) * descriptor_writes_count);
+		VkWriteDescriptorSet descriptor_writes[AS_MAX_SHADER_UNIFORMS_SIZE] = { 0 };
+		//VkWriteDescriptorSet* descriptor_writes = (VkWriteDescriptorSet*)AS_MALLOC(sizeof(VkWriteDescriptorSet) * descriptor_writes_count);
 
 		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptor_writes[0].dstSet = screen_object->descriptor_sets.data[i];
@@ -1792,7 +1812,7 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 			}
 		}
 		vkUpdateDescriptorSets(*screen_object->device, descriptor_writes_count, descriptor_writes, 0, NULL);
-		AS_FREE(descriptor_writes);
+		//AS_FREE(descriptor_writes);
 	}
 }
 
@@ -1823,6 +1843,7 @@ void as_screen_object_update(as_render* render, as_screen_object* screen_object)
 	AS_FLOG(LV_LOG, "Update screen object %p", screen_object);
 	
 	as_screen_object_create_descriptor_set_layout(screen_object);
+	as_screen_object_create_pipeline_layout(render, screen_object);
 	as_screen_object_create_pipeline(screen_object);
 	as_screen_object_create_uniform_buffers_direct(&screen_object->uniform_buffers, render);
 	as_screen_object_create_descriptor_pool(screen_object);

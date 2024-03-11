@@ -40,6 +40,16 @@ typedef struct as_uniform_buffer_object
 	as_mat4 object_transforms[AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE];
 } as_uniform_buffer_object;
 
+typedef struct as_push_const_buffer
+{
+	as_mat4 data;
+	// camera_position  X[0][0] Y[0][1] Z[0][2]
+	// camera_direction X[1][0] Y[1][1] Z[1][2]
+	// current_time		[2][0]
+	// object_index		[2][1]
+	// mouse_data		X[3][0] Y[3][1]
+} as_push_const_buffer;
+
 typedef struct as_uniform_buffer_screen_object
 {
 	as_mat4 data;
@@ -50,15 +60,10 @@ typedef struct as_uniform_buffer_screen_object
 	// [3][...]	empty
 } as_uniform_buffer_screen_object;
 
-typedef struct as_push_const_buffer
+typedef struct as_push_const_buffer_screen_object
 {
 	as_mat4 data;
-	// camera_position  X[0][0] Y[0][1] Z[0][2]
-	// camera_direction X[1][0] Y[1][1] Z[1][2]
-	// current_time		[2][0]
-	// object_index		[2][1]
-	// mouse_data		X[3][0] Y[3][1]
-} as_push_const_buffer;
+} as_push_const_buffer_screen_object;
 
 typedef struct as_uniform_buffers
 {
