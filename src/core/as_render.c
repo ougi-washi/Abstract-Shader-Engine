@@ -1111,9 +1111,6 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 				if (!screen_object->pipeline) { continue; }
 
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline);
-				//VkDeviceSize offsets[] = { 0 };
-				//vkCmdBindVertexBuffers(command_buffer, 0, 1, &screen_object->vertex_buffer, offsets);
-				//vkCmdBindIndexBuffer(command_buffer, screen_object->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline_layout, 0, 1, &screen_object->descriptor_sets.data[render->current_frame], 0, 0);
 				vkCmdDraw(command_buffer, 3, 1, 0, 0);
 			}
@@ -2048,6 +2045,10 @@ void as_textures_pool_destroy(as_textures_pool* textures_pool)
 	if (!textures_pool) { return; }
 	AS_ARRAY_FOR_EACH(*textures_pool, as_texture, texture,
 	{
+		if (textures_pool->size < 0 || textures_pool->size > AS_MAX_TEXTURE_POOL_SIZE)
+		{
+			break;
+		}
 		as_texture_destroy(texture);
 	});
 	AS_FREE(textures_pool);

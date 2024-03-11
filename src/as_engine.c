@@ -167,8 +167,8 @@ void as_engine_clear()
 	AS_LOG(LV_LOG, "Clearing the engine");
 
 	as_input_destory(engine.input_buffer);
-	as_textures_pool_destroy(engine.textures_pool);
 	as_screen_objects_group_destroy(engine.ui_objects_group);
+	as_textures_pool_destroy(engine.textures_pool);
 	as_shader_monitored_destroy(engine.shader_monitor);
 	as_content_destroy(engine.content);
 	as_rq_destroy(engine.render_queue);
