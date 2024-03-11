@@ -51,8 +51,10 @@ void as_editor_set_default_scene()
 	as_object_set_translation(object6, AS_VEC_PTR(as_vec3, 0., -3., -5.));
 		
 	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
+	as_assign_texture_to_shader(gray_shader, texture);
+
 	as_screen_object* screen_obj_test = as_screen_object_create(NULL);
-	as_assign_texture_to_screen_object(screen_obj_test, texture);
+	//as_assign_texture_to_screen_object(screen_obj_test, texture);
 }
 
 bool as_editor_should_loop()

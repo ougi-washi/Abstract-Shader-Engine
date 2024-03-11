@@ -895,7 +895,7 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 		buffer_info.range = sizeof(as_uniform_buffer_object);
 
 		const sz descriptor_writes_count = shader->uniforms.size + 1; // ubo + uniforms
-		VkWriteDescriptorSet* descriptor_writes = (VkWriteDescriptorSet*)AS_MALLOC(sizeof(VkWriteDescriptorSet) * descriptor_writes_count);
+		VkWriteDescriptorSet descriptor_writes[AS_MAX_SHADER_UNIFORMS_SIZE + 1] = {0};
 
 		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptor_writes[0].dstSet = shader->descriptor_sets.data[i];
@@ -948,7 +948,6 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 			// }
 		}
 		vkUpdateDescriptorSets(device, descriptor_writes_count, descriptor_writes, 0, NULL);
-		AS_FREE(descriptor_writes);
 	}
 }
 

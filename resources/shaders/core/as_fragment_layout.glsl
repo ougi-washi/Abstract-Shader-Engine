@@ -1,7 +1,5 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
-layout(binding = 1) uniform sampler2D tex_sampler;
-
 // has to be this order to match as_vertex
 layout(location = 0) in vec3 vert_pos;
 layout(location = 1) in vec3 frag_normal;
