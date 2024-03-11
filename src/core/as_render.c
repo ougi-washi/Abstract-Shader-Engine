@@ -1772,7 +1772,6 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 
 		const sz descriptor_writes_count = screen_object->uniforms.size + 1; // ubo + uniforms
 		VkWriteDescriptorSet descriptor_writes[AS_MAX_SHADER_UNIFORMS_SIZE] = { 0 };
-		//VkWriteDescriptorSet* descriptor_writes = (VkWriteDescriptorSet*)AS_MALLOC(sizeof(VkWriteDescriptorSet) * descriptor_writes_count);
 
 		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptor_writes[0].dstSet = screen_object->descriptor_sets.data[i];
@@ -1812,7 +1811,6 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 			}
 		}
 		vkUpdateDescriptorSets(*screen_object->device, descriptor_writes_count, descriptor_writes, 0, NULL);
-		//AS_FREE(descriptor_writes);
 	}
 }
 
