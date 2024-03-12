@@ -55,7 +55,7 @@ typedef struct as_uniform_buffer_screen_object
 	as_mat4 data;
 	// position	x[0][0] y[0][1]
 	// rotation	x[0][2] y[0][3]
-	// extent	min_x[1][0] min_y[1][1] max_x[1][2] max_y[1][3]
+	// extent	x[1][0] y[1][1]
 	// [2][...]	empty
 	// [3][...]	empty
 } as_uniform_buffer_screen_object;
@@ -200,6 +200,8 @@ typedef struct as_screen_object
 {
 	AS_DECLARE_TYPE;
 
+	as_mat4 data;
+
 	VkDevice* device;
 	VkRenderPass* render_pass;
 
@@ -212,12 +214,6 @@ typedef struct as_screen_object
 
 	as_uniform_buffers uniform_buffers;
 	as_shader_uniforms uniforms;
-
-	//VkBuffer vertex_buffer;
-	//VkDeviceMemory vertex_buffer_memory;
-	//VkBuffer index_buffer;
-	//VkDeviceMemory index_buffer_memory;
-	//u32 indices_size;
 
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
@@ -286,7 +282,13 @@ extern void as_screen_object_update(as_render* render, as_screen_object* screen_
 extern void as_screen_object_create_pipeline(as_screen_object* screen_object);
 extern void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr);
 extern as_screen_objects_group* as_screen_objects_group_create();
-extern void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group);
+extern void as_screen_objects_group_destroy(as_screen_objects_group* screen_object_group);
+extern void as_ui_set_position(as_screen_object* screen_object, const as_vec2* position);
+extern void as_ui_set_rotation(as_screen_object* screen_object, const as_vec2* rotation);
+extern void as_ui_set_extent(as_screen_object* screen_object, const as_vec2* extent);
+extern as_vec2 as_ui_get_position(const as_screen_object* screen_object);
+extern as_vec2 as_ui_get_rotation(const as_screen_object* screen_object);
+extern as_vec2 as_ui_get_extent(const as_screen_object* screen_object);
 
 extern as_texture* as_texture_make(const char* path);
 extern void as_texture_init(as_texture* texture, const char* path);
