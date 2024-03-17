@@ -14,7 +14,7 @@
 #define AS_MAX_PATH_SIZE 1024
 #define AS_MAX_FILE_NAME_SIZE 128
 #define AS_MAX_FILE_SIZE 512 * 1024
-#define AS_FILE_POOL_SIZE 64
+#define AS_FILE_POOL_SIZE 16
 
 // file pool system
 typedef struct as_file_handle

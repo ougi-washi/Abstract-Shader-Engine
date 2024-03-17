@@ -894,7 +894,7 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 		buffer_info.offset = 0;
 		buffer_info.range = sizeof(as_uniform_buffer_object);
 
-		const sz descriptor_writes_count = shader->uniforms.size + 1; // ubo + uniforms
+		sz descriptor_writes_count = 1; // ubo
 		VkWriteDescriptorSet descriptor_writes[AS_MAX_SHADER_UNIFORMS_SIZE + 1] = {0};
 
 		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -924,13 +924,14 @@ void create_descriptor_sets_from_shader(VkDevice device, as_shader* shader)
 			if (uniform->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 			{
 				as_texture* texture = (as_texture*)uniform->data;
-				if (texture)
+				if (texture && texture->image_view && texture->sampler)
 				{
 					VkDescriptorImageInfo image_info = { 0 };
 					image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					image_info.imageView = texture->image_view;
 					image_info.sampler = texture->sampler;
 					descriptor_writes[descriptor_writes_index].pImageInfo = &image_info;
+					descriptor_writes_count++;
 				}
 			}
 			// else if (uniform->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
@@ -1903,13 +1904,46 @@ as_screen_objects_group* as_screen_objects_group_create()
 	return AS_MALLOC_SINGLE(as_screen_objects_group);
 }
 
-void as_screen_objects_group_destroy(as_screen_objects_group* ui_objects_group)
+void as_screen_objects_group_destroy(as_screen_objects_group* screen_objects_group)
 {
-	AS_ARRAY_FOR_EACH(*ui_objects_group, as_screen_object, screen_object,
+	AS_ARRAY_FOR_EACH(*screen_objects_group, as_screen_object, screen_object,
 	{
 		as_screen_object_destroy(screen_object, false);
 	});
-	AS_FREE(ui_objects_group);
+	AS_FREE(screen_objects_group);
+}
+
+extern void as_ui_set_position(as_screen_object* screen_object, const as_vec2* position)
+{
+	screen_object->data.m[0][0] = position->x;
+	screen_object->data.m[0][1] = position->y;
+}
+
+extern void as_ui_set_rotation(as_screen_object* screen_object, const as_vec2* rotation)
+{
+	screen_object->data.m[0][2] = rotation->x;
+	screen_object->data.m[0][3] = rotation->y;
+}
+
+extern void as_ui_set_extent(as_screen_object* screen_object, const as_vec2* extent)
+{
+	screen_object->data.m[1][0] = extent->x;
+	screen_object->data.m[1][1] = extent->y;
+}
+
+extern as_vec2 as_ui_get_position(const as_screen_object* screen_object)
+{
+	return AS_VEC(as_vec2, screen_object->data.m[0][0], screen_object->data.m[0][1]);
+}
+
+extern as_vec2 as_ui_get_rotation(const as_screen_object* screen_object)
+{
+	return AS_VEC(as_vec2, screen_object->data.m[0][2], screen_object->data.m[0][3]);
+}
+
+extern as_vec2 as_ui_get_extent(const as_screen_object* screen_object)
+{
+	return AS_VEC(as_vec2, screen_object->data.m[1][0], screen_object->data.m[1][1]);
 }
 
 as_texture* as_texture_make(const char* path)
@@ -2324,16 +2358,16 @@ void as_shader_destroy(as_render* render, as_shader* shader)
 	vkDestroyPipeline(render->device, shader->graphics_pipeline, NULL);
 	vkDestroyPipelineLayout(render->device, shader->graphics_pipeline_layout, NULL);
 
-	for (sz i = 0; i < shader->uniforms.size; i++)
-	{
-		if (shader->uniforms.data[i].type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-		{
-			as_texture* texture = (as_texture*)shader->uniforms.data[i].data;
-			if (!texture) { continue; }
-			as_texture_destroy(texture);
-		}
-		AS_FREE(shader->uniforms.data[i].data);
-	}
+	//for (sz i = 0; i < shader->uniforms.size; i++)
+	//{
+	//	if (shader->uniforms.data[i].type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	//	{
+	//		as_texture* texture = (as_texture*)shader->uniforms.data[i].data;
+	//		if (!texture) { continue; }
+	//		as_texture_destroy(texture);
+	//	}
+	//	AS_FREE(shader->uniforms.data[i].data);
+	//}
 
 	for (sz i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
