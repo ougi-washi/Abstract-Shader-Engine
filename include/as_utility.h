@@ -29,9 +29,6 @@ typedef struct as_file_pool
 	as_file_handles handles;
 } as_file_pool;
 
-//static as_file_pool* file_pool = NULL;
-extern void as_file_pool_create();
-extern void as_file_pool_destroy();
 extern as_file_handle* as_fp_make_handle(as_file_pool* file_pool);
 extern void as_fp_remove_handle(as_file_pool* file_pool, as_file_handle* handle);
 

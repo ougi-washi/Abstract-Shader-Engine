@@ -1039,6 +1039,20 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 	};
 }
 
+void update_screen_object_uniform_buffer(as_render* render, as_screen_object* screen_object, const u32 current_image)
+{
+	as_uniform_buffer_screen_object ubo = { 0 };
+	if (screen_object)
+	{
+		ubo.data = screen_object->data;
+		memcpy(ubo.custom_data, screen_object->custom_data, sizeof(ubo.custom_data));
+	}
+	if (screen_object->uniform_buffers.buffers_mapped.size != 0 && AS_ARRAY_GET_SIZE(screen_object->uniform_buffers.buffers_mapped) > current_image)
+	{
+		memcpy(screen_object->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+	}
+}
+
 void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_screen_objects_group* ui_objects_group)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
@@ -1324,7 +1338,7 @@ void as_render_end_draw_loop(as_render* render)
 	render->last_frame_time = get_current_time();
 }
 
-void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* ui_objects_group)
+void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* screen_objects_group)
 {
 	if (AS_IS_INVALID(render)){ return;};
 
@@ -1341,6 +1355,18 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 	AS_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR, "Failed to acquire swap chain image!");
 
 	update_time(render);
+
+	if (screen_objects_group)
+	{
+		for (sz i = 0; i < AS_ARRAY_GET_SIZE(*screen_objects_group); i++)
+		{
+			as_screen_object* screen_obj = AS_ARRAY_GET(*screen_objects_group, i);
+			if (screen_obj)
+			{
+				update_screen_object_uniform_buffer(render, screen_obj, image_index);
+			}
+		}
+	}
 
 	AS_WAIT_AND_LOCK(scene);
 	if (scene)
@@ -1364,7 +1390,7 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 		vkResetFences(render->device, 1, &render->in_flight_fences.data[render->current_frame]);
 
 		vkResetCommandBuffer(render->command_buffers.data[render->current_frame], 0);
-		record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene, ui_objects_group);
+		record_command_buffer(render, render->command_buffers.data[render->current_frame], image_index, scene, screen_objects_group);
 	}
 	AS_UNLOCK(scene);
 
