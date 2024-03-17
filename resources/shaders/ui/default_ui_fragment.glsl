@@ -1,9 +1,9 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
+
 #version 450
 
-layout(binding = 0) uniform uniform_buffer_screen_object 
-{
-    mat4 data;
-} ubo; 
+#include "as_ui_layout.glsl"
+
 //layout(binding = 1) uniform sampler2D tex_sampler;
 
 layout(location = 0) in vec2 uv;
@@ -15,6 +15,6 @@ void main()
     out_color = vec4(1.);
     vec2 center_uv = uv - vec2(.5);
     float sphere_mask = length(center_uv) - .3f;
-    sphere_mask = smoothstep(0.0, 1., sphere_mask);
+    sphere_mask = smoothstep(0.0, .3, sphere_mask);
     out_color = vec4(uv.y * out_color.x, out_color.y, out_color.z, sphere_mask);
 }
