@@ -50,6 +50,7 @@ typedef struct as_push_const_buffer
 	// mouse_data		X[3][0] Y[3][1]
 } as_push_const_buffer;
 
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 512 // this will be the number of bytes
 typedef struct as_uniform_buffer_screen_object
 {
 	as_mat4 data;
@@ -58,6 +59,7 @@ typedef struct as_uniform_buffer_screen_object
 	// extent	x[1][0] y[1][1]
 	// [2][...]	empty
 	// [3][...]	empty
+	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
 } as_uniform_buffer_screen_object;
 
 typedef struct as_push_const_buffer_screen_object
@@ -216,7 +218,7 @@ typedef struct as_screen_object
 	as_shader_uniforms uniforms;
 
 	char filename_fragment[AS_MAX_PATH_SIZE];
-
+	u8 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE / 8];
 } as_screen_object;
 AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 
@@ -269,7 +271,7 @@ typedef struct as_render
 extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
-extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* ui_objects_group);
+extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* screen_objects_group);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
