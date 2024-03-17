@@ -15,8 +15,8 @@ void main()
    // out_color = texture(tex_sampler, uv);
     out_color = vec4(1.);
     vec2 center_uv = uv - vec2(.5);
-    float sphere_mask = sd_box(uv - .5, vec2(.1f));
-    //float sphere_mask = length(center_uv) - .3f;
-    sphere_mask = smoothstep(0.0, .3, sphere_mask);
-    out_color = vec4(uv.y * out_color.x, out_color.y, out_color.z, sphere_mask);
+    float box_mask = sd_box(uv - vec2(.2, .2), vec2(.1f));
+    box_mask = smoothstep(0.0, .01, box_mask);
+    box_mask = 1. - box_mask;
+    out_color = vec4(uv.y * out_color.x, out_color.y, out_color.z, box_mask);
 }
