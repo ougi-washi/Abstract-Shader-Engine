@@ -4,18 +4,6 @@
 #include "as_memory.h"
 #include <stdlib.h>
 
-//void as_file_pool_create()
-//{
-//	file_pool = AS_MALLOC_SINGLE(as_file_pool);
-//	AS_SET_VALID(file_pool);
-//}
-//
-//void as_file_pool_destroy()
-//{
-//	AS_SET_INVALID(file_pool);
-//	AS_FREE(file_pool);
-//}
-
 as_file_handle* as_fp_make_handle(as_file_pool* file_pool)
 {
 	AS_WAIT_AND_LOCK(file_pool);
