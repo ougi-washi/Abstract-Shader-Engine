@@ -2,8 +2,8 @@
 
 #version 450
 
-#include "as_ui_layout.glsl"
-#include "as_ui_sdf_shapes.glsl"
+#include "as_2d_layout.glsl"
+#include "as_2d_sdf_shapes.glsl"
 
 //layout(binding = 1) uniform sampler2D tex_sampler;
 
