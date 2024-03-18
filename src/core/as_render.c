@@ -1545,7 +1545,7 @@ void as_screen_object_create_pipeline(as_screen_object* screen_object)
 	as_file_pool* file_pool = AS_MALLOC_SINGLE(as_file_pool);
 	as_shader_binary_pool* shader_binary_pool = AS_MALLOC_SINGLE(as_shader_binary_pool);
 
-	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, AS_PATH_DEFAULT_UI_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
+	as_shader_binary* vert_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, AS_PATH_DEFAULT_2D_VERT_SHADER, AS_SHADER_TYPE_VERTEX);
 	as_shader_binary* frag_shader_bin = as_shader_read_code(shader_binary_pool, file_pool, screen_object->filename_fragment, AS_SHADER_TYPE_FRAGMENT);
 
 	if (vert_shader_bin->binaries_size == 0 || frag_shader_bin->binaries_size == 0)
@@ -1852,7 +1852,7 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 	}
 	else
 	{
-		strcpy(screen_object->filename_fragment, AS_PATH_DEFAULT_UI_FRAG_SHADER);
+		strcpy(screen_object->filename_fragment, AS_PATH_DEFAULT_2D_FRAG_SHADER);
 	}
 }
 
