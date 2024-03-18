@@ -26,6 +26,8 @@
 #define AS_PATH_DEFAULT_SCENE "../resources/scenes/default_scene.as_scene"
 #define AS_PATH_DEFAULT_2D_VERT_SHADER "../resources/shaders/core_2d/default_2d_vertex.glsl"
 #define AS_PATH_DEFAULT_2D_FRAG_SHADER "../resources/shaders/core_2d/default_2d_fragment.glsl"
+#define AS_PATH_DEFAULT_UI_TEXT_FRAG_SHADER "../resources/shaders/core_2d/default_ui_text_fragment.glsl"
+#define AS_PATH_DEFAULT_UI_TEXT_TEXTURE "../resources/textures/otaviogood_font.png"
 
 // Render
 #define AS_MAX_SCENE_OBJECTS 1024
