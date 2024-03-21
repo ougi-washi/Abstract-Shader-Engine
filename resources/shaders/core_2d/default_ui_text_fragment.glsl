@@ -8,6 +8,7 @@
 
 #define FONT_TEXTURE_SUB_X 16
 #define FONT_TEXTURE_SUB_Y 16
+const vec2 FONT_CHAR_SIZE = 1. / (vec2(FONT_TEXTURE_SUB_X, FONT_TEXTURE_SUB_Y) + 1);
 
 layout(binding = 1) uniform sampler2D tex_sampler;
 
@@ -118,12 +119,13 @@ vec3 font(vec2 uv0,int id)
     return vec3(tex); 
 }
 
-vec4 get_char(vec2 p, float c) 
+vec4 get_char(float c) 
 {
-    vec2 charSize = 1. / vec2(FONT_TEXTURE_SUB_X, FONT_TEXTURE_SUB_Y);
     vec2 uvOffset = vec2(mod(c, FONT_TEXTURE_SUB_X), floor(c / FONT_TEXTURE_SUB_X));
-    vec2 texCoord = (uvOffset + uv) * charSize;
-    return texture(tex_sampler, texCoord);
+    vec2 texCoord = (uvOffset + uv) * FONT_CHAR_SIZE;
+    float char_mask = step(distance(uv, texCoord + (vec2(FONT_CHAR_SIZE.x, FONT_CHAR_SIZE.y) / 2.) ), FONT_CHAR_SIZE.x/ 2.); //+ 
+    return vec4(texture(tex_sampler, uv) * char_mask);
+    // return ;
 
     //p = uv;
     //p = p - fract(p);
@@ -134,7 +136,7 @@ vec4 get_char(vec2 p, float c)
 
 void main()
 {
-    out_color = vec4(0.);
+    out_color = vec4(0.5, .3, 1., get_char(20).x);
    //out_color = vec4(font(uv, 28), 1.);
     // vec2 scaledUV = uv * 2.;
     // out_color = get_char(uv, 78.);
