@@ -15,15 +15,15 @@ layout(binding = 1) uniform sampler2D tex_sampler;
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 out_color;
 
-vec4 get_char(float c) 
+float get_char(float c) 
 {
     vec2 uvOffset = vec2(mod(c, FONT_TEXTURE_SUB_X), floor(c / FONT_TEXTURE_SUB_X));
     vec2 texCoord = (uvOffset + uv) * FONT_CHAR_SIZE;
     float char_mask = step(distance(uv, texCoord + (vec2(FONT_CHAR_SIZE.x, FONT_CHAR_SIZE.y) / 2.) ), FONT_CHAR_SIZE.x/ 2.); //+ 
-    return vec4(texture(tex_sampler, uv) * char_mask);
+    return texture(tex_sampler, uv).x * char_mask;
 }
 
 void main()
 {
-    out_color = vec4(0.5, .3, 1., get_char(20).x);
+    out_color = vec4(0.5, .3, 1., get_char(88));
 }
