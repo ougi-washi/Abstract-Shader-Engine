@@ -51,8 +51,14 @@ typedef struct as_push_const_buffer
 } as_push_const_buffer;
 
 #define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16	// has to align with 16
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64	// has to align with 16
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 16	// has to align with 16
 typedef struct as_uniform_buffer_screen_object
+{
+	i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
+	i32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+} as_uniform_buffer_screen_object;
+
+typedef struct as_push_const_buffer_screen_object
 {
 	as_mat4 data;
 	// position	x[0][0] y[0][1]
@@ -60,13 +66,6 @@ typedef struct as_uniform_buffer_screen_object
 	// extent	x[1][0] y[1][1]
 	// [2][...]	empty
 	// [3][...]	empty
-	u32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
-} as_uniform_buffer_screen_object;
-
-typedef struct as_push_const_buffer_screen_object
-{
-	as_mat4 data;
 } as_push_const_buffer_screen_object;
 
 typedef struct as_uniform_buffers
@@ -229,8 +228,8 @@ typedef struct as_screen_object
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
 	as_screen_object_type type;
-	u32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
+	i32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
 } as_screen_object;
 AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 
@@ -297,12 +296,12 @@ extern void as_screen_object_create_pipeline(as_screen_object* screen_object);
 extern void as_screen_object_destroy(as_screen_object* screen_object, const b8 free_ptr);
 extern as_screen_objects_group* as_screen_objects_group_create();
 extern void as_screen_objects_group_destroy(as_screen_objects_group* screen_object_group);
-extern void as_ui_set_position(as_screen_object* screen_object, const as_vec2* position);
-extern void as_ui_set_rotation(as_screen_object* screen_object, const as_vec2* rotation);
-extern void as_ui_set_extent(as_screen_object* screen_object, const as_vec2* extent);
-extern as_vec2 as_ui_get_position(const as_screen_object* screen_object);
-extern as_vec2 as_ui_get_rotation(const as_screen_object* screen_object);
-extern as_vec2 as_ui_get_extent(const as_screen_object* screen_object);
+extern void as_screen_object_set_position(as_screen_object* screen_object, const as_vec2* position);
+extern void as_screen_object_set_rotation(as_screen_object* screen_object, const as_vec2* rotation);
+extern void as_screen_object_set_extent(as_screen_object* screen_object, const as_vec2* extent);
+extern as_vec2 as_screen_object_get_position(const as_screen_object* screen_object);
+extern as_vec2 as_screen_object_get_rotation(const as_screen_object* screen_object);
+extern as_vec2 as_screen_object_get_extent(const as_screen_object* screen_object);
 
 extern as_texture* as_texture_make(const char* path);
 extern void as_texture_init(as_texture* texture, const char* path);

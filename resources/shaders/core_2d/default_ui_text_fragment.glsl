@@ -7,7 +7,8 @@
 #include "as_2d_sdf_shapes.glsl"
 
 uint decode_char(uint encoded_chars, int char_index_in_u32) {
-    return (encoded_chars >> (char_index_in_u32 * 8)) & 0xFF; // Extract the corresponding byte
+    //return (encoded_chars >> (char_index_in_u32 * 8)) & 0xFF; // Extract the corresponding byte
+    return 0;
 }
 
 float get_char(vec2 position, uint c) 
@@ -21,16 +22,19 @@ float get_char(vec2 position, uint c)
 
 void main()
 {
-    vec2 position = vec2(0.1, 0.1); 
+    vec2 position = get_2d_position(); 
     float text_opacity = 0.0;
 
     for (int i = 0; i < get_text_length() ; ++i) 
     {
         int character_index = int(i / 4.);
-        uint decoded_char = decode_char(ubo.custom_data[character_index], i);
+        uint decoded_char = i + 48;//decode_char(ubo.custom_data[character_index], i);
         text_opacity += get_char(position, decoded_char);
         position.x += FONT_CHAR_SPACING; 
     }
-
     out_color = vec4(0.5, 0.3, 1.0, text_opacity);
+    if (get_text_font_size() > 0)
+    {
+        out_color = vec4(1., 0.3, 1.0, text_opacity * 5.);
+    }
 }

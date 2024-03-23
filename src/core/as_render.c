@@ -45,7 +45,7 @@ const u32 instance_extensions_count = AS_ARRAY_SIZE(instance_extensions);
 const char* device_extensions[] =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	// VK_KHR_MAINTENANCE1_EXTENSION_NAME
+	VK_KHR_MAINTENANCE1_EXTENSION_NAME
 };
 const u32 device_extensions_count = AS_ARRAY_SIZE(device_extensions);
 
@@ -1053,6 +1053,17 @@ void update_screen_object_uniform_buffer(as_render* render, as_screen_object* sc
 	}
 }
 
+as_push_const_buffer_screen_object get_push_const_buffer_screen_object(const as_screen_object* screen_object)
+{
+	as_mat4 buffer_data = { 0 };
+	memcpy(&buffer_data, &screen_object->data, sizeof(as_mat4));
+
+	return (as_push_const_buffer_screen_object)
+	{
+		.data = buffer_data
+	};
+}
+
 void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, const u32 image_index, as_scene* scene, as_screen_objects_group* ui_objects_group)
 {
 	VkCommandBufferBeginInfo begin_info = { 0 };
@@ -1121,10 +1132,12 @@ void record_command_buffer(as_render* render, VkCommandBuffer command_buffer, co
 			for (i32 i = 0; i < AS_ARRAY_GET_SIZE(*ui_objects_group); i++)
 			{
 				as_screen_object* screen_object = AS_ARRAY_GET(*ui_objects_group, i);
+				as_push_const_buffer_screen_object push_const = get_push_const_buffer_screen_object(screen_object);
 				if (!screen_object) { continue; }
 				if (!screen_object->pipeline) { continue; }
 
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline);
+				vkCmdPushConstants(command_buffer, screen_object->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_const), &push_const);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screen_object->pipeline_layout, 0, 1, &screen_object->descriptor_sets.data[render->current_frame], 0, 0);
 				vkCmdDraw(command_buffer, 3, 1, 0, 0);
 			}
@@ -1757,12 +1770,12 @@ void as_screen_object_create_descriptor_pool(as_screen_object* screen_object)
 	pool_info.pPoolSizes = &pool_size;
 	pool_info.maxSets = (u32)MAX_FRAMES_IN_FLIGHT;
 
-	if (screen_object->descriptor_pool)
-	{
-		vkDeviceWaitIdle(*screen_object->device);
-		vkDestroyDescriptorPool(*screen_object->device, screen_object->descriptor_pool, NULL);
-	}
-	vkDeviceWaitIdle(*screen_object->device);
+	//if (screen_object->descriptor_pool)
+	//{
+	//	vkDeviceWaitIdle(*screen_object->device);
+	//	vkDestroyDescriptorPool(*screen_object->device, screen_object->descriptor_pool, NULL);
+	//}
+	//vkDeviceWaitIdle(*screen_object->device);
 	vkCreateDescriptorPool(*screen_object->device, &pool_info, NULL, &screen_object->descriptor_pool);
 }
 
@@ -1823,7 +1836,7 @@ void as_screen_object_allocate_descriptor_set(as_screen_object* screen_object)
 			if (uniform->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 			{
 				as_texture* texture = (as_texture*)uniform->data;
-				if (texture)
+				if (texture && texture->image_view && texture->sampler)
 				{
 					VkDescriptorImageInfo image_info = { 0 };
 					image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1939,35 +1952,35 @@ void as_screen_objects_group_destroy(as_screen_objects_group* screen_objects_gro
 	AS_FREE(screen_objects_group);
 }
 
-extern void as_ui_set_position(as_screen_object* screen_object, const as_vec2* position)
+extern void as_screen_object_set_position(as_screen_object* screen_object, const as_vec2* position)
 {
 	screen_object->data.m[0][0] = position->x;
 	screen_object->data.m[0][1] = position->y;
 }
 
-extern void as_ui_set_rotation(as_screen_object* screen_object, const as_vec2* rotation)
+extern void as_screen_object_set_rotation(as_screen_object* screen_object, const as_vec2* rotation)
 {
 	screen_object->data.m[0][2] = rotation->x;
 	screen_object->data.m[0][3] = rotation->y;
 }
 
-extern void as_ui_set_extent(as_screen_object* screen_object, const as_vec2* extent)
+extern void as_screen_object_set_extent(as_screen_object* screen_object, const as_vec2* extent)
 {
 	screen_object->data.m[1][0] = extent->x;
 	screen_object->data.m[1][1] = extent->y;
 }
 
-extern as_vec2 as_ui_get_position(const as_screen_object* screen_object)
+extern as_vec2 as_screen_object_get_position(const as_screen_object* screen_object)
 {
 	return AS_VEC(as_vec2, screen_object->data.m[0][0], screen_object->data.m[0][1]);
 }
 
-extern as_vec2 as_ui_get_rotation(const as_screen_object* screen_object)
+extern as_vec2 as_screen_object_get_rotation(const as_screen_object* screen_object)
 {
 	return AS_VEC(as_vec2, screen_object->data.m[0][2], screen_object->data.m[0][3]);
 }
 
-extern as_vec2 as_ui_get_extent(const as_screen_object* screen_object)
+extern as_vec2 as_screen_object_get_extent(const as_screen_object* screen_object)
 {
 	return AS_VEC(as_vec2, screen_object->data.m[1][0], screen_object->data.m[1][1]);
 }

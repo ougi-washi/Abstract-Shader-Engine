@@ -17,7 +17,7 @@ void as_ui_text_set_text(as_ui_text* ui_text, const u32 font_size, const char* t
 		u8 encoded_char = (u8)text[i];
 		sz array_index = i / 4; // Each u32 can hold 4 characters (4 bytes)
 		sz char_index_in_u32 = i % 4; // Index of the character within the u32
-		ui_text->custom_data[array_index] |= (u32)encoded_char << (8 * char_index_in_u32);
+		ui_text->custom_data[array_index] |= (i32)encoded_char << (8 * char_index_in_u32);
 	}
 }
 
