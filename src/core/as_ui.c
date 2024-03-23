@@ -8,8 +8,8 @@ void as_ui_text_set_text(as_ui_text* ui_text, const u32 font_size, const char* t
 	AS_ASSERT(text, "Cannot set text, invalid text ptr");
 
 	ui_text->type = AS_SO_TEXT;
-	ui_text->custom_info[0] = font_size;
-	ui_text->custom_info[1] = (u32)strlen(text);
+	ui_text->custom_info[0] = strlen(text);
+	ui_text->custom_info[1] = font_size;
 
 	// encode
 	for (sz i = 0; i < strlen(text); ++i) 
@@ -20,7 +20,6 @@ void as_ui_text_set_text(as_ui_text* ui_text, const u32 font_size, const char* t
 		ui_text->custom_data[array_index] |= (u32)encoded_char << (8 * char_index_in_u32);
 	}
 }
-
 
 void as_ui_text_set_font(as_ui_text* ui_text, as_texture* font_texture)
 {
