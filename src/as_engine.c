@@ -329,7 +329,7 @@ as_asset* as_asset_register(void* ptr, const as_asset_type type)
 	return as_content_get_asset(engine.content, index);
 }
 
-as_ui_text* as_ui_text_create(const char* text, const f32 font_size, as_texture* font_texture)
+as_ui_text* as_ui_text_create(const char* text, const u32 font_size, as_texture* font_texture)
 {
 	AS_ASSERT(text, "Cannot create ui text, invalid text");
 	AS_ASSERT(font_texture, "Cannot create ui text, invalid texture");
@@ -348,7 +348,7 @@ as_ui_text* as_ui_text_create(const char* text, const f32 font_size, as_texture*
 sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* texture)
 {
 	sz index = as_shader_add_uniform_texture(&object->uniforms, texture);
-	as_screen_object_update(engine.render, object);
+	as_rq_screen_object_update(engine.render_queue, object);
 	return index;
 }
 

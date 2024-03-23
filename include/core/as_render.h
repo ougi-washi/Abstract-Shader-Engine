@@ -51,7 +51,7 @@ typedef struct as_push_const_buffer
 } as_push_const_buffer;
 
 #define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16	// has to align with 16
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 512	// has to align with 16
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64	// has to align with 16
 typedef struct as_uniform_buffer_screen_object
 {
 	as_mat4 data;
