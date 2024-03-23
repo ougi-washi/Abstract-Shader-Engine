@@ -51,12 +51,12 @@ void as_editor_set_default_scene()
 	as_object_set_translation(object5, AS_VEC_PTR(as_vec3, 0., 3., -5.));
 	as_object_set_translation(object6, AS_VEC_PTR(as_vec3, 0., -3., -5.));
 
-	as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
-	as_screen_object* screen_obj_test = as_screen_object_create(NULL);
-	as_assign_texture_to_screen_object(screen_obj_test, texture);
+	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
+	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);
+	//as_assign_texture_to_screen_object(screen_obj_test, texture);
 		
 	as_texture* font_texture = as_texture_create(AS_PATH_DEFAULT_UI_TEXT_TEXTURE);
-	as_ui_text* ui_text = as_ui_text_create("test", .5, font_texture);
+	as_ui_text* ui_text = as_ui_text_create("test", 10, font_texture);
 }
 
 bool as_editor_should_loop()

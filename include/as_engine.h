@@ -30,7 +30,7 @@ extern as_screen_object* as_screen_object_create(const char* fragment_shader_pat
 extern void as_camera_set_view(as_camera* camera, const as_camera_type type);
 extern as_asset* as_asset_register(void* ptr, const as_asset_type type);
 
-extern as_ui_text* as_ui_text_create(const char* text, const f32 font_size, as_texture* font_texture);
+extern as_ui_text* as_ui_text_create(const char* text, const u32 font_size, as_texture* font_texture);
 
 extern sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* texture);
 extern sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture);

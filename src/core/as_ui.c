@@ -2,16 +2,25 @@
 
 #define AS_UI_TEXT_MAX_SIZE 512
 
-void as_ui_text_set_text(as_ui_text* ui_text, const f32 font_size, const char* text)
+void as_ui_text_set_text(as_ui_text* ui_text, const u32 font_size, const char* text)
 {
 	AS_ASSERT(ui_text, "Cannot set text, invalid ui text");
 	AS_ASSERT(text, "Cannot set text, invalid text ptr");
 
 	ui_text->type = AS_SO_TEXT;
-	ui_text->custom_info[0] = (u32)font_size;
+	ui_text->custom_info[0] = font_size;
 	ui_text->custom_info[1] = (u32)strlen(text);
-	memcpy(ui_text->custom_data, text, strlen(text));
+
+	// encode
+	for (sz i = 0; i < strlen(text); ++i) 
+	{
+		u8 encoded_char = (u8)text[i];
+		sz array_index = i / 4; // Each u32 can hold 4 characters (4 bytes)
+		sz char_index_in_u32 = i % 4; // Index of the character within the u32
+		ui_text->custom_data[array_index] |= (u32)encoded_char << (8 * char_index_in_u32);
+	}
 }
+
 
 void as_ui_text_set_font(as_ui_text* ui_text, as_texture* font_texture)
 {
