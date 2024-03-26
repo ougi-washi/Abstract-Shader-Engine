@@ -56,7 +56,7 @@ void as_editor_set_default_scene()
 	//as_assign_texture_to_screen_object(screen_obj_test, texture);
 		
 	as_texture* font_texture = as_texture_create(AS_PATH_DEFAULT_UI_TEXT_TEXTURE);
-	as_ui_text* ui_text = as_ui_text_create("test", 10, font_texture);
+	as_ui_text* ui_text = as_ui_text_create("Abstract", 10, font_texture);
 	as_screen_object_set_position(ui_text, AS_VEC_PTR(as_vec2, .1f, .1f));
 }
 
