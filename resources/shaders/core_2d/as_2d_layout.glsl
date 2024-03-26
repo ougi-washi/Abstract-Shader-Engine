@@ -2,6 +2,7 @@
 
 #define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16 // has to match the cpu side
 #define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 256 // has to match the cpu side
+#define AS_SCREEN_OBJECT_DATA_OFFSET 4
 
 layout(binding = 0) uniform uniform_buffer_screen_object 
 {
