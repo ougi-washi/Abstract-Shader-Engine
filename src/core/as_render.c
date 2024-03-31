@@ -1506,6 +1506,11 @@ extern u64* as_render_get_frame_count_ptr(as_render* render)
 	return NULL;
 }
 
+extern f64 as_render_get_frame_per_second(const as_render* render)
+{
+	return (render->delta_time > 0.) ? (f64)render->frame_counter / render->delta_time : 0.;
+}
+
 f64 as_render_get_time(const as_render* render)
 {
 	return render->time;

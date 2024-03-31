@@ -51,6 +51,10 @@ typedef struct as_push_const_buffer
 } as_push_const_buffer;
 
 #define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64
+// info define
+#define AS_UI_TEXT_LENGTH_INDEX		m[0][0]
+#define AS_UI_TEXT_FONT_SIZE_INDEX	m[0][1]
+#define AS_UI_TEXT_SPACING_INDEX	m[0][2]
 typedef struct as_uniform_buffer_screen_object
 {
 	as_mat4 custom_info;
@@ -270,7 +274,7 @@ typedef struct as_render
 
 	// move somewhere else maybe
 	f64 time;
-	f64 last_frame_time;
+	f64 last_frame_time;	
 	f64 delta_time;
 	f64 current_time;
 
@@ -284,6 +288,7 @@ extern void as_render_draw_frame(as_render* render, void* display_context, as_ca
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
+extern f64 as_render_get_frame_per_second(const as_render* render);
 extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);

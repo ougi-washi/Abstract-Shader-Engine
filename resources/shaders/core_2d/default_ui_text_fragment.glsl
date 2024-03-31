@@ -46,7 +46,7 @@ void main()
     for (int i = 0; i < get_text_length(); i++) 
     {
         text_opacity += get_char(position, int(get_2d_data(i)));
-        position.x += FONT_CHAR_SPACING; 
+        position.x += get_text_spacing(); 
     }
     out_color = vec4(0.5, 0.3, 1.0, text_opacity);
     // if ((get_text_length() / 4) == 2)

@@ -18,6 +18,14 @@ void as_rotate_object3(as_object* object, const f64 delta_time)
 	as_object_set_translation(object, AS_VEC_PTR(as_vec3, 0., cos(as_get_time() * 2.) * 3.));
 }
 
+void as_update_ui_text_fps(as_ui_text* ui_text, const f64 delta_time)
+{
+	//const f64 fps = as_render_get_frame_per_second(as_engine_get_render());
+	//char fps_text[64] = "";
+	//sprintf(fps_text, "fps: %.2f", fps);
+	//as_ui_text_set_text(ui_text, fps_text);
+}
+
 void as_editor_set_default_scene()
 {
 	as_scene* editor_scene = as_scene_create(as_engine_get_render(), AS_PATH_DEFAULT_SCENE);
@@ -54,10 +62,14 @@ void as_editor_set_default_scene()
 	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);
 	//as_assign_texture_to_screen_object(screen_obj_test, texture);
-		
+	
 	as_texture* font_texture = as_texture_create(AS_PATH_DEFAULT_UI_TEXT_TEXTURE);
-	as_ui_text* ui_text = as_ui_text_create("Abstract shader engine", 10, font_texture);
-	as_screen_object_set_position(ui_text, AS_VEC_PTR(as_vec2, .1f, .1f));
+	as_ui_text* engine_title_text = as_ui_text_create("Abstract shader engine", 10, 2.5f, font_texture);
+	as_screen_object_set_position(engine_title_text, AS_VEC_PTR(as_vec2, .1f, .1f));
+
+	//as_ui_text* fps_text = as_ui_text_create_with_tick("fps: -", 10, 2.5f, font_texture, &as_update_ui_text_fps);
+	as_ui_text* fps_text =  as_ui_text_create("Abstract", 10, 2.5f, font_texture);
+	as_screen_object_set_position(fps_text, AS_VEC_PTR(as_vec2, .1f, .15f));
 }
 
 bool as_editor_should_loop()
