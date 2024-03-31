@@ -1352,6 +1352,7 @@ void as_render_end_draw_loop(as_render* render)
 	}
 	render->delta_time = calculate_delta_time(render->last_frame_time, get_current_time());
 	render->last_frame_time = get_current_time();
+	as_render_update_fps(render, AS_FPS_UPDATE_RATE);
 }
 
 void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* screen_objects_group)
@@ -1456,6 +1457,18 @@ void as_render_draw_frame(as_render* render, void* display_context, as_camera* c
 	render->frame_counter++;
 }
 
+void as_render_update_fps(as_render* render, const f64 update_rate)
+{
+	render->fps_total += (render->delta_time > 0) ? 1. / render->delta_time : render->fps_average;
+	render->fps_num_samples++;
+	if (render->fps_num_samples >= update_rate)
+	{
+		render->fps_average =  render->fps_total / render->fps_num_samples;
+		render->fps_total = 0.;
+		render->fps_num_samples = 0;
+	}
+}
+
 void as_render_destroy(as_render* render)
 {
 	vkDeviceWaitIdle(render->device);
@@ -1506,9 +1519,9 @@ extern u64* as_render_get_frame_count_ptr(as_render* render)
 	return NULL;
 }
 
-extern f64 as_render_get_frame_per_second(const as_render* render)
+extern f64 as_render_get_fps(const as_render* render)
 {
-	return (render->delta_time > 0.) ? (f64)render->frame_counter / render->delta_time : 0.;
+	return render->fps_average;
 }
 
 f64 as_render_get_time(const as_render* render)
@@ -1520,13 +1533,14 @@ f64 as_render_get_remaining_time(as_render* render)
 {
 	clock_t next_frame_time = get_current_time();
 	f64 elapsed_time = calculate_delta_time(render->last_frame_time, next_frame_time);
-	return (1. / AS_TARGET_FPS) - elapsed_time;
+	return (1. / (f64)AS_TARGET_FPS) - elapsed_time;
 }
 
 f64 as_render_get_delta_time(as_render* render)
 {
 	return render->delta_time;
 }
+
 
 void as_screen_object_create_pipeline_layout(as_render* render, as_screen_object* screen_object)
 {

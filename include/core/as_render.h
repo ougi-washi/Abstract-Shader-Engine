@@ -13,7 +13,8 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define AS_TARGET_FPS 1024.
+#define AS_TARGET_FPS		10000
+#define AS_FPS_UPDATE_RATE	50
 
 // Arrays
 
@@ -272,11 +273,17 @@ typedef struct as_render
 	u64 current_frame; // this one is for rendering, do not use
 	u64 frame_counter; // use this for frame tracking
 
-	// move somewhere else maybe
+	// TODO: move time to handle
 	f64 time;
 	f64 last_frame_time;	
 	f64 delta_time;
 	f64 current_time;
+
+	// TODO: move fps to handle
+	f64 fps_last_update;
+	f64 fps_average;
+	f64 fps_total;
+	u64 fps_num_samples;
 
 	AS_DECLARE_TYPE;
 } as_render;
@@ -285,10 +292,11 @@ extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
 extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* screen_objects_group);
+extern void as_render_update_fps(as_render* render, const f64 update_rate);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
-extern f64 as_render_get_frame_per_second(const as_render* render);
+extern f64 as_render_get_fps(const as_render* render);
 extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);

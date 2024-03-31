@@ -20,10 +20,11 @@ void as_rotate_object3(as_object* object, const f64 delta_time)
 
 void as_update_ui_text_fps(as_ui_text* ui_text, const f64 delta_time)
 {
-	//const f64 fps = as_render_get_frame_per_second(as_engine_get_render());
-	//char fps_text[64] = "";
-	//sprintf(fps_text, "fps: %.2f", fps);
-	//as_ui_text_set_text(ui_text, fps_text);
+	const f64 fps = as_render_get_fps(as_engine_get_render());
+	const f64 render_delta_time = as_render_get_delta_time(as_engine_get_render());
+	char fps_text[128] = "";
+	sprintf(fps_text, "delta-time: %.5f | fps: %.1f", render_delta_time, fps);
+	as_ui_text_set_text(ui_text, fps_text);
 }
 
 void as_editor_set_default_scene()
@@ -67,8 +68,8 @@ void as_editor_set_default_scene()
 	as_ui_text* engine_title_text = as_ui_text_create("Abstract shader engine", 10, 2.5f, font_texture);
 	as_screen_object_set_position(engine_title_text, AS_VEC_PTR(as_vec2, .1f, .1f));
 
-	//as_ui_text* fps_text = as_ui_text_create_with_tick("fps: -", 10, 2.5f, font_texture, &as_update_ui_text_fps);
-	as_ui_text* fps_text =  as_ui_text_create("Abstract", 10, 2.5f, font_texture);
+	as_ui_text* fps_text = as_ui_text_create_with_tick("fps: -", 10, 2.5f, font_texture, &as_update_ui_text_fps);
+	//as_ui_text* fps_text =  as_ui_text_create("Abstract", 10, 2.5f, font_texture);
 	as_screen_object_set_position(fps_text, AS_VEC_PTR(as_vec2, .1f, .15f));
 }
 
