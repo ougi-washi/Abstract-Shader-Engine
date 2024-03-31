@@ -23,7 +23,7 @@ void as_update_ui_text_fps(as_ui_text* ui_text, const f64 delta_time)
 	const f64 fps = as_render_get_fps(as_engine_get_render());
 	const f64 render_delta_time = as_render_get_delta_time(as_engine_get_render());
 	char fps_text[128] = "";
-	sprintf(fps_text, "delta-time: %.3f | fps: %.1f", render_delta_time, fps);
+	sprintf(fps_text, "delta-time: %.4f | fps: %.1f", render_delta_time, fps);
 	as_ui_text_set_text(ui_text, fps_text);
 }
 
@@ -42,14 +42,11 @@ void as_editor_set_default_scene()
 
 	as_object* object1 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object1);
 	as_object_set_translation(object1, AS_VEC_PTR(as_vec3, 0., 1.3, 0.));
-	as_object_set_instance_count(object1, 2000);
 
 	as_object* object2 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object2);
 	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 0., -1.3, 0.));
-	as_object_set_instance_count(object2, 2000);
 
 	as_object* object3 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object3);
-	as_object_set_instance_count(object3, 2000);
 
 	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "defines/as_global.h" // TODO: move this away along with logs
 
 // Base types
 typedef uint8_t		u8;

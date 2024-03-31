@@ -3,8 +3,8 @@
 #pragma once
 
 #define AS_EDITOR 1
-#define AS_DEBUG 0
-#define AS_DEBUG_VULKAN 0
+#define AS_DEBUG  1
+#define AS_DEBUG_VULKAN 1
 
 // Window
 #define AS_ENGINE_WINDOW_WIDTH 1900
