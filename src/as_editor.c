@@ -23,7 +23,7 @@ void as_update_ui_text_fps(as_ui_text* ui_text, const f64 delta_time)
 	const f64 fps = as_render_get_fps(as_engine_get_render());
 	const f64 render_delta_time = as_render_get_delta_time(as_engine_get_render());
 	char fps_text[128] = "";
-	sprintf(fps_text, "delta-time: %.5f | fps: %.1f", render_delta_time, fps);
+	sprintf(fps_text, "delta-time: %.4f | fps: %.1f", render_delta_time, fps);
 	as_ui_text_set_text(ui_text, fps_text);
 }
 
@@ -37,7 +37,7 @@ void as_editor_set_default_scene()
 
 	as_shader* shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_DEFAULT_FRAG_SHADER);
 	
-	as_shape* shape_sphere = as_generate_sphere(1., 8, 8);
+	as_shape* shape_sphere = as_generate_sphere(.92, 8, 8);
 	as_asset_register(shape_sphere, AS_ASSET_TYPE_SHAPE); // registering it as asset to make sure it's cleared when shutting down the engine 
 
 	as_object* object1 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object1);
@@ -47,18 +47,6 @@ void as_editor_set_default_scene()
 	as_object_set_translation(object2, AS_VEC_PTR(as_vec3, 0., -1.3, 0.));
 
 	as_object* object3 = as_object_create_with_tick(shape_sphere, shader, &as_rotate_object3);
-
-	as_shader* gray_shader = as_shader_create(AS_PATH_DEFAULT_VERT_SHADER, AS_PATH_EMPTY_GRAY_FRAG_SHADER);
-
-	as_shape* shape_cube = as_generate_cube();
-	as_asset_register(shape_cube, AS_ASSET_TYPE_SHAPE); // registering it as asset to make sure it's cleared when shutting down the engine 
-
-	as_object* object4 = as_object_create(shape_cube, gray_shader);
-	as_object* object5 = as_object_create(shape_cube, gray_shader);
-	as_object* object6 = as_object_create(shape_cube, gray_shader);
-	as_object_set_translation(object4, AS_VEC_PTR(as_vec3, 0., 0., -5.));
-	as_object_set_translation(object5, AS_VEC_PTR(as_vec3, 0., 3., -5.));
-	as_object_set_translation(object6, AS_VEC_PTR(as_vec3, 0., -3., -5.));
 
 	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
 	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);

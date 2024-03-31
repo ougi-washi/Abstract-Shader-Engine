@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "defines/as_global.h" // TODO: move this away along with logs
 
 // Base types
 typedef uint8_t		u8;
@@ -91,7 +92,7 @@ pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;
 
-#if defined(_DEBUG) || defined(NDEBUG) || defined(DEBUG)
+#if AS_DEBUG
 #define AS_LOG(level, text)																					\
 	if (level == LV_LOG)				printf("LOG : %s\n", text);											\
 	else if(level == LV_WARNING)		printf("[%s|%d] WARNING: %s\n", __FILE__, __LINE__, text);			\
@@ -120,8 +121,14 @@ if (!result) { AS_FLOG(LV_WARNING, format, __VA_ARGS__); return; }
 if (!result) { AS_FLOG(LV_WARNING, format, __VA_ARGS__); return return_val; }
 
 #else
-#define AS_LOG(level, text) {};
-#define AS_ASSERT(result, text)	{};
+#pragma warning( disable : 4550) // This warning related to checking whether or 
+
+#define AS_LOG(level, text) {}
+#define AS_FLOG(level, format, ...) {}
+#define AS_ASSERT(result, text)	{ (result); }
+#define AS_WARNING_RETURN_IF_FALSE(result, format, ...) { (result); }
+#define AS_WARNING_RETURN_VAL_IF_FALSE(result, return_val, format, ...){ (result); }
+
 #endif
 
 typedef enum as_flag
