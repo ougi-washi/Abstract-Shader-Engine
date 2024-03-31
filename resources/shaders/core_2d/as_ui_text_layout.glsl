@@ -14,5 +14,5 @@ layout(binding = 1) uniform sampler2D tex_sampler;
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 out_color;
 
-uint get_text_length() { return ubo.custom_data[0]; }
-uint get_text_font_size() { return ubo.custom_data[1]; }
+int get_text_length() { return int(ubo.custom_info[0][0]); }
+int get_text_font_size() { return int(ubo.custom_info[0][1]); }

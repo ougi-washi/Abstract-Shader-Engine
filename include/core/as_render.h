@@ -30,7 +30,7 @@ AS_ARRAY_DECLARE(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
 AS_ARRAY_DECLARE(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
-#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 64
 typedef struct as_uniform_buffer_object
 {
 	as_mat4 model;
@@ -50,12 +50,11 @@ typedef struct as_push_const_buffer
 	// mouse_data		X[3][0] Y[3][1]
 } as_push_const_buffer;
 
-//#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16	// has to align with 16
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 256	// has to align with 16
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64
 typedef struct as_uniform_buffer_screen_object
 {
-	//i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	as_mat4 custom_info;
+	as_mat4 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
 } as_uniform_buffer_screen_object;
 
 typedef struct as_push_const_buffer_screen_object
@@ -228,8 +227,7 @@ typedef struct as_screen_object
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
 	as_screen_object_type type;
-	//i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	as_uniform_buffer_screen_object uniform_buffer;
 } as_screen_object;
 AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 

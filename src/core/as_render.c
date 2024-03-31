@@ -1041,15 +1041,18 @@ as_push_const_buffer get_push_const_buffer(const as_object* object, const as_cam
 
 void update_screen_object_uniform_buffer(as_render* render, as_screen_object* screen_object, const u32 current_image)
 {
-	as_uniform_buffer_screen_object ubo = { 0 };
-	if (screen_object)
-	{
-		//memcpy(ubo.custom_info, screen_object->custom_info, sizeof(ubo.custom_info));
-		memcpy(ubo.custom_data, screen_object->custom_data, sizeof(ubo.custom_data));
-	}
+	if (!screen_object) { return; }
+
+	//as_uniform_buffer_screen_object ubo = { 0 };
+	//if (screen_object)
+	//{
+	//	
+	//	//memcpy(ubo.custom_info, screen_object->custom_info, sizeof(ubo.custom_info));
+	//	memcpy(ubo, screen_object->custom_data, sizeof(ubo.custom_data));
+	//}
 	if (screen_object->uniform_buffers.buffers_mapped.size != 0 && AS_ARRAY_GET_SIZE(screen_object->uniform_buffers.buffers_mapped) > current_image)
 	{
-		memcpy(screen_object->uniform_buffers.buffers_mapped.data[current_image], &ubo, sizeof(ubo));
+		memcpy(screen_object->uniform_buffers.buffers_mapped.data[current_image], &screen_object->uniform_buffer, sizeof(screen_object->uniform_buffer));
 	}
 }
 
