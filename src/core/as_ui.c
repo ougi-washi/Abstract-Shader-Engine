@@ -19,7 +19,7 @@ void as_ui_text_set_text(as_ui_text* ui_text, const u32 font_size, const char* t
 		custom_data[i] = (f32)text[i];
 	}
 
-	// encode found issues with encoding, could not decode the right values on GPU for weird reasons
+	// TODO: encoding 4 ASCIIs in 32 bit value
 	//for (sz i = 0; i < strlen(text); ++i) 
 	//{
 	//	u8 encoded_char = (u8)text[i];
