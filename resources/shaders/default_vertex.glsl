@@ -7,8 +7,8 @@
 
 void main() 
 {
-    vec3 grid_spacing = vec3(1.5, 1.5, 1.5); 
-    ivec3 grid_size = ivec3(200, 200, 200); 
+    vec3 grid_spacing = vec3(12., 12., 13.); 
+    ivec3 grid_size = ivec3(20, 20, 10); 
     int instance_index_x = gl_InstanceIndex % grid_size.x;
     int instance_index_y = (gl_InstanceIndex / grid_size.x) % grid_size.y;
     int instance_index_z = gl_InstanceIndex / (grid_size.x * grid_size.y);

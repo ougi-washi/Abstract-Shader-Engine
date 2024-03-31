@@ -22,8 +22,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define AS_USE_VULKAN_VALIDATION_LAYER 1
-
+#define AS_USE_VULKAN_VALIDATION_LAYER AS_DEBUG_VULKAN
 
 static clock_t start_time = 0;
 
