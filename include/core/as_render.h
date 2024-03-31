@@ -13,7 +13,8 @@
 #define MAX_FRAMES_IN_FLIGHT 2
 
 #define CLOCKS_PER_SEC_DOUBLE ((f64)CLOCKS_PER_SEC)
-#define AS_TARGET_FPS 1024.
+#define AS_TARGET_FPS		10000
+#define AS_FPS_UPDATE_RATE	50
 
 // Arrays
 
@@ -30,7 +31,7 @@ AS_ARRAY_DECLARE(VkSurfaceFormatKHR32, 32, VkSurfaceFormatKHR);
 AS_ARRAY_DECLARE(VkPresentModeKHR32, 32, VkPresentModeKHR);
 
 
-#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 128
+#define AS_MAX_GPU_OBJECT_TRANSFORMS_SIZE 64
 typedef struct as_uniform_buffer_object
 {
 	as_mat4 model;
@@ -50,12 +51,15 @@ typedef struct as_push_const_buffer
 	// mouse_data		X[3][0] Y[3][1]
 } as_push_const_buffer;
 
-//#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16	// has to align with 16
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 256	// has to align with 16
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64
+// info define
+#define AS_UI_TEXT_LENGTH_INDEX		m[0][0]
+#define AS_UI_TEXT_FONT_SIZE_INDEX	m[0][1]
+#define AS_UI_TEXT_SPACING_INDEX	m[0][2]
 typedef struct as_uniform_buffer_screen_object
 {
-	//i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	as_mat4 custom_info;
+	as_mat4 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
 } as_uniform_buffer_screen_object;
 
 typedef struct as_push_const_buffer_screen_object
@@ -228,8 +232,7 @@ typedef struct as_screen_object
 	char filename_fragment[AS_MAX_PATH_SIZE];
 
 	as_screen_object_type type;
-	//i32 custom_info[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE];
-	u32 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	as_uniform_buffer_screen_object uniform_buffer;
 } as_screen_object;
 AS_ARRAY_DECLARE(as_screen_objects_group, AS_MAX_SCREEN_OBJECTS, as_screen_object);
 
@@ -270,11 +273,17 @@ typedef struct as_render
 	u64 current_frame; // this one is for rendering, do not use
 	u64 frame_counter; // use this for frame tracking
 
-	// move somewhere else maybe
+	// TODO: move time to handle
 	f64 time;
-	f64 last_frame_time;
+	f64 last_frame_time;	
 	f64 delta_time;
 	f64 current_time;
+
+	// TODO: move fps to handle
+	f64 fps_last_update;
+	f64 fps_average;
+	f64 fps_total;
+	u64 fps_num_samples;
 
 	AS_DECLARE_TYPE;
 } as_render;
@@ -283,9 +292,11 @@ extern as_render* as_render_create(void* display_context);
 extern void as_render_start_draw_loop(as_render* render);
 extern void as_render_end_draw_loop(as_render* render);
 extern void as_render_draw_frame(as_render* render, void* display_context, as_camera* camera, as_scene* scene, as_screen_objects_group* screen_objects_group);
+extern void as_render_update_fps(as_render* render, const f64 update_rate);
 extern void as_render_destroy(as_render* render);
 extern u64 as_render_get_frame_count(as_render* render);
 extern u64* as_render_get_frame_count_ptr(as_render* render);
+extern f64 as_render_get_fps(const as_render* render);
 extern f64 as_render_get_time(const as_render* render);
 extern f64 as_render_get_remaining_time(as_render* render);
 extern f64 as_render_get_delta_time(as_render* render);

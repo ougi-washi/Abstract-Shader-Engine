@@ -1,12 +1,12 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_INFO_SIZE 16 // has to match the cpu side
-#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 256 // has to match the cpu side
-#define AS_SCREEN_OBJECT_DATA_OFFSET 4
+ // has to match the cpu side
+#define AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE 64
 
 layout(binding = 0) uniform uniform_buffer_screen_object 
 {
-	uint custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
+	mat4 custom_info;
+	mat4 custom_data[AS_MAX_GPU_SCREEN_OBJECT_CUSTOM_DATA_SIZE];
 } ubo; 
 
 layout(push_constant) uniform push_constant_buffer
@@ -20,3 +20,9 @@ layout(push_constant) uniform push_constant_buffer
 } ps;
 
 vec2 get_2d_position() {return vec2(ps.data[0][0], ps.data[0][1]); }
+float get_2d_data(const int index) 
+{
+    const int mat4_index = index / 16; 
+    const int element_index = index % 16; 
+    return ubo.custom_data[mat4_index][element_index / 4][element_index % 4];
+}

@@ -329,7 +329,7 @@ as_asset* as_asset_register(void* ptr, const as_asset_type type)
 	return as_content_get_asset(engine.content, index);
 }
 
-as_ui_text* as_ui_text_create(const char* text, const u32 font_size, as_texture* font_texture)
+as_ui_text* as_ui_text_create(const char* text, const u32 font_size, const f32 spacing, as_texture* font_texture)
 {
 	AS_ASSERT(text, "Cannot create ui text, invalid text");
 	AS_ASSERT(font_texture, "Cannot create ui text, invalid texture");
@@ -337,11 +337,19 @@ as_ui_text* as_ui_text_create(const char* text, const u32 font_size, as_texture*
 	as_screen_object* ui_text = AS_ARRAY_INCREMENT(*engine.ui_objects_group);
 	as_screen_object_init(engine.render, ui_text, AS_PATH_DEFAULT_UI_TEXT_FRAG_SHADER);
 
-	as_ui_text_set_font((as_ui_text*)ui_text, font_texture);
-	as_ui_text_set_text((as_ui_text*)ui_text, font_size, text);
+	as_ui_text_init((as_ui_text*)ui_text, font_texture, font_size, spacing, text);
 
 	as_rq_screen_object_update(engine.render_queue, ui_text);
 	as_shader_monitor_add(&engine.render->frame_counter, engine.shader_monitor, ui_text, ui_text->filename_fragment, as_rq_screen_object_update);
+	return ui_text;
+}
+
+extern as_ui_text* as_ui_text_create_with_tick(const char* text, const u32 font_size, const f32 spacing, as_texture* font_texture, void tick_func_ptr(as_ui_text*, const f64))
+{
+	as_ui_text* ui_text = as_ui_text_create(text, font_size, spacing, font_texture);
+	as_tick_handle* handle = as_tick_handle_create(engine.tick_system);
+	handle->func_ptr = &tick_func_ptr;
+	handle->arg = ui_text;
 	return ui_text;
 }
 
