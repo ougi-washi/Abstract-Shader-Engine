@@ -1995,17 +1995,17 @@ extern void as_screen_object_set_scale(as_screen_object* screen_object, const as
 
 extern as_vec2 as_screen_object_get_position(const as_screen_object* screen_object)
 {
-	return AS_VEC(as_vec2, screen_object->data.m[0][0], screen_object->data.m[0][1]);
+	return AS_VEC(as_vec2, screen_object->data.AS_SCREEN_OBJ_DATA_POS_X_INDEX, screen_object->data.AS_SCREEN_OBJ_DATA_POS_Y_INDEX);
 }
 
 extern as_vec2 as_screen_object_get_rotation(const as_screen_object* screen_object)
 {
-	return AS_VEC(as_vec2, screen_object->data.m[0][2], screen_object->data.m[0][3]);
+	return AS_VEC(as_vec2, screen_object->data.AS_SCREEN_OBJ_DATA_ROT_X_INDEX, screen_object->data.AS_SCREEN_OBJ_DATA_ROT_Y_INDEX);
 }
 
 extern as_vec2 as_screen_object_get_scale(const as_screen_object* screen_object)
 {
-	return AS_VEC(as_vec2, screen_object->data.m[1][0], screen_object->data.m[1][1]);
+	return AS_VEC(as_vec2, screen_object->data.AS_SCREEN_OBJ_DATA_SCALE_X_INDEX, screen_object->data.AS_SCREEN_OBJ_DATA_SCALE_Y_INDEX);
 }
 
 as_texture* as_texture_make(const char* path)
