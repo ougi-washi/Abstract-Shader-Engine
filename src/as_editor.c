@@ -54,11 +54,13 @@ void as_editor_set_default_scene()
 	
 	as_texture* font_texture = as_texture_create(AS_PATH_DEFAULT_UI_TEXT_TEXTURE);
 	as_ui_text* engine_title_text = as_ui_text_create("Abstract shader engine", 10, 2.5f, font_texture);
-	as_screen_object_set_position(engine_title_text, AS_VEC_PTR(as_vec2, .1f, .1f));
+	as_screen_object_set_position(engine_title_text, AS_VEC_PTR(as_vec2, 1.f, .1f));
+	as_screen_object_set_scale(engine_title_text, AS_VEC_PTR(as_vec2, .4f, .6f));
 
 	as_ui_text* fps_text = as_ui_text_create_with_tick("fps: -", 10, 2.5f, font_texture, &as_update_ui_text_fps);
 	//as_ui_text* fps_text =  as_ui_text_create("Abstract", 10, 2.5f, font_texture);
-	as_screen_object_set_position(fps_text, AS_VEC_PTR(as_vec2, .1f, .15f));
+	as_screen_object_set_position(fps_text, AS_VEC_PTR(as_vec2, .06f, .06f));
+	as_screen_object_set_scale(fps_text, AS_VEC_PTR(as_vec2, .25f, .4f));
 }
 
 bool as_editor_should_loop()

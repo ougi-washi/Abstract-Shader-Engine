@@ -1880,6 +1880,7 @@ void as_screen_object_init(as_render* render, as_screen_object* screen_object, c
 
 	screen_object->device = &render->device;
 	screen_object->render_pass = &render->render_pass;
+	as_screen_object_set_scale(screen_object, AS_VEC_PTR(as_vec2, 1., 1.));
 	if (fragment_path)
 	{
 		strcpy(screen_object->filename_fragment, fragment_path);
@@ -1975,20 +1976,21 @@ void as_screen_objects_group_destroy(as_screen_objects_group* screen_objects_gro
 
 extern void as_screen_object_set_position(as_screen_object* screen_object, const as_vec2* position)
 {
-	screen_object->data.m[0][0] = position->x;
-	screen_object->data.m[0][1] = position->y;
+	const as_vec2 scale = as_screen_object_get_scale(screen_object);
+	screen_object->data.AS_SCREEN_OBJ_DATA_POS_X_INDEX = position->x * scale.x;
+	screen_object->data.AS_SCREEN_OBJ_DATA_POS_Y_INDEX = position->y * scale.y;
 }
 
 extern void as_screen_object_set_rotation(as_screen_object* screen_object, const as_vec2* rotation)
 {
-	screen_object->data.m[0][2] = rotation->x;
-	screen_object->data.m[0][3] = rotation->y;
+	screen_object->data.AS_SCREEN_OBJ_DATA_ROT_X_INDEX = rotation->x;
+	screen_object->data.AS_SCREEN_OBJ_DATA_ROT_Y_INDEX = rotation->y;
 }
 
-extern void as_screen_object_set_extent(as_screen_object* screen_object, const as_vec2* extent)
+extern void as_screen_object_set_scale(as_screen_object* screen_object, const as_vec2* scale)
 {
-	screen_object->data.m[1][0] = extent->x;
-	screen_object->data.m[1][1] = extent->y;
+	screen_object->data.AS_SCREEN_OBJ_DATA_SCALE_X_INDEX = 1. / scale->x;
+	screen_object->data.AS_SCREEN_OBJ_DATA_SCALE_Y_INDEX = 1. / scale->y;
 }
 
 extern as_vec2 as_screen_object_get_position(const as_screen_object* screen_object)
@@ -2001,7 +2003,7 @@ extern as_vec2 as_screen_object_get_rotation(const as_screen_object* screen_obje
 	return AS_VEC(as_vec2, screen_object->data.m[0][2], screen_object->data.m[0][3]);
 }
 
-extern as_vec2 as_screen_object_get_extent(const as_screen_object* screen_object)
+extern as_vec2 as_screen_object_get_scale(const as_screen_object* screen_object)
 {
 	return AS_VEC(as_vec2, screen_object->data.m[1][0], screen_object->data.m[1][1]);
 }
