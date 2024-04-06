@@ -16,8 +16,12 @@ struct sdf_result
 
 sdf_result sdf_scene(vec3 p);
 
-sdf_result raymarch(vec3 ray_pos, vec3 ray_dir) 
+sdf_result raymarch() 
 {
+    const vec3 world_vert_pos = vert_pos + get_current_object_position() ;
+    const vec3 ray_pos = get_camera_pos() - get_current_object_position();
+    const vec3 ray_dir = normalize(world_vert_pos - ray_pos);
+    
     float depth = SDF_MIN_DIST;
     float dist = SDF_MIN_DIST;
     sdf_result result;
@@ -41,6 +45,5 @@ sdf_result raymarch(vec3 ray_pos, vec3 ray_dir)
             return sdf_result(vec3(0.0), vec3(0.0), 0.0); 
         }
     }
-
     return sdf_result(result.position, result.color, 1.); // Maybe the alpha has to be based on distance?
 }
