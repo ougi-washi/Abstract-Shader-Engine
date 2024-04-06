@@ -6,7 +6,7 @@
 #include "as_ui_text_layout.glsl"
 #include "as_2d_sdf_shapes.glsl"
 
-uint[4] decode_chars(uint encoded_chars) 
+uint[4] decode_chars(uint encoded_chars) // currently unused
 {
     uint c1 = encoded_chars & 0xFF;    
     uint c2 = (encoded_chars >> 8) & 0xFF;  

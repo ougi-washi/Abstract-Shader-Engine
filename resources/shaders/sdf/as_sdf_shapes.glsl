@@ -1,6 +1,8 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 // Most shapes rely on Inigo Quilez's approach
 
+#include "as_sdf_operators.glsl"
+
 float dot2( in vec2 v ) { vec3 v3 = vec3(v.x, v.y, 0.); return dot(v3,v3); }
 float dot2( in vec3 v ) { return dot(v,v); }
 float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }

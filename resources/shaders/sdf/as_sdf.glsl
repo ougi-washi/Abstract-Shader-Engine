@@ -1,7 +1,6 @@
 // Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 
 #include "as_sdf_shapes.glsl"
-#include "as_sdf_operators.glsl"
 
 #define SDF_MIN_DIST 0.001
 #define SDF_MAX_DIST 10000

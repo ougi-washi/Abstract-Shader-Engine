@@ -1,3 +1,4 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 #include "as_2d_layout.glsl"
 
 #define FONT_TEXTURE_SUB_X 16

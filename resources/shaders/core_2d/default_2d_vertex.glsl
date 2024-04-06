@@ -1,3 +1,4 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 #version 450
 
 layout(location = 0) out vec2 out_uv;

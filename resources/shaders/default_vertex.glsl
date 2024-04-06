@@ -17,12 +17,9 @@ void main()
     int movement_frequency_yz = int(mod(instance_index_x + instance_index_y, 3));
 
     vec3 new_pos = in_position.xyz + vec3(
-        float(instance_index_x) * grid_spacing.x /*+ cos(get_current_time() * movement_frequency_xy) 
-        * sin(get_current_time() * movement_frequency_xy) * -1.2 */,
-        float(instance_index_y) * grid_spacing.y /*+ sin(get_current_time() * movement_frequency_xz) 
-        * cos(get_current_time() * movement_frequency_xz) * -1.2 */,
-        float(instance_index_z) * grid_spacing.z /*+ sin(get_current_time() * movement_frequency_yz) 
-        * cos(get_current_time() * movement_frequency_yz) * 1.2 */
+        float(instance_index_x) * grid_spacing.x,
+        float(instance_index_y) * grid_spacing.y,
+        float(instance_index_z) * grid_spacing.z
     );
 
     mat4 object_transform = get_current_object_transform();
@@ -31,7 +28,6 @@ void main()
     frag_normal = in_normal;
     frag_color = in_color;
     frag_tex_coord = in_tex_coord;
-    //instance_id = gl_InstanceIndex;
+    //instance_id = gl_InstanceIndex; // enable when used on the frag side
     obj_position = new_pos;
 }
-
