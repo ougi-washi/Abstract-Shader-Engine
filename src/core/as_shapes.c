@@ -92,6 +92,15 @@ as_shape* as_generate_cube()
         7, 3, 2, 2, 6, 7    // Top face (reverted)
     };
 
+//  u32 indices[] = {
+//         0, 1, 2, 2, 3, 0,
+//         4, 5, 6, 6, 7, 4,
+//         0, 4, 7, 7, 3, 0,
+//         1, 5, 6, 6, 2, 1,
+//         0, 1, 5, 5, 4, 0,
+//         2, 3, 7, 7, 6, 2,
+//     };
+
     for (sz i = 0; i < 8; i++)
     {
         cube->vertices[i].position = vertices[i];
