@@ -67,7 +67,7 @@ typedef struct as_push_const_buffer_screen_object
 	as_mat4 data;
 	// position	x[0][0] y[0][1]
 	// rotation	x[0][2] y[0][3]
-	// extent	x[1][0] y[1][1]
+	// scale	x[1][0] y[1][1]
 	// [2][...]	empty
 	// [3][...]	empty
 } as_push_const_buffer_screen_object;
@@ -210,6 +210,12 @@ typedef enum as_screen_object_type
 	AS_SO_TEXT		= 2
 }as_screen_object_type;
 
+#define AS_SCREEN_OBJ_DATA_POS_X_INDEX m[0][0]
+#define AS_SCREEN_OBJ_DATA_POS_Y_INDEX m[0][1]
+#define AS_SCREEN_OBJ_DATA_ROT_X_INDEX m[0][2]
+#define AS_SCREEN_OBJ_DATA_ROT_Y_INDEX m[0][3]
+#define AS_SCREEN_OBJ_DATA_SCALE_X_INDEX m[1][0]
+#define AS_SCREEN_OBJ_DATA_SCALE_Y_INDEX m[1][1]
 typedef struct as_screen_object
 {
 	AS_DECLARE_TYPE;
@@ -309,10 +315,10 @@ extern as_screen_objects_group* as_screen_objects_group_create();
 extern void as_screen_objects_group_destroy(as_screen_objects_group* screen_object_group);
 extern void as_screen_object_set_position(as_screen_object* screen_object, const as_vec2* position);
 extern void as_screen_object_set_rotation(as_screen_object* screen_object, const as_vec2* rotation);
-extern void as_screen_object_set_extent(as_screen_object* screen_object, const as_vec2* extent);
+extern void as_screen_object_set_scale(as_screen_object* screen_object, const as_vec2* scale);
 extern as_vec2 as_screen_object_get_position(const as_screen_object* screen_object);
 extern as_vec2 as_screen_object_get_rotation(const as_screen_object* screen_object);
-extern as_vec2 as_screen_object_get_extent(const as_screen_object* screen_object);
+extern as_vec2 as_screen_object_get_scale(const as_screen_object* screen_object);
 
 extern as_texture* as_texture_make(const char* path);
 extern void as_texture_init(as_texture* texture, const char* path);

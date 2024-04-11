@@ -1,3 +1,4 @@
+// Abstract Shader Engine - Jed Fakhfekh - https://github.com/ougi-washi
 #include "as_2d_layout.glsl"
 
 #define FONT_TEXTURE_SUB_X 16
@@ -16,4 +17,3 @@ layout(location = 0) out vec4 out_color;
 int get_text_length() { return int(ubo.custom_info[0][0]); }
 int get_text_font_size() { return int(ubo.custom_info[0][1]); }
 float get_text_spacing() { return ubo.custom_info[0][2] * FONT_CHAR_SCALE_XY.x; }
-

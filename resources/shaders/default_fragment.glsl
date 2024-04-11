@@ -4,7 +4,7 @@
 
 #include "core/as_common.glsl"
 #include "core/as_fragment_layout.glsl"
-#include "as_sdf.glsl"
+#include "sdf/as_sdf.glsl"
 
 sdf_result sdf_scene(vec3 p)
 {

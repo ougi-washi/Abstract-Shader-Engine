@@ -29,39 +29,40 @@ as_shape as_generate_triangle()
     return triangle;
 }
 
-as_shape as_generate_quad() 
+as_shape* as_generate_quad() 
 {
-    as_shape quad;
-    quad.vertices_size = 4;
-    quad.indices_size = 6;
+    as_shape* quad = AS_MALLOC_SINGLE(as_shape);
+    quad->vertices_size = 4;
+    quad->indices_size = 6;
 
-    quad.vertices[0].position = (as_vec3){-0.5f, -0.5f, 0.0f};
-    quad.vertices[0].normal = (as_vec3){0.0f, 0.0f, 1.0f};
-    quad.vertices[0].color = (as_vec3){1.0f, 0.0f, 0.0f};
-    quad.vertices[0].tex_coord = (as_vec2){0.0f, 0.0f};
+    quad->vertices[0].position = (as_vec3){-0.5f, -0.5f, 0.0f};
+    quad->vertices[0].normal = (as_vec3){0.0f, 0.0f, 1.0f};
+    quad->vertices[0].color = (as_vec3){1.0f, 0.0f, 0.0f};
+    quad->vertices[0].tex_coord = (as_vec2){0.0f, 0.0f};
 
-    quad.vertices[1].position = (as_vec3){0.5f, -0.5f, 0.0f};
-    quad.vertices[1].normal = (as_vec3){0.0f, 0.0f, 1.0f};
-    quad.vertices[1].color = (as_vec3){0.0f, 1.0f, 0.0f};
-    quad.vertices[1].tex_coord = (as_vec2){1.0f, 0.0f};
+    quad->vertices[1].position = (as_vec3){0.5f, -0.5f, 0.0f};
+    quad->vertices[1].normal = (as_vec3){0.0f, 0.0f, 1.0f};
+    quad->vertices[1].color = (as_vec3){0.0f, 1.0f, 0.0f};
+    quad->vertices[1].tex_coord = (as_vec2){1.0f, 0.0f};
 
-    quad.vertices[2].position = (as_vec3){0.5f, 0.5f, 0.0f};
-    quad.vertices[2].normal = (as_vec3){0.0f, 0.0f, 1.0f};
-    quad.vertices[2].color = (as_vec3){0.0f, 0.0f, 1.0f};
-    quad.vertices[2].tex_coord = (as_vec2){1.0f, 1.0f};
+    quad->vertices[2].position = (as_vec3){0.5f, 0.5f, 0.0f};
+    quad->vertices[2].normal = (as_vec3){0.0f, 0.0f, 1.0f};
+    quad->vertices[2].color = (as_vec3){0.0f, 0.0f, 1.0f};
+    quad->vertices[2].tex_coord = (as_vec2){1.0f, 1.0f};
 
-    quad.vertices[3].position = (as_vec3){-0.5f, 0.5f, 0.0f};
-    quad.vertices[3].normal = (as_vec3){0.0f, 0.0f, 1.0f};
-    quad.vertices[3].color = (as_vec3){0.5f, 0.5f, 0.5f};
-    quad.vertices[3].tex_coord = (as_vec2){0.0f, 1.0f};
+    quad->vertices[3].position = (as_vec3){-0.5f, 0.5f, 0.0f};
+    quad->vertices[3].normal = (as_vec3){0.0f, 0.0f, 1.0f};
+    quad->vertices[3].color = (as_vec3){0.5f, 0.5f, 0.5f};
+    quad->vertices[3].tex_coord = (as_vec2){0.0f, 1.0f};
 
-    quad.indices[0] = 0;
-    quad.indices[1] = 1;
-    quad.indices[2] = 2;
-    quad.indices[3] = 2;
-    quad.indices[4] = 3;
-    quad.indices[5] = 0;
+    quad->indices[0] = 0;
+    quad->indices[1] = 1;
+    quad->indices[2] = 2;
+    quad->indices[3] = 2;
+    quad->indices[4] = 3;
+    quad->indices[5] = 0;
 
+	AS_SET_VALID(quad);
     return quad;
 }
 
@@ -82,16 +83,25 @@ as_shape* as_generate_cube()
         {-0.5f, 0.5f, 0.5f},
     };
 
-    uint32_t indices[] = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        0, 4, 7, 7, 3, 0,
-        1, 5, 6, 6, 2, 1,
-        0, 1, 5, 5, 4, 0,
-        2, 3, 7, 7, 6, 2,
+    u32 indices[] = {
+        2, 1, 0, 3, 2, 0,   // Front face (reverted)
+        6, 5, 4, 7, 6, 4,   // Back face (reverted)
+        0, 3, 7, 7, 4, 0,   // Left face (inverted)
+        1, 5, 6, 6, 2, 1,   // Right face (inverted)
+        1, 0, 4, 4, 5, 1,   // Bottom face (reverted)
+        7, 3, 2, 2, 6, 7    // Top face (reverted)
     };
 
-    for (int i = 0; i < 8; i++)
+//  u32 indices[] = {
+//         0, 1, 2, 2, 3, 0,
+//         4, 5, 6, 6, 7, 4,
+//         0, 4, 7, 7, 3, 0,
+//         1, 5, 6, 6, 2, 1,
+//         0, 1, 5, 5, 4, 0,
+//         2, 3, 7, 7, 6, 2,
+//     };
+
+    for (sz i = 0; i < 8; i++)
     {
         cube->vertices[i].position = vertices[i];
         cube->vertices[i].normal = as_vec3_get_normal(&vertices[i]);
@@ -99,7 +109,7 @@ as_shape* as_generate_cube()
         cube->vertices[i].tex_coord = (as_vec2){0.0f, 0.0f};
     }
 
-    for (int i = 8; i < 24; i += 4)
+    for (sz i = 8; i < 24; i += 4)
     {
         cube->vertices[i] = cube->vertices[i - 8];
         cube->vertices[i + 1] = cube->vertices[i - 7];
@@ -108,7 +118,7 @@ as_shape* as_generate_cube()
     }
 
     // Set indices
-    for (int i = 0; i < 36; i++)
+    for (sz i = 0; i < 36; i++)
     {
         cube->indices[i] = indices[i];
     }
