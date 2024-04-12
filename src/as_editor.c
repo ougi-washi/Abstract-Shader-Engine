@@ -8,6 +8,8 @@
 #define AS_PATH_EDITOR_SAND_VERT_SHADER 	"../resources/shaders/editor/editor_sand_vert.glsl"
 #define AS_PATH_EDITOR_SAND_FRAG_SHADER 	"../resources/shaders/editor/editor_sand_frag.glsl"
 
+#define AS_PATH_EDITOR_SAND_TEX_SHADER		"../resources/textures/editor/rawpixel_sand_mask.jpg"
+
 void as_rotate_object1(as_object* object, const f64 delta_time)
 {
 	as_object_set_translation(object, AS_VEC_PTR(as_vec3, 0., -cos(as_get_time() * .5) * 1., 0.));
@@ -40,7 +42,9 @@ void as_editor_set_default_scene()
 	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, 30.f, -23.f, 5.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 10.f));
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
+	as_texture* sand_texture = as_texture_create(AS_PATH_EDITOR_SAND_TEX_SHADER);
 	as_shader* shader_sand = as_shader_create(AS_PATH_EDITOR_SAND_VERT_SHADER, AS_PATH_EDITOR_SAND_FRAG_SHADER);
+	as_assign_texture_to_shader(shader_sand, sand_texture);
 	
 	as_shape* shape_sphere_sand = as_generate_sphere(1., 10, 10);
 	as_asset_register(shape_sphere_sand, AS_ASSET_TYPE_SHAPE); // registering it as asset to make sure it's cleared when shutting down the engine 
@@ -48,18 +52,13 @@ void as_editor_set_default_scene()
 	as_object* object_sand = as_object_create(shape_sphere_sand, shader_sand);
 	as_object_set_scale(object_sand, AS_VEC_PTR(as_vec3, 30., 30., 30.));
 
-	//as_texture* texture = as_texture_create(AS_PATH_DEFAULT_TEXTURE);
-	//as_screen_object* screen_obj_test = as_screen_object_create(NULL);
-	//as_assign_texture_to_screen_object(screen_obj_test, texture);
-	
 	as_texture* font_texture = as_texture_create(AS_PATH_DEFAULT_UI_TEXT_TEXTURE);
+
 	as_ui_text* engine_title_text = as_ui_text_create("Abstract shader engine", 10, 2.5f, font_texture);
 	as_screen_object_set_position(engine_title_text, AS_VEC_PTR(as_vec2, 1.f, .1f));
 	as_screen_object_set_scale(engine_title_text, AS_VEC_PTR(as_vec2, .4f, .6f));
 
-
 	as_ui_text* fps_text = as_ui_text_create_with_tick("fps: -", 10, 2.5f, font_texture, &as_update_ui_text_fps);
-	//as_ui_text* fps_text =  as_ui_text_create("Abstract", 10, 2.5f, font_texture);
 	as_screen_object_set_position(fps_text, AS_VEC_PTR(as_vec2, .06f, .06f));
 	as_screen_object_set_scale(fps_text, AS_VEC_PTR(as_vec2, .25f, .4f));
 }

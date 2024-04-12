@@ -363,7 +363,7 @@ sz as_assign_texture_to_screen_object(as_screen_object* object, as_texture* text
 sz as_assign_texture_to_shader(as_shader* shader, as_texture* texture)
 {
 	sz index = as_shader_add_uniform_texture(&shader->uniforms, texture);
-	as_shader_update(engine.render, shader);
+	as_rq_shader_update(engine.render_queue, engine.render, shader);
 	return index;
 }
 

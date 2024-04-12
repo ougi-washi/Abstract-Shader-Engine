@@ -6,8 +6,9 @@
 #include "../core/as_fragment_layout.glsl"
 #include "../sdf/as_sdf.glsl"
 
-// Inspired by IQ and Shane
+layout(binding = 1) uniform sampler2D sand_mask_texture;
 
+// Inspired by IQ and Shane
 mat2 rot2(in float a){ float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
 
 // 3x1 hash function.
@@ -121,19 +122,23 @@ sdf_result sdf_scene(vec3 p)
         if (i == 0)
         {
             vec3 sand_p = p - get_object_position(i);
-            float sand_noise = sand_mask(sand_p.xy);
-            obj_dist = sdf_sand(sand_p, sand_noise * .1);
-            sphere_color =  vec3(0.6392, 0.3961, 0.1961) * light_color * sand_noise;
+            // float sand_noise = sand_mask(sand_p.xy);
+            //vec4 sand_texture = texture(sand_mask_texture, (sand_p.xy + .5) * 3.5);
+            // float sand_noise = pow(smoothstep(-2., 2., max(max(sand_texture.x, sand_texture.y), sand_texture.y)), 2.);
+            float sand_noise = pow(fBm(sand_p.xy * 3.5), 7.);
+            obj_dist = sdf_sand(sand_p, sand_noise);
+
+            sphere_color =  vec3(0.6392, 0.3961, 0.1961) * smoothstep(-.05, .1, sand_noise) ;
         }
         else if (i == 1)
         {
             obj_dist = sd_sphere(p - get_object_position(i), 0.6);
-            sphere_color =   vec3(0., 1., 0.);
+            sphere_color = vec3(0., 1., 0.);
         }   
         else if (i == 2)
         {
             obj_dist = sd_sphere(p - get_object_position(i), 0.3);
-            sphere_color =   vec3(0., .0, 1.);
+            sphere_color = vec3(0., .0, 1.);
         }
         float color_weight = 1. - smoothstep(0.0, 1., obj_dist);
         blended_dist = op_smooth_union(blended_dist, obj_dist, 1.);
