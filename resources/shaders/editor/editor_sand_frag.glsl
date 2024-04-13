@@ -109,6 +109,7 @@ float sdf_sand(vec3 p, float noise)
 
 sdf_result sdf_scene(vec3 p)
 {
+    
     vec3 light_dir = vec3(1, -20, 10);
     float light_mask = dot(frag_normal.xyz, light_dir);
     vec3 light_color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003);
@@ -117,29 +118,24 @@ sdf_result sdf_scene(vec3 p)
     vec3 blended_color = vec3(0.);
     for (int i = 0 ; i < get_object_count() ; i++)
     {
+        vec3 sdf_pos = p - get_object_position(i);
         float obj_dist = SDF_MAX_DIST;
         vec3 sphere_color = vec3(0.);
-        if (i == 0)
+        if (i == 0) // sand
         {
-            vec3 sand_p = p - get_object_position(i);
             // float sand_noise = sand_mask(sand_p.xy);
             //vec4 sand_texture = texture(sand_mask_texture, (sand_p.xy + .5) * 3.5);
             // float sand_noise = pow(smoothstep(-2., 2., max(max(sand_texture.x, sand_texture.y), sand_texture.y)), 2.);
-            float sand_noise = pow(fBm(sand_p.xy * 3.5), 7.);
-            obj_dist = sdf_sand(sand_p, sand_noise);
-
-            sphere_color =  vec3(0.6392, 0.3961, 0.1961) * smoothstep(-.05, .1, sand_noise) ;
+            float wind_influence = fBm(sdf_pos.xy * 5. + (get_current_time() * vec2(-.18, .2)));
+            float sand_noise = pow(fBm(sdf_pos.xy * 3.5), 7.);
+            obj_dist = sdf_sand(sdf_pos, sand_noise);
+            sphere_color =  vec3(0.6392, 0.3961, 0.1961) * smoothstep(-.05, .1, sand_noise) * wind_influence;
         }
         else if (i == 1)
         {
-            obj_dist = sd_sphere(p - get_object_position(i), 0.6);
-            sphere_color = vec3(0., 1., 0.);
-        }   
-        else if (i == 2)
-        {
-            obj_dist = sd_sphere(p - get_object_position(i), 0.3);
-            sphere_color = vec3(0., .0, 1.);
+            
         }
+
         float color_weight = 1. - smoothstep(0.0, 1., obj_dist);
         blended_dist = op_smooth_union(blended_dist, obj_dist, 1.);
         blended_color = mix(blended_color, sphere_color, color_weight);

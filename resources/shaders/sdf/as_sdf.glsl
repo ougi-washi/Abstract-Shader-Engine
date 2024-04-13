@@ -2,7 +2,7 @@
 
 #include "as_sdf_shapes.glsl"
 
-#define SDF_MIN_DIST 0.001
+#define SDF_MIN_DIST .1
 #define SDF_MAX_DIST 100000
 #define SDF_MAX_MARCHING_STEPS 64
 #define SDF_EPSILON .001
