@@ -2,10 +2,10 @@
 
 #include "as_sdf_shapes.glsl"
 
-#define SDF_MIN_DIST .1
+#define SDF_MIN_DIST 0.1
 #define SDF_MAX_DIST 100000
-#define SDF_MAX_MARCHING_STEPS 64
-#define SDF_EPSILON .001
+#define SDF_MAX_MARCHING_STEPS 100
+#define SDF_EPSILON .0001
 
 struct sdf_result
 {

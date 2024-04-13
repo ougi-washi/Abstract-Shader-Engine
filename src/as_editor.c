@@ -40,7 +40,7 @@ void as_editor_set_default_scene()
 	as_scene* editor_scene = as_scene_create(as_engine_get_render(), AS_PATH_EDITOR_DEFAULT_SCENE);
 	as_engine_set_scene(editor_scene);
 
-	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, 30.f, -23.f, 5.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 10.f));
+	as_camera* camera = as_camera_create(AS_VEC_PTR(as_vec3, -30.f, -16.f, 0.f), AS_VEC_PTR(as_vec3, 0.f, 0.f, 10.f));
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
 #pragma region SCENE
