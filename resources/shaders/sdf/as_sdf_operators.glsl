@@ -99,6 +99,10 @@ float op_smooth_intersection( float d1, float d2, float k )
     return mix( d2, d1, h ) + k*h*(1.0-h);
 }
 
+mat3 op_rotate_x(float a){float sa = sin(a); float ca = cos(a); return mat3(vec3(1.,.0,.0),    vec3(.0,ca,sa),   vec3(.0,-sa,ca));}
+mat3 op_rotate_y(float a){float sa = sin(a); float ca = cos(a); return mat3(vec3(ca,.0,sa),    vec3(.0,1.,.0),   vec3(-sa,.0,ca));}
+mat3 op_rotate_z(float a){float sa = sin(a); float ca = cos(a); return mat3(vec3(ca,sa,.0),    vec3(-sa,ca,.0),  vec3(.0,.0,1.));}
+
 //////////////////////////////
 //////////////////////////////
 //////////////////////////////

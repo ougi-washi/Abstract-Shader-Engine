@@ -33,5 +33,5 @@ void main()
         text_opacity += get_char(position, int(get_2d_data(i)));
         position.x += get_text_spacing(); 
     }
-    out_color = vec4(0.5, 0.3, 1.0, text_opacity);
+    out_color = vec4(1., 0., 0., text_opacity);
 }
