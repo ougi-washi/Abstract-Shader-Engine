@@ -4,6 +4,10 @@ A small vulkan engine for generating scenes with SDF and shapes.
 
 [Full video](https://www.youtube.com/watch?v=tBGiiRAWWSA)
 
+![](docs/gifs/instance_sdf_001.gif)
+
+[Full video](https://youtu.be/t9NroLUA1OM)
+
 ## Functionalities
 - SDF library (3D and 2D)
 - SDF interaction (eg. smooth union) between different object meshes 
