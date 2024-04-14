@@ -1,6 +1,7 @@
 # Abstract Shader Engine
 A small vulkan engine for generating scenes with SDF and shapes.
 ![](docs/gifs/scene_sample_001.gif)
+[Full video](https://www.youtube.com/watch?v=tBGiiRAWWSA)
 
 ## Functionalities
 - SDF library (3D and 2D)
