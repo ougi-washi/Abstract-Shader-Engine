@@ -8,8 +8,14 @@
 
 sdf_result sdf_scene(vec3 p)
 {
+    p *= op_rotate_x(get_current_time());
+    p *= op_rotate_y(get_current_time());
+    p *= op_rotate_z(get_current_time());
+
     vec3 sdf_pos = get_current_object_position() - p;
-    return sdf_result(p, frag_normal.xyz, sd_sphere(sdf_pos, .5));
+    float sphere_dist = sd_sphere(sdf_pos, .5);
+    float pyramid_dist = sd_round_box(sdf_pos, vec3(.5), .03);
+    return sdf_result(p, frag_normal.xyz, mix(pyramid_dist, sphere_dist, abs(sin(get_current_time() * .2))));
 }
 
 void main()

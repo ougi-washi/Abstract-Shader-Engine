@@ -4,7 +4,7 @@
 #include "core/as_render.h"
 #include "as_engine.h"
 
-#define AS_PERFORMANCE_SCENE 1
+#define AS_PERFORMANCE_SCENE 0
 
 i32 main()
 {

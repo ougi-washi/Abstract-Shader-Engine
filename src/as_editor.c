@@ -88,7 +88,7 @@ void as_editor_set_performance_scene()
 	as_camera_set_view(camera, AS_CAMERA_FREE);
 
 #pragma region SCENE
-	as_shape* shape_sphere = as_generate_sphere(1., 8, 8);
+	as_shape* shape_sphere = as_generate_sphere(2., 4., 4.);
 	as_asset_register(shape_sphere, AS_ASSET_TYPE_SHAPE); // registering it as asset to make sure it's cleared when shutting down the engine 
 
 	as_shader* shader_default = as_shader_create(AS_PATH_EDITOR_DEFAULT_VERT_SHADER, AS_PATH_EDITOR_DEFAULT_FRAG_SHADER);
