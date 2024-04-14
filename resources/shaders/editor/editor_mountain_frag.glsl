@@ -37,20 +37,15 @@ float sdf_mountain(vec3 p, float noise)
 
 sdf_result sdf_scene(vec3 p)
 {
-    
-    vec3 light_dir = vec3(1, -20, 10);
-    float light_mask = dot(frag_normal.xyz, light_dir);
-    vec3 light_color = vec3(clamp(smoothstep(.1, 30., light_mask), 0., 1.) + .003);
-
     float blended_dist = SDF_MAX_DIST;
     vec3 blended_color = vec3(0.);
 
-    vec3 sdf_pos = p - get_current_object_position() + vec3(.0, .0, .1);
+    vec3 sdf_pos = p - get_current_object_position() + vec3(.0, .0, .13);
     float obj_dist = SDF_MAX_DIST;
     vec3 sphere_color = vec3(0.);
     
     float wind_influence = fBm(sdf_pos.xy * 30. + (get_current_time() * vec2(-.18, .2)));
-    float mountain_noise_main = pow(fBm(sdf_pos.xy * 4.5), 7.) * 3.;
+    float mountain_noise_main = pow(fBm(sdf_pos.xy * 4.7), 7.) * 3.5;
     float mountain_noise_secondary = pow(fBm(sdf_pos.xy * 75.5 + wind_influence * 1.), 8.) * 2.;
     float sdf_mountain_main = sdf_mountain(sdf_pos, mountain_noise_main);
     float sdf_mountain_secondary = sdf_mountain(sdf_pos, mountain_noise_secondary);
