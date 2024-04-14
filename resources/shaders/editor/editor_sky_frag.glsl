@@ -32,8 +32,8 @@ float fBm(in vec2 p)
 
 float sdf_sky(vec3 p, float noise)
 {
-    return sd_plane(p, vec3(.0, .0, 1.), 1);
-    // return sd_sphere(p, .1 + noise);
+    // return sd_plane(p, vec3(.0, .0, 1.), 1);
+    return sd_box(p, vec3(.5, .5, noise - .1));
 }
 
 sdf_result sdf_scene(vec3 p)
@@ -46,19 +46,18 @@ sdf_result sdf_scene(vec3 p)
     float blended_dist = SDF_MAX_DIST;
     vec3 blended_color = vec3(0.);
 
-    vec3 sdf_pos = p - get_current_object_position();
+    vec3 sdf_pos = p - get_current_object_position() - vec3(.0, .0, .1);
     float obj_dist = SDF_MAX_DIST;
     vec3 sphere_color = vec3(0.);
     
-    float wind_influence = fBm(sdf_pos.xy * 20. + (get_current_time() * vec2(-.18, .2)));
+    float wind_influence = fBm(sdf_pos.xy * 20. + (get_current_time() * vec2(-.18, .2))) + .3;
     float sky_noise_main = pow(fBm(sdf_pos.xy * 2.5), 7.) * 2.;
-    float sky_noise_secondary = pow(fBm(sdf_pos.xy * 8.5 + wind_influence * 1.), 7.) * 4.;
+    float sky_noise_secondary = pow(fBm(sdf_pos.xy * 15.5 + wind_influence * 10.), 7.) * .9;
     float sdf_sky_main = sdf_sky(sdf_pos, sky_noise_main);
     float sdf_sky_secondary = sdf_sky(sdf_pos, sky_noise_secondary);
     
-    // obj_dist = op_subtraction(sd_sphere(sdf_pos, 0.9), sdf_sky_main);
     obj_dist = op_smooth_union(sdf_sky_main, sdf_sky_secondary, .5);
-    sphere_color = vec3(0.1, 0.4, 0.9) * smoothstep(-.01, .06, sky_noise_main + sky_noise_secondary) * pow(wind_influence, 2.);
+    sphere_color = mix( vec3(0.1, 0.4, 1.), vec3(.7, .9, 1.) * 30., sky_noise_secondary) * smoothstep(-.01, .02, sky_noise_main + sky_noise_secondary) * pow(wind_influence, 2.);
         
     float color_weight = 1. - smoothstep(0.0, 1., obj_dist);
     blended_dist = op_smooth_union(blended_dist, obj_dist, 1.);

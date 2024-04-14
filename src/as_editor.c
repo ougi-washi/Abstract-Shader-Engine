@@ -57,12 +57,12 @@ void as_editor_set_default_scene()
 	as_shader* shader_mountain = as_shader_create(AS_PATH_EDITOR_DEFAULT_VERT_SHADER, AS_PATH_EDITOR_MOUNTAIN_FRAG_SHADER);
 	as_object* object_mountain = as_object_create(shape_sphere, shader_mountain);
 	as_object_set_scale(object_mountain, AS_VEC_PTR(as_vec3, 40., 40., 40.));
-	as_object_set_translation(object_mountain, AS_VEC_PTR(as_vec3, 10., 0., -1.));
+	as_object_set_translation(object_mountain, AS_VEC_PTR(as_vec3, 10., 0., -3.));
 
 	as_shader* shader_sky = as_shader_create(AS_PATH_EDITOR_DEFAULT_VERT_SHADER, AS_PATH_EDITOR_SKY_FRAG_SHADER);
 	as_object* object_sky = as_object_create(shape_sphere, shader_sky);
 	as_object_set_scale(object_sky, AS_VEC_PTR(as_vec3, 200., 200., 200.));
-	as_object_set_translation(object_sky, AS_VEC_PTR(as_vec3, 180., 0., -60.));
+	as_object_set_translation(object_sky, AS_VEC_PTR(as_vec3, 180., 0., -40.));
 #pragma endregion SCENE
 
 #pragma region UI

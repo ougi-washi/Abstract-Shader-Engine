@@ -57,7 +57,9 @@ sdf_result sdf_scene(vec3 p)
     
     // obj_dist = op_subtraction(sd_sphere(sdf_pos, 0.9), sdf_mountain_main);
     obj_dist = op_smooth_union(sdf_mountain_main, sdf_mountain_secondary, .5);
-    sphere_color = vec3(0.0118, 0.8706, 0.0118) * smoothstep(-.01, .06, mountain_noise_main + mountain_noise_secondary) * pow(wind_influence, 2.);
+    sphere_color = mix( vec3(1.0, 0.549, 0.0), vec3(0.0118, 0.8706, 0.0118), (mountain_noise_main + mountain_noise_secondary) * 8.5) 
+                    * pow(smoothstep(-.01, .5, mountain_noise_main + mountain_noise_secondary + .05) * 4., 2.) 
+                    * pow(wind_influence, 2.);
         
     float color_weight = 1. - smoothstep(0.0, 1., obj_dist);
     blended_dist = op_smooth_union(blended_dist, obj_dist, 1.);
