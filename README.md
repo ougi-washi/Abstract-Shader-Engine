@@ -10,7 +10,7 @@ A small vulkan engine for generating scenes with SDF and shapes.
 
 ## Functionalities
 - SDF library (3D and 2D)
-- SDF interaction (eg. smooth union) between different object meshes 
+- SDF interaction (eg. smooth union between different object meshes in separate drawcalls)
 - Shader monitors (runtime shader recompilation)
 - Shader serialization (caching)
 - Text (ASCII only, shaders approach)
@@ -29,3 +29,14 @@ A small vulkan engine for generating scenes with SDF and shapes.
 ## Requirements
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
 - [CMake](https://cmake.org/download/)
+
+## TODO
+- Finish porting to Linux
+- Audio input/output
+- Rework command buffers to have a more cache-aligned draw call
+- Finish scene serialization
+- Improve clean-ups when exiting (memory leaks)
+- Add more functions to the console command
+- Add helper functionality/auto-complete to the console command
+- Set up a proper `tests/` folder with multiple examples
+- LOD system
