@@ -69,9 +69,9 @@ void as_command_create_shader(const char* vertex_shader_path, const char* fragme
 
 void as_command_create_sphere(const char* size, const char* latitude_divisions, const char* longitude_divisions)
 {
-	AS_WARNING_RETURN_IF_FALSE(size, "Cannot create sphere, invalid size argument");
-	AS_WARNING_RETURN_IF_FALSE(latitude_divisions, "Cannot create sphere, invalid latitude_divisions argument");
-	AS_WARNING_RETURN_IF_FALSE(longitude_divisions, "Cannot create sphere, invalid longitude_divisions argument");
+	AS_WARNING_RETURN_IF_FALSE(size, "Cannot create sphere, invalid size argument", 0);
+	AS_WARNING_RETURN_IF_FALSE(latitude_divisions, "Cannot create sphere, invalid latitude_divisions argument", 0);
+	AS_WARNING_RETURN_IF_FALSE(longitude_divisions, "Cannot create sphere, invalid longitude_divisions argument", 0);
 
 	const f32 size_float = atof(size);
 	const i32 latitude_divisions_int = atoi(latitude_divisions);

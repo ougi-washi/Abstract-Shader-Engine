@@ -148,3 +148,4 @@ static const sz _name##_max = _capacity;
     do { sz _out_index = -1;                                                    \
          AS_STATIC_ARRAY_FIND_PTR(_array, _ptr, _out_index);                    \
          AS_STATIC_ARRAY_REMOVE(_array, _out_index); } while(0)
+

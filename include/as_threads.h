@@ -11,7 +11,7 @@ typedef HANDLE as_thread;
 typedef DWORD as_thread_id;
 #elif PLATFORM_LINUX || PLATFORM_UNIX
 #include <stdlib.h>
-#include <pthreads.h>
+#include <pthread.h>
 typedef pthread_t as_thread;
 typedef pid_t as_thread_id;
 #endif

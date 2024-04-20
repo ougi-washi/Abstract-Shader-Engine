@@ -78,6 +78,7 @@ memset(_struct, 0, sizeof(_type) * _array_size);
 HANDLE printf_mutex;
 #elif PLATFORM_LINUX || PLATFORM_UNIX
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/syscall.h>
 pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -87,7 +88,7 @@ pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define END_LOG() ReleaseMutex(printf_mutex);
 #elif PLATFORM_LINUX || PLATFORM_UNIX
 #define START_LOG() pthread_mutex_lock(&printf_mutex);
-#deifne END_LOG() pthread_mutex_unlock(&printf_mutex);
+#define END_LOG() pthread_mutex_unlock(&printf_mutex);
 #endif
 
 typedef enum log_level { LV_LOG = 0, LV_WARNING = 1, LV_ERROR = 2 } log_level;

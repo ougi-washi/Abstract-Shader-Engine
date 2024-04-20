@@ -57,7 +57,9 @@ if(NOT Vulkan_FOUND)
 endif()
 
 # Add any required preprocessor definitions here
-add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
+if(WIN32)
+	add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
+endif()
 # vulkan-1 library for build Vulkan application.
 set(VULKAN_LIB_LIST "vulkan-1")
 include_directories(AFTER ${VULKAN_PATH}/Include)

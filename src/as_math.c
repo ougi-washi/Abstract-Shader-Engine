@@ -369,7 +369,7 @@ as_mat4 as_mat4_perspective(const f32 fov, const f32 aspect, const f32 near_plan
 		{1.0f / (aspect * tan_half_fov),	0.0f,					0.0f,													0.0f},
 		{0.0f,								1.0f / tan_half_fov,	0.0f,													0.0f},
 		{0.0f,								0.0f,					(far_plane + near_plane) / (near_plane - far_plane),	-1.0f},
-		{0.0f,								0.0f,					(2.0f * far_plane * near_plane) / (near - far_plane),	0.0f},
+		{0.0f,								0.0f,					(2.0f * far_plane * near_plane) / (near_plane - far_plane),	0.0f},
 	} };
 	return result;
 }
