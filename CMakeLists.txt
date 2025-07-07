@@ -19,8 +19,9 @@ endif()
 # Directory setup
 set(LIB_DIR "lib")
 set(SRC_DIR "src")
-set(STRATS_DIR "examples")
 set(BIN_DIR "bin")
+set(RESOURCES_DIR "resources")
+set(EXAMPLES_DIR "examples")
 
 # GLSL
 find_package(OpenGL REQUIRED)
@@ -33,14 +34,13 @@ add_subdirectory(${LIB_DIR}/glfw)
 message(STATUS "Adding STB library")
 include_directories(${LIB_DIR}/stb)
 
-
 # setup library macro
 macro(setup_library arg_lib_name arg_source_path arg_include_path)
 	message(STATUS "Adding ${arg_lib_name}")
 	file(GLOB CURRENT_SRC_FILES	"${arg_source_path}/*.c" 
-								"${arg_source_path}/*.cpp"
-								"${arg_source_path}/**/*.c" 
-								"${arg_source_path}/**/*.cpp")
+					"${arg_source_path}/*.cpp"
+					"${arg_source_path}/**/*.c" 
+					"${arg_source_path}/**/*.cpp")
 	add_library(${arg_lib_name} STATIC	${CURRENT_SRC_FILES})
 	target_include_directories(${arg_lib_name} PUBLIC ${arg_include_path})
 endmacro()
@@ -58,21 +58,18 @@ macro(setup_executable arg_exec_dir arg_exec_name modules)
                             RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})
 endmacro()
 
-file(GLOB STRATEGIES	"${STRATS_DIR}/*.c" 
-                        "${STRATS_DIR}/*.cpp"
-                        "${STRATS_DIR}/**/*.c" 
-                        "${STRATS_DIR}/**/*.cpp")
+file(GLOB EXAMPLES 	"${EXAMPLES_DIR}/*.c" 
+			"${EXAMPLES_DIR}/*.cpp"
+			"${EXAMPLES_DIR}/**/*.c" 
+			"${EXAMPLES_DIR}/**/*.cpp")
 
-foreach(STRATEGY ${STRATEGIES})
-    get_filename_component(STRATEGY_NAME ${STRATEGY} NAME_WE)
-    message(STATUS "Adding strategy ${STRATEGY_NAME}")
-    setup_executable(${STRATS_DIR} ${STRATEGY_NAME} main_module)
+foreach(EXAMPLE ${EXAMPLES})
+   	get_filename_component(EXAMPLE_NAME ${EXAMPLE} NAME_WE)
+   	message(STATUS "Adding strategy ${EXAMPLE_NAME}")
+   	setup_executable(${EXAMPLES_DIR} ${EXAMPLE_NAME} main_module)
 endforeach()
 
-# Add shaders and models to build tree
-file(GLOB SHADERS "${CMAKE_SOURCE_DIR}/*.glsl")
-file(GLOB MODELS "${CMAKE_SOURCE_DIR}/*.obj")
-foreach(_file IN LISTS SHADERS MODELS)
-    configure_file(${_file} ${_file} COPYONLY)
-endforeach()
+# Copy resources
+file(COPY ${RESOURCES_DIR} DESTINATION ${PROJECT_SOURCE_DIR}/${BIN_DIR})
+
 

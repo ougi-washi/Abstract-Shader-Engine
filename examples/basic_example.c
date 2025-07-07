@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "engine.h"
+#include "src/engine.h"
 
 int main(int argc, char **argv) {
-    const char *vert_path = "vert.glsl";
-    const char *frag_path = "frag.glsl";
-    const char *obj_path  = "model.obj";
+    const char *vert_path = "resources/vert.glsl";
+    const char *frag_path = "resources/frag.glsl";
+    const char *obj_path  = "resources/model.obj";
 
     if (!glfwInit()) {
         fprintf(stderr, "Failed to initialize GLFW\n");
