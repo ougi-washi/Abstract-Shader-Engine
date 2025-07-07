@@ -1,63 +1,201 @@
-#include <GLFW/glfw3.h>
+#include "src/engine.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include "src/engine.h"
+#include <math.h>
 
-int main(int argc, char **argv) {
-    const char *vert_path = "resources/vert.glsl";
-    const char *frag_path = "resources/frag.glsl";
-    const char *obj_path  = "resources/model.obj";
 
-    if (!glfwInit()) {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        return 1;
+int main() {
+    engine_t engine;
+    
+    // Initialize the engine
+    if (!engine_init(&engine, 1280, 720, "Abstract Shader Engine")) {
+        fprintf(stderr, "Failed to initialize engine\n");
+        return -1;
     }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+    printf("Engine initialized successfully!\n");
+    printf("Controls:\n");
+    printf("  ESC - Exit\n");
+    printf("  R - Reload shaders\n");
+    printf("  1-4 - Switch render buffers\n");
+    printf("  SPACE - Toggle wireframe mode\n");
+    
+    // Create example shader files
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "GLFW Engine", NULL, NULL);
-    if (!window) {
-        fprintf(stderr, "Failed to create GLFW window\n");
-        glfwTerminate();
-        return 1;
+    // Load a custom shader for hot-reloading
+    shader_t custom_shader = {0};
+    bool use_custom_shader = false;
+    
+    if (shader_load(&custom_shader, "/resources/vert.glsl", "/resources/frag.glsl")) {
+        printf("Custom shader loaded successfully!\n");
+        use_custom_shader = true;
+        
+        // Add custom shader to engine's shader list
+        engine.shaders = realloc(engine.shaders, (engine.shader_count + 1) * sizeof(shader_t));
+        engine.shaders[engine.shader_count] = custom_shader;
+        engine.shader_count++;
     }
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-
-    if (engine_init() != 0) {
-        fprintf(stderr, "Engine initialization failed\n");
-        return 1;
+    
+    // Create some render buffers
+    render_buffer_t buffer1, buffer2;
+    if (render_buffer_create(&buffer1, 512, 512)) {
+        printf("Buffer 1 created (512x512)\n");
     }
-
-    mesh_t *mesh = mesh_load_obj(obj_path);
-    shader_program_t *shader = shader_create(vert_path, frag_path);
-
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-            shader_reload(shader);
-
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        glViewport(0, 0, w, h);
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    if (render_buffer_create(&buffer2, 256, 256)) {
+        printf("Buffer 2 created (256x256)\n");
+    }
+    
+    // Load a model (if available)
+    model_t test_model = {0};
+    bool model_loaded = false;
+    if (model_load_obj(&test_model, "/resources/cube.obj")) {
+        printf("Test model loaded successfully!\n");
+        model_loaded = true;
+    }
+    
+    // Set some initial uniforms
+    uniform_set_vec3(&engine, "light_pos", vec3_create(5.0f, 5.0f, 5.0f));
+    uniform_set_vec3(&engine, "camera_pos", vec3_create(0.0f, 0.0f, 3.0f));
+    uniform_set_float(&engine, "metallic", 0.5f);
+    uniform_set_float(&engine, "roughness", 0.3f);
+    
+    int current_buffer = 0;
+    bool wireframe = false;
+    
+    // Main render loop
+    while (!engine_should_close(&engine)) {
+        engine_poll_events(&engine);
+        engine_update(&engine);
+        
+        // Handle keyboard input
+        if (engine.keys[GLFW_KEY_ESCAPE]) {
+            glfwSetWindowShouldClose(engine.window, GLFW_TRUE);
+        }
+        
+        if (engine.keys[GLFW_KEY_R]) {
+            printf("Manually reloading shaders...\n");
+            for (uint32_t i = 0; i < engine.shader_count; i++) {
+                shader_reload_if_changed(&engine.shaders[i]);
+            }
+            engine.keys[GLFW_KEY_R] = false; // Prevent continuous reloading
+        }
+        
+        if (engine.keys[GLFW_KEY_SPACE]) {
+            wireframe = !wireframe;
+            glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+            engine.keys[GLFW_KEY_SPACE] = false;
+        }
+        
+        // Switch between buffers
+        if (engine.keys[GLFW_KEY_1]) current_buffer = 0;
+        if (engine.keys[GLFW_KEY_2]) current_buffer = 1;
+        if (engine.keys[GLFW_KEY_3]) current_buffer = 2;
+        if (engine.keys[GLFW_KEY_4]) current_buffer = 3;
+        
+        // Update some dynamic uniforms
+        uniform_set_vec2(&engine, "mouse_norm", vec2_create(
+            engine.mouse_x / engine.window_width,
+            1.0f - engine.mouse_y / engine.window_height
+        ));
+        
+        uniform_set_float(&engine, "wave_freq", 5.0f + sin(engine.time) * 2.0f);
+        uniform_set_vec3(&engine, "color_shift", vec3_create(
+            sin(engine.time * 0.5f) * 0.5f + 0.5f,
+            cos(engine.time * 0.3f) * 0.5f + 0.5f,
+            sin(engine.time * 0.7f) * 0.5f + 0.5f
+        ));
+        
+        // Render to buffer 1
+        render_buffer_bind(&buffer1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        shader_bind(shader);
-        mesh_draw(mesh);
-        shader_unbind();
-
-        glfwSwapBuffers(window);
+        
+        if (use_custom_shader) {
+            shader_use(&custom_shader);
+            uniform_apply_all(&engine, &custom_shader);
+        } else {
+            shader_use(&engine.default_shader);
+            uniform_apply_all(&engine, &engine.default_shader);
+        }
+        
+        // Render fullscreen quad or model
+        if (model_loaded && engine.keys[GLFW_KEY_M]) {
+            model_render(&test_model);
+        } else {
+            glBindVertexArray(engine.quad_vao);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glBindVertexArray(0);
+        }
+        
+        render_buffer_unbind();
+        
+        // Render to buffer 2 (using buffer 1 as input)
+        render_buffer_bind(&buffer2);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Use buffer 1 as texture input
+        uniform_set_texture(&engine, "texture0", buffer1.texture);
+        
+        shader_use(&engine.default_shader);
+        uniform_apply_all(&engine, &engine.default_shader);
+        
+        glBindVertexArray(engine.quad_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+        
+        render_buffer_unbind();
+        
+        // Render to main screen
+        glViewport(0, 0, engine.window_width, engine.window_height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Choose which buffer to display
+        GLuint display_texture = 0;
+        switch (current_buffer) {
+            case 0: display_texture = 0; break; // No texture (default shader)
+            case 1: display_texture = buffer1.texture; break;
+            case 2: display_texture = buffer2.texture; break;
+            default: display_texture = 0; break;
+        }
+        
+        if (display_texture) {
+            uniform_set_texture(&engine, "texture0", display_texture);
+        }
+        
+        if (use_custom_shader && current_buffer == 0) {
+            shader_use(&custom_shader);
+            uniform_apply_all(&engine, &custom_shader);
+        } else {
+            shader_use(&engine.default_shader);
+            uniform_apply_all(&engine, &engine.default_shader);
+        }
+        
+        glBindVertexArray(engine.quad_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+        
+        engine_swap_buffers(&engine);
+        
+        // Print some debug info occasionally
+        if (engine.frame_count % 300 == 0) {
+            printf("Frame %d, Time: %.2f, FPS: %.1f\n", 
+                   engine.frame_count, engine.time, 1.0 / engine.delta_time);
+        }
     }
-
-    mesh_destroy(mesh);
-    shader_destroy(shader);
-    engine_shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    
+    // Cleanup
+    if (model_loaded) {
+        model_cleanup(&test_model);
+    }
+    
+    render_buffer_cleanup(&buffer1);
+    render_buffer_cleanup(&buffer2);
+    
+    if (use_custom_shader) {
+        shader_cleanup(&custom_shader);
+    }
+    
+    engine_cleanup(&engine);
+    
+    printf("Engine shutdown complete.\n");
     return 0;
 }
