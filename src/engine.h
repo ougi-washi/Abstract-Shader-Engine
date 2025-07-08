@@ -142,6 +142,7 @@ void engine_cleanup(engine_t* engine);
 bool engine_should_close(engine_t* engine);
 void engine_update(engine_t* engine);
 void engine_render(engine_t* engine);
+void engine_clear();
 void engine_swap_buffers(engine_t* engine);
 void engine_poll_events(engine_t* engine);
 

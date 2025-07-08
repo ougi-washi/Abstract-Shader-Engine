@@ -184,6 +184,10 @@ void engine_render(engine_t* engine) {
     glBindVertexArray(0);
 }
 
+void engine_clear(){
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
 void engine_swap_buffers(engine_t* engine) {
     glfwSwapBuffers(engine->window);
 }

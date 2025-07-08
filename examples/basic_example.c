@@ -5,13 +5,70 @@
 
 
 int main() {
-    engine_t engine;
+    engine_t engine = {0};
     
     // Initialize the engine
     if (!engine_init(&engine, 1280, 720, "Abstract Shader Engine")) {
         fprintf(stderr, "Failed to initialize engine\n");
         return -1;
     }
+
+    shader_t custom_shader = {0};
+    if (!shader_load(&custom_shader, "./resources/vert.glsl", "./resources/frag.glsl")) {
+        fprintf(stderr, "Failed to load shader\n");
+        return -1;
+    }
+    
+    render_buffer_t buffer1 = {0};
+    if (!render_buffer_create(&buffer1, 512, 512)) {
+        fprintf(stderr, "Failed to create render buffer\n");
+        return -1;
+    }
+
+    while (!engine_should_close(&engine)) {
+        engine_poll_events(&engine);
+        engine_update(&engine);
+        if (engine.keys[GLFW_KEY_ESCAPE]) {
+            glfwSetWindowShouldClose(engine.window, GLFW_TRUE);
+        }
+        render_buffer_bind(&buffer1);
+        shader_use(&engine.default_shader);
+        uniform_apply_all(&engine, &engine.default_shader);
+        
+        glBindVertexArray(engine.quad_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+        
+        render_buffer_unbind();
+        
+        // Render to main screen
+        glViewport(0, 0, engine.window_width, engine.window_height);
+        engine_clear();
+
+        //uniform_set_texture(&engine, "texture0", display_texture);
+        
+        shader_use(&custom_shader);
+        uniform_set_float(&engine, "time", engine.time);
+        uniform_apply_all(&engine, &custom_shader);
+        
+        glBindVertexArray(engine.quad_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
+        
+        engine_swap_buffers(&engine);
+        
+        // Print some debug info occasionally
+        if (engine.frame_count % 300 == 0) {
+            printf("Frame %d, Time: %.2f, FPS: %.1f\n", 
+                   engine.frame_count, engine.time, 1.0 / engine.delta_time);
+        }
+
+    }
+    
+    render_buffer_cleanup(&buffer1);
+    engine_cleanup(&engine);
+    return 0;
+/*
     
     printf("Engine initialized successfully!\n");
     printf("Controls:\n");
@@ -26,7 +83,7 @@ int main() {
     shader_t custom_shader = {0};
     bool use_custom_shader = false;
     
-    if (shader_load(&custom_shader, "/resources/vert.glsl", "/resources/frag.glsl")) {
+    if (shader_load(&custom_shader, "./resources/vert.glsl", "./resources/frag.glsl")) {
         printf("Custom shader loaded successfully!\n");
         use_custom_shader = true;
         
@@ -48,7 +105,7 @@ int main() {
     // Load a model (if available)
     model_t test_model = {0};
     bool model_loaded = false;
-    if (model_load_obj(&test_model, "/resources/cube.obj")) {
+    if (model_load_obj(&test_model, "./resources/cube.obj")) {
         printf("Test model loaded successfully!\n");
         model_loaded = true;
     }
@@ -197,5 +254,8 @@ int main() {
     engine_cleanup(&engine);
     
     printf("Engine shutdown complete.\n");
+
+*/
+
     return 0;
 }
