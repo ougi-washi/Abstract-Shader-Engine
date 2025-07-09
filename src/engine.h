@@ -138,6 +138,7 @@ bool engine_init(engine_t* engine, uint32_t width, uint32_t height, const char* 
 void engine_cleanup(engine_t* engine);
 bool engine_should_close(engine_t* engine);
 void engine_update(engine_t* engine);
+void engine_render_quad(engine_t* engine);
 void engine_render(engine_t* engine);
 void engine_clear();
 void engine_swap_buffers(engine_t* engine);

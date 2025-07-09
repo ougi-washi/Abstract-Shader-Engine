@@ -7,8 +7,6 @@
 
 int main() {
     engine_t engine = {0};
-    
-    // Initialize the engine
     bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
     assert(engine_success);
 
@@ -22,27 +20,15 @@ int main() {
 
     while (!engine_should_close(&engine)) {
         engine_poll_events(&engine);
-        //if (engine.keys[GLFW_KEY_ESCAPE]) {
-        //    glfwSetWindowShouldClose(engine.window, GLFW_TRUE);
-        //}
         int keys[] = {GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
         engine_check_close_keys(&engine, keys, 2);
         engine_update(&engine);
+        
         //render_buffer_bind(&buffer1);
-        //shader_use(&engine.default_shader);
-
-        //uniform_apply(&engine, &engine.default_shader);
-        
-        //glBindVertexArray(engine.quad_vao);
-        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        //glBindVertexArray(0);
-        
+        // draw to buffer 1
         //render_buffer_unbind();
         
         // Render to main screen
-        glViewport(0, 0, engine.window_width, engine.window_height);
-        engine_clear();
-
         //uniform_set_texture(&engine, "texture0", display_texture);
         
         shader_use(&custom_shader);
@@ -51,19 +37,15 @@ int main() {
         uniform_set_int(&engine, "frame", engine.frame_count);
         uniform_apply(&engine, &custom_shader);
         //uniform_apply_all(&engine);
-
-        glBindVertexArray(engine.quad_vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
         
+        engine_render(&engine);
         engine_swap_buffers(&engine);
-        
+       
         // Print some debug info occasionally
         if (engine.frame_count % 300 == 0) {
             printf("Frame %d, Time: %.2f, FPS: %.1f\n", 
                    engine.frame_count, engine.time, 1.0 / engine.delta_time);
         }
-
     }
     
     render_buffer_cleanup(&buffer1);

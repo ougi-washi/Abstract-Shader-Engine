@@ -126,6 +126,12 @@ void engine_update(engine_t* engine) {
     uniform_set_vec2(engine, "mouse", vec2_create(engine->mouse_x, engine->mouse_y));
 }
 
+void engine_render_quad(engine_t* engine){
+    glBindVertexArray(engine->quad_vao);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
 void engine_render(engine_t* engine) {
     glViewport(0, 0, engine->window_width, engine->window_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
