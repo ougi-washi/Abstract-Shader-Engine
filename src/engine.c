@@ -5,40 +5,6 @@
 #include <math.h>
 #include <sys/stat.h>
 
-// Default vertex shader
-static const char* default_vertex_shader = 
-"#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"layout (location = 1) in vec3 aNormal;\n"
-"layout (location = 2) in vec2 aTexCoord;\n"
-"uniform mat4 model;\n"
-"uniform mat4 view;\n"
-"uniform mat4 projection;\n"
-"out vec3 FragPos;\n"
-"out vec3 Normal;\n"
-"out vec2 TexCoord;\n"
-"void main() {\n"
-"   FragPos = vec3(model * vec4(aPos, 1.0));\n"
-"   Normal = mat3(transpose(inverse(model))) * aNormal;\n"
-"   TexCoord = aTexCoord;\n"
-"   gl_Position = projection * view * vec4(FragPos, 1.0);\n"
-"}\n";
-
-// Default fragment shader
-static const char* default_fragment_shader = 
-"#version 330 core\n"
-"in vec3 FragPos;\n"
-"in vec3 Normal;\n"
-"in vec2 TexCoord;\n"
-"uniform float time;\n"
-"uniform vec2 resolution;\n"
-"uniform sampler2D texture0;\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"   vec3 color = vec3(0.5 + 0.5 * cos(time + FragPos.x + vec3(0,2,4)));\n"
-"   FragColor = vec4(color, 1.0);\n"
-"}\n";
-
 // Fullscreen quad vertex shader
 static const char* quad_vertex_shader = 
 "#version 330 core\n"
@@ -102,14 +68,7 @@ bool engine_init(engine_t* engine, uint32_t width, uint32_t height, const char* 
     
     // Create fullscreen quad
     create_fullscreen_quad(&engine->quad_vao, &engine->quad_vbo);
-    
-    // Create default shader
-    engine->default_shader.program = create_shader_program(default_vertex_shader, default_fragment_shader);
-    if (!engine->default_shader.program) {
-        fprintf(stderr, "Failed to create default shader\n");
-        return false;
-    }
-    
+
     // Initialize timing
     engine->last_frame_time = get_time();
     
@@ -137,9 +96,6 @@ void engine_cleanup(engine_t* engine) {
     // Cleanup quad
     glDeleteVertexArrays(1, &engine->quad_vao);
     glDeleteBuffers(1, &engine->quad_vbo);
-    
-    // Cleanup default shader
-    shader_cleanup(&engine->default_shader);
     
     // Cleanup GLFW
     glfwDestroyWindow(engine->window);
@@ -174,10 +130,6 @@ void engine_render(engine_t* engine) {
     glViewport(0, 0, engine->window_width, engine->window_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // Use default shader if no custom shader is active
-    shader_use(&engine->default_shader);
-    uniform_apply_all(engine, &engine->default_shader);
-    
     // Render fullscreen quad
     glBindVertexArray(engine->quad_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -194,6 +146,18 @@ void engine_swap_buffers(engine_t* engine) {
 
 void engine_poll_events(engine_t* engine) {
     glfwPollEvents();
+}
+
+void engine_check_close_keys(engine_t* engine, int* keys, int key_count) {
+    if (key_count == 0) {
+        return;
+    }
+    for (int i = 0; i < key_count; i++) {
+        if (!engine->keys[keys[i]]) {
+            return;
+        }
+    }
+    glfwSetWindowShouldClose(engine->window, GLFW_TRUE);
 }
 
 char *read_file(const char *path) {
@@ -575,7 +539,7 @@ void uniform_set_texture(engine_t* engine, const char* name, GLuint texture) {
     }
 }
 
-void uniform_apply_all(engine_t* engine, shader_t* shader) {
+void uniform_apply(engine_t* engine, shader_t* shader) {
     for (uint32_t i = 0; i < engine->uniform_count; i++) {
         uniform_t* uniform = &engine->uniforms[i];
         GLint location = glGetUniformLocation(shader->program, uniform->name);
@@ -604,6 +568,13 @@ void uniform_apply_all(engine_t* engine, shader_t* shader) {
                 glUniform1i(location, i);
                 break;
         }
+    }
+}
+
+void uniform_apply_all(engine_t* engine){
+    for (uint32_t i = 0; i < engine->shader_count; i++) {
+        shader_t* shader = &engine->shaders[i];
+        uniform_apply(engine, shader);
     }
 }
 

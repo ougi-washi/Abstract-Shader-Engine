@@ -2,44 +2,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 
 int main() {
     engine_t engine = {0};
     
     // Initialize the engine
-    if (!engine_init(&engine, 1280, 720, "Abstract Shader Engine")) {
-        fprintf(stderr, "Failed to initialize engine\n");
-        return -1;
-    }
+    bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
+    assert(engine_success);
 
     shader_t custom_shader = {0};
-    if (!shader_load(&custom_shader, "./resources/vert.glsl", "./resources/frag.glsl")) {
-        fprintf(stderr, "Failed to load shader\n");
-        return -1;
-    }
-    
+    bool custom_shader_success = shader_load(&custom_shader, "./resources/vert.glsl", "./resources/frag.glsl"); 
+    assert(custom_shader_success);
+
     render_buffer_t buffer1 = {0};
-    if (!render_buffer_create(&buffer1, 512, 512)) {
-        fprintf(stderr, "Failed to create render buffer\n");
-        return -1;
-    }
+    bool render_buffer_res = render_buffer_create(&buffer1, 512, 512);
+    assert(render_buffer_res);
 
     while (!engine_should_close(&engine)) {
         engine_poll_events(&engine);
+        //if (engine.keys[GLFW_KEY_ESCAPE]) {
+        //    glfwSetWindowShouldClose(engine.window, GLFW_TRUE);
+        //}
+        int keys[] = {GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
+        engine_check_close_keys(&engine, keys, 2);
         engine_update(&engine);
-        if (engine.keys[GLFW_KEY_ESCAPE]) {
-            glfwSetWindowShouldClose(engine.window, GLFW_TRUE);
-        }
-        render_buffer_bind(&buffer1);
-        shader_use(&engine.default_shader);
-        uniform_apply_all(&engine, &engine.default_shader);
+        //render_buffer_bind(&buffer1);
+        //shader_use(&engine.default_shader);
+
+        //uniform_apply(&engine, &engine.default_shader);
         
-        glBindVertexArray(engine.quad_vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
+        //glBindVertexArray(engine.quad_vao);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        //glBindVertexArray(0);
         
-        render_buffer_unbind();
+        //render_buffer_unbind();
         
         // Render to main screen
         glViewport(0, 0, engine.window_width, engine.window_height);
@@ -48,9 +46,12 @@ int main() {
         //uniform_set_texture(&engine, "texture0", display_texture);
         
         shader_use(&custom_shader);
-        uniform_set_float(&engine, "time", engine.time);
-        uniform_apply_all(&engine, &custom_shader);
+        //uniform_set_texture(&engine, "texture0", buffer1.texture);
         
+        uniform_set_int(&engine, "frame", engine.frame_count);
+        uniform_apply(&engine, &custom_shader);
+        //uniform_apply_all(&engine);
+
         glBindVertexArray(engine.quad_vao);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindVertexArray(0);

@@ -131,9 +131,6 @@ typedef struct {
     // Quad for fullscreen rendering
     GLuint quad_vao;
     GLuint quad_vbo;
-    
-    // Default shader
-    shader_t default_shader;
 } engine_t;
 
 // Engine functions
@@ -145,6 +142,7 @@ void engine_render(engine_t* engine);
 void engine_clear();
 void engine_swap_buffers(engine_t* engine);
 void engine_poll_events(engine_t* engine);
+void engine_check_close_keys(engine_t* engine, int* keys, int key_count);
 
 // Shader functions
 bool shader_load(shader_t* shader, const char* vertex_path, const char* fragment_path);
@@ -171,7 +169,8 @@ void uniform_set_vec3(engine_t* engine, const char* name, vec3_t value);
 void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value);
 void uniform_set_int(engine_t* engine, const char* name, int value);
 void uniform_set_texture(engine_t* engine, const char* name, GLuint texture);
-void uniform_apply_all(engine_t* engine, shader_t* shader);
+void uniform_apply(engine_t* engine, shader_t* shader);
+void uniform_apply_all(engine_t* engine);
 
 // Utility functions
 double get_time(void);
