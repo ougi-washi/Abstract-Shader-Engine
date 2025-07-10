@@ -34,6 +34,11 @@ add_subdirectory(${LIB_DIR}/glfw)
 message(STATUS "Adding STB library")
 include_directories(${LIB_DIR}/stb)
 
+
+find_library(PULSE_SIMPLE_LIB pulse-simple)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PULSEAUDIO REQUIRED libpulse-simple libpulse)
+
 # setup library macro
 macro(setup_library arg_lib_name arg_source_path arg_include_path)
 	message(STATUS "Adding ${arg_lib_name}")
@@ -48,7 +53,7 @@ endmacro()
 # Main module
 set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${SRC_SRC} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC glfw OpenGL::GL) 
+target_link_libraries(main_module PUBLIC glfw OpenGL::GL ${PULSEAUDIO_LIBRARIES})  
 
 macro(setup_executable arg_exec_dir arg_exec_name modules)
     message(STATUS "Generating executable ${arg_exec_name}")

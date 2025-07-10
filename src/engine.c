@@ -4,6 +4,10 @@
 #include <string.h>
 #include <math.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/soundcard.h>
 
 // Fullscreen quad vertex shader
 static const char* quad_vertex_shader = 
@@ -27,7 +31,7 @@ static GLuint compile_shader(const char* source, GLenum type);
 static GLuint create_shader_program(const char* vertex_source, const char* fragment_source);
 
 // Engine functions
-bool engine_init(engine_t* engine, uint32_t width, uint32_t height, const char* title) {
+b8 engine_init(engine_t* engine, uint32_t width, uint32_t height, const char* title) {
     memset(engine, 0, sizeof(engine_t));
     
     // Initialize GLFW
@@ -103,7 +107,7 @@ void engine_cleanup(engine_t* engine) {
     glfwTerminate();
 }
 
-bool engine_should_close(engine_t* engine) {
+b8 engine_should_close(engine_t* engine) {
     return glfwWindowShouldClose(engine->window);
 }
 
@@ -120,11 +124,11 @@ void engine_update(engine_t* engine) {
     }
     
     // Update built-in uniforms
-    uniform_set_float(engine, "time", (f32)engine->time);
-    uniform_set_float(engine, "delta_time", (f32)engine->delta_time);
+    uniform_set_float(engine, "time", engine->time);
+    uniform_set_float(engine, "delta_time", engine->delta_time);
     uniform_set_int(engine, "frame", engine->frame_count);
-    uniform_set_vec2(engine, "resolution", vec2_create(engine->window_width, engine->window_height));
-    uniform_set_vec2(engine, "mouse", vec2_create(engine->mouse_x, engine->mouse_y));
+    uniform_set_vec2(engine, "resolution", (vec2_t){engine->window_width, engine->window_height});
+    uniform_set_vec2(engine, "mouse", (vec2_t){engine->mouse_x, engine->mouse_y});
 }
 
 void engine_render_quad(engine_t* engine) {
@@ -178,7 +182,7 @@ char *read_file(const char *path) {
     return buf;
 }
 
-bool shader_load_internal(shader_t* shader, const char* vertex_path, const char* fragment_path) {
+b8 shader_load_internal(shader_t* shader, const char* vertex_path, const char* fragment_path) {
    
     assert(shader && vertex_path != NULL && fragment_path != NULL);
 
@@ -235,7 +239,7 @@ shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fra
     return NULL;
 }
 
-bool shader_reload_if_changed(shader_t* shader) {
+b8 shader_reload_if_changed(shader_t* shader) {
     if (strlen(shader->vertex_path) == 0 || strlen(shader->fragment_path) == 0) {
         return false;
     }
@@ -270,7 +274,7 @@ GLuint shader_get_uniform_location(shader_t* shader, const char* name) {
 }
 
 // Model functions
-bool model_load_obj(model_t* model, const char* path) {
+b8 model_load_obj(model_t* model, const char* path) {
     FILE* file = fopen(path, "r");
     if (!file) {
         fprintf(stderr, "Failed to open OBJ file: %s\n", path);
@@ -407,7 +411,7 @@ void model_cleanup(model_t* model) {
 }
 
 // Buffer functions
-bool render_buffer_create(render_buffer_t* buffer, uint32_t width, uint32_t height) {
+b8 render_buffer_create(render_buffer_t* buffer, uint32_t width, uint32_t height) {
     buffer->width = width;
     buffer->height = height;
     
@@ -671,22 +675,6 @@ void create_fullscreen_quad(GLuint* vao, GLuint* vbo) {
     glBindVertexArray(0);
 }
 
-// Math utilities
-vec2_t vec2_create(f32 x, f32 y) {
-    vec2_t v = {x, y};
-    return v;
-}
-
-vec3_t vec3_create(f32 x, f32 y, f32 z) {
-    vec3_t v = {x, y, z};
-    return v;
-}
-
-vec4_t vec4_create(f32 x, f32 y, f32 z, f32 w) {
-    vec4_t v = {x, y, z, w};
-    return v;
-}
-
 f32 vec3_length(vec3_t v) {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
@@ -795,3 +783,150 @@ static GLuint create_shader_program(const char* vertex_source, const char* fragm
     
     return program;
 }
+
+
+i32 audio_init(audio_device_t* audio_device){    
+    assert(audio_device);
+    audio_device->valid = false;
+     // Try default audio devices in order of preference
+    const char *device_paths[] = {"/dev/dsp", "/dev/dsp0", "/dev/audio", NULL};
+    
+    for (int i = 0; device_paths[i] != NULL; i++) {
+        audio_device->fd = open(device_paths[i], O_RDONLY);
+        if (audio_device->fd >= 0) {
+            strcpy(audio_device->device_name, device_paths[i]);
+            break;
+        }
+    }
+    
+    if (audio_device->fd < 0) {
+        printf("Cannot open default audio device. Try:\n");
+        printf("  sudo modprobe snd-pcm-oss\n");
+        return -1;
+    }
+    
+    // Set format to 16-bit signed little endian
+    audio_device->format = AFMT_S16_LE;
+    if (ioctl(audio_device->fd, SNDCTL_DSP_SETFMT, &audio_device->format) < 0) {
+        perror("Cannot set audio format");
+        close(audio_device->fd);
+        return -1;
+    }
+    
+    // Set channels
+    audio_device->channels = CHANNELS;
+    if (ioctl(audio_device->fd, SNDCTL_DSP_CHANNELS, &audio_device->channels) < 0) {
+        perror("Cannot set channels");
+        close(audio_device->fd);
+        return -1;
+    }
+    
+    // Set sample rate
+    audio_device->sample_rate = SAMPLE_RATE;
+    if (ioctl(audio_device->fd, SNDCTL_DSP_SPEED, &audio_device->sample_rate) < 0) {
+        perror("Cannot set sample rate");
+        close(audio_device->fd);
+        return -1;
+    }
+    
+    printf("Using audio device: %s\n", audio_device->device_name);
+    printf("Format: 16-bit signed LE, %d channels, %d Hz\n", 
+           audio_device->channels, audio_device->sample_rate);
+    
+    return 0;
+}
+
+void audio_update(audio_device_t* audio_device){
+    i32 bytes_read = read(audio_device->fd, audio_device->buffer, AUDIO_BUFFER_SIZE * sizeof(i16));
+    //printf("Read %d bytes\n", bytes_read);
+    audio_device->valid = bytes_read == AUDIO_BUFFER_SIZE * sizeof(i16);
+}
+
+// Simple FFT implementation for frequency detection
+void simple_fft(f32 *real, f32 *imag, int n) {
+    if (n <= 1) return;
+    
+    // Separate even and odd elements
+    f32 *even_real = malloc(n/2 * sizeof(f32));
+    f32 *even_imag = malloc(n/2 * sizeof(f32));
+    f32 *odd_real = malloc(n/2 * sizeof(f32));
+    f32 *odd_imag = malloc(n/2 * sizeof(f32));
+    
+    for (i32 i = 0; i < n/2; i++) {
+        even_real[i] = real[i*2];
+        even_imag[i] = imag[i*2];
+        odd_real[i] = real[i*2+1];
+        odd_imag[i] = imag[i*2+1];
+    }
+    
+    // Recursive FFT
+    simple_fft(even_real, even_imag, n/2);
+    simple_fft(odd_real, odd_imag, n/2);
+    
+    // Combine results
+    for (i32 i = 0; i < n/2; i++) {
+        f32 angle = -2 * PI * i / n;
+        f32 cos_val = cos(angle);
+        f32 sin_val = sin(angle);
+        
+        f32 t_real = cos_val * odd_real[i] - sin_val * odd_imag[i];
+        f32 t_imag = sin_val * odd_real[i] + cos_val * odd_imag[i];
+        
+        real[i] = even_real[i] + t_real;
+        imag[i] = even_imag[i] + t_imag;
+        real[i + n/2] = even_real[i] - t_real;
+        imag[i + n/2] = even_imag[i] - t_imag;
+    }
+    
+    free(even_real);
+    free(even_imag);
+    free(odd_real);
+    free(odd_imag);
+}
+
+f32 audio_calculate_amplitude(audio_device_t* audio_device){
+    f32 sum = 0.0;
+    for (sz i = 0; i < AUDIO_BUFFER_SIZE; i++) {
+        sum += abs(audio_device->buffer[i]);
+    }
+    return sum / AUDIO_BUFFER_SIZE;
+}
+
+f32 audio_find_dominant_frequency(audio_device_t* audio_device){
+    f32 *real = malloc(AUDIO_BUFFER_SIZE * sizeof(f32));
+    f32 *imag = malloc(AUDIO_BUFFER_SIZE * sizeof(f32));
+    
+    // Convert to float and apply window
+    for (i32 i = 0; i < AUDIO_BUFFER_SIZE ; i++) {
+        real[i] = (f32)audio_device->buffer[i];
+        imag[i] = 0.0;
+        // Apply Hamming window
+        real[i] *= 0.54 - 0.46 * cos(2 * PI * i / (AUDIO_BUFFER_SIZE - 1));
+    }
+    
+    simple_fft(real, imag, AUDIO_BUFFER_SIZE);
+    
+    // Find peak frequency
+    f32 max_magnitude = 0.0;
+    i32 max_index = 0;
+    
+    for (i32 i = 1; i < AUDIO_BUFFER_SIZE/2; i++) {
+        f32 magnitude = sqrt(real[i] * real[i] + imag[i] * imag[i]);
+        if (magnitude > max_magnitude) {
+            max_magnitude = magnitude;
+            max_index = i;
+        }
+    }
+    
+    free(real);
+    free(imag);
+    
+    return (f32)max_index * SAMPLE_RATE / AUDIO_BUFFER_SIZE;
+}
+
+void audio_cleanup(audio_device_t* audio_device){
+    if (audio_device->fd >= 0) {
+        close(audio_device->fd);
+    }
+}
+

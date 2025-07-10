@@ -13,7 +13,8 @@
 #include <GL/gl.h>
 #endif
 
-// Constants
+#define PI 3.14159265359
+
 #define MAX_BUFFERS 8
 #define MAX_UNIFORMS 32
 #define MAX_SHADERS 64
@@ -34,6 +35,7 @@ typedef float f32;
 typedef double f64;
 typedef char c8;
 typedef unsigned char uc8;
+typedef size_t sz;
 
 // Structures
 typedef struct {
@@ -56,9 +58,9 @@ typedef struct {
 
 typedef struct {
     vertex_t* vertices;
-    uint32_t* indices;
-    uint32_t vertex_count;
-    uint32_t index_count;
+    u32* indices;
+    u32 vertex_count;
+    u32 index_count;
     GLuint vao;
     GLuint vbo;
     GLuint ebo;
@@ -66,7 +68,7 @@ typedef struct {
 
 typedef struct {
     mesh_t* meshes;
-    uint32_t mesh_count;
+    u32 mesh_count;
 } model_t;
 
 typedef struct {
@@ -77,7 +79,7 @@ typedef struct {
     char fragment_path[MAX_PATH_LENGTH];
     time_t vertex_mtime;
     time_t fragment_mtime;
-    bool needs_reload;
+    b8 needs_reload;
 } shader_t;
 
 typedef enum {
@@ -106,42 +108,42 @@ typedef struct {
     GLuint framebuffer;
     GLuint texture;
     GLuint depth_buffer;
-    uint32_t width;
-    uint32_t height;
+    u32 width;
+    u32 height;
 } render_buffer_t;
 
 typedef struct {
     GLFWwindow* window;
-    uint32_t window_width;
-    uint32_t window_height;
+    u32 window_width;
+    u32 window_height;
     
     // Render buffers
     render_buffer_t buffers[MAX_BUFFERS];
-    uint32_t buffer_count;
+    u32 buffer_count;
     
     // Shaders
     shader_t shaders[MAX_SHADERS];
-    uint32_t shader_count;
+    u32 shader_count;
     
     // Models
     model_t* models;
-    uint32_t model_count;
+    u32 model_count;
     
     // Uniforms
     uniform_t uniforms[MAX_UNIFORMS];
-    uint32_t uniform_count;
+    u32 uniform_count;
     
     // Timing
-    double time;
-    double delta_time;
-    double last_frame_time;
-    uint32_t frame_count;
+    f64 time;
+    f64 delta_time;
+    f64 last_frame_time;
+    i32 frame_count;
     
     // Input
-    bool keys[1024];
-    double mouse_x, mouse_y;
-    double mouse_dx, mouse_dy;
-    bool mouse_buttons[8];
+    b8 keys[1024];
+    f64 mouse_x, mouse_y;
+    f64 mouse_dx, mouse_dy;
+    b8 mouse_buttons[8];
     
     // Quad for fullscreen rendering
     GLuint quad_vao;
@@ -149,9 +151,9 @@ typedef struct {
 } engine_t;
 
 // Engine functions
-bool engine_init(engine_t* engine, uint32_t width, uint32_t height, const char* title);
+b8 engine_init(engine_t* engine, u32 width, u32 height, const char* title);
 void engine_cleanup(engine_t* engine);
-bool engine_should_close(engine_t* engine);
+b8 engine_should_close(engine_t* engine);
 void engine_update(engine_t* engine);
 void engine_render_quad(engine_t* engine);
 void engine_render(engine_t* engine);
@@ -162,24 +164,24 @@ void engine_check_exit_keys(engine_t* engine, i32* keys, i32 key_count);
 
 // Shader functions
 shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path);
-bool shader_reload_if_changed(shader_t* shader);
+b8 shader_reload_if_changed(shader_t* shader);
 void shader_use(engine_t* engine, shader_t* shader, const b8 update_uniforms);
 void shader_cleanup(shader_t* shader);
 GLuint shader_get_uniform_location(shader_t* shader, const char* name);
 
 // Model functions
-bool model_load_obj(model_t* model, const char* path);
+b8 model_load_obj(model_t* model, const char* path);
 void model_render(model_t* model);
 void model_cleanup(model_t* model);
 
 // Buffer functions
-bool render_buffer_create(render_buffer_t* buffer, uint32_t width, uint32_t height);
+b8 render_buffer_create(render_buffer_t* buffer, u32 width, u32 height);
 void render_buffer_bind(render_buffer_t* buffer);
 void render_buffer_unbind(void);
 void render_buffer_cleanup(render_buffer_t* buffer);
 
 // Uniform functions
-void uniform_set_f32(engine_t* engine, const char* name, f32 value);
+void uniform_set_float(engine_t* engine, const char* name, f32 value);
 void uniform_set_vec2(engine_t* engine, const char* name, vec2_t value);
 void uniform_set_vec3(engine_t* engine, const char* name, vec3_t value);
 void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value);
@@ -189,17 +191,35 @@ void uniform_set_buffer_texture(engine_t* engine, const char* name, render_buffe
 void uniform_apply(engine_t* engine, shader_t* shader); // make sure the shader is in use
 
 // Utility functions
-double get_time(void);
+f64 get_time(void);
 time_t get_file_mtime(const char* path);
 char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
 
 // Math utilities
-vec2_t vec2_create(f32 x, f32 y);
-vec3_t vec3_create(f32 x, f32 y, f32 z);
-vec4_t vec4_create(f32 x, f32 y, f32 z, f32 w);
 f32 vec3_length(vec3_t v);
 vec3_t vec3_normalize(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
+
+// Audio
+#define SAMPLE_RATE 44100
+#define CHANNELS 1
+#define AUDIO_BUFFER_SIZE 1024
+#define BITS_PER_SAMPLE 16
+typedef struct {
+    b8 valid : 1;
+    i32 fd;
+    c8 device_name[64];
+    i32 format;
+    i32 sample_rate;
+    i32 channels;
+    i16 buffer[AUDIO_BUFFER_SIZE];
+} audio_device_t;
+
+i32 audio_init(audio_device_t* audio_device);
+void audio_update(audio_device_t* audio_device);
+f32 audio_calculate_amplitude(audio_device_t* audio_device);
+f32 audio_find_dominant_frequency(audio_device_t* audio_device);
+void audio_cleanup(audio_device_t* audio_device);
 
 #endif // ENGINE_H
