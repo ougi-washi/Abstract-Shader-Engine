@@ -2,9 +2,8 @@
 OpenGL shader engine in C.
 
 ### Features
-* Handle buffer objects
-* Handle uniforms
-* Handle SDF objects and operations
+* Handle shaders and their uniforms
+* (WIP) Handle SDF objects and operations
 
 ### Building
 CMAke 3.22 is required.
