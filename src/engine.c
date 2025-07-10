@@ -125,7 +125,6 @@ void engine_update(engine_t* engine) {
     uniform_set_int(engine, "frame", engine->frame_count);
     uniform_set_vec2(engine, "resolution", vec2_create(engine->window_width, engine->window_height));
     uniform_set_vec2(engine, "mouse", vec2_create(engine->mouse_x, engine->mouse_y));
-    uniform_apply_all(engine);
 }
 
 void engine_render_quad(engine_t* engine) {
@@ -136,8 +135,7 @@ void engine_render_quad(engine_t* engine) {
 
 void engine_render(engine_t* engine) {
     glViewport(0, 0, engine->window_width, engine->window_height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+    engine_clear(); 
     engine_render_quad(engine);
 }
 
@@ -253,8 +251,11 @@ bool shader_reload_if_changed(shader_t* shader) {
     return false;
 }
 
-void shader_use(shader_t* shader) {
+void shader_use(engine_t* engine, shader_t* shader, const b8 update_uniforms) {
     glUseProgram(shader->program);
+    if (update_uniforms) {
+        uniform_apply(engine, shader);
+    }
 }
 
 void shader_cleanup(shader_t* shader) {
@@ -572,11 +573,15 @@ void uniform_set_texture(engine_t* engine, const char* name, GLuint texture) {
     }
 }
 
+void uniform_set_buffer_texture(engine_t* engine, const char* name, render_buffer_t* buffer) {
+    uniform_set_texture(engine, name, buffer->texture);
+}
+
 void uniform_apply(engine_t* engine, shader_t* shader) {
     for (uint32_t i = 0; i < engine->uniform_count; i++) {
         uniform_t* uniform = &engine->uniforms[i];
         GLint location = glGetUniformLocation(shader->program, uniform->name);
-        
+         
         if (location == -1) continue;
         
         switch (uniform->type) {
@@ -601,13 +606,6 @@ void uniform_apply(engine_t* engine, shader_t* shader) {
                 glUniform1i(location, i);
                 break;
         }
-    }
-}
-
-void uniform_apply_all(engine_t* engine){
-    for (uint32_t i = 0; i < engine->shader_count; i++) {
-        shader_t* shader = &engine->shaders[i];
-        uniform_apply(engine, shader);
     }
 }
 

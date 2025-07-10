@@ -163,7 +163,7 @@ void engine_check_exit_keys(engine_t* engine, i32* keys, i32 key_count);
 // Shader functions
 shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path);
 bool shader_reload_if_changed(shader_t* shader);
-void shader_use(shader_t* shader);
+void shader_use(engine_t* engine, shader_t* shader, const b8 update_uniforms);
 void shader_cleanup(shader_t* shader);
 GLuint shader_get_uniform_location(shader_t* shader, const char* name);
 
@@ -185,8 +185,8 @@ void uniform_set_vec3(engine_t* engine, const char* name, vec3_t value);
 void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value);
 void uniform_set_int(engine_t* engine, const char* name, i32 value);
 void uniform_set_texture(engine_t* engine, const char* name, GLuint texture);
-void uniform_apply(engine_t* engine, shader_t* shader);
-void uniform_apply_all(engine_t* engine);
+void uniform_set_buffer_texture(engine_t* engine, const char* name, render_buffer_t* buffer);
+void uniform_apply(engine_t* engine, shader_t* shader); // make sure the shader is in use
 
 // Utility functions
 double get_time(void);

@@ -9,9 +9,13 @@ i32 main() {
     bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
     assert(engine_success);
 
-    shader_t* custom_shader = shader_load(&engine, "vert.glsl", "frag.glsl");
-    assert(custom_shader);
-   
+    shader_t* main_shader = shader_load(&engine, "vert.glsl", "frag_main.glsl");
+    assert(main_shader);
+
+
+    // buffer 1 setup
+    shader_t* buffer1_shader = shader_load(&engine, "vert.glsl", "frag_buffer1.glsl");
+    assert(buffer1_shader);
     render_buffer_t buffer1 = {0};
     bool render_buffer_res = render_buffer_create(&buffer1, 512, 512);
     assert(render_buffer_res);
@@ -22,17 +26,14 @@ i32 main() {
         engine_check_exit_keys(&engine, keys, 2);
         engine_update(&engine);
         
-        //render_buffer_bind(&buffer1);
-        ////draw to buffer 1
-        //engine_render_quad(&engine);
-        //render_buffer_unbind();
+        shader_use(&engine, buffer1_shader, true);
+        render_buffer_bind(&buffer1);
+        engine_clear();
+        engine_render_quad(&engine);
+        render_buffer_unbind();
         
-        // Render to main screen
-        //uniform_set_texture(&engine, "texture0", display_texture);//todo prev frame
-        
-        shader_use(custom_shader);
-        //uniform_set_texture(&engine, "texture0", buffer1.texture);
-        
+        shader_use(&engine, main_shader, true);
+        uniform_set_texture(&engine, "buffer1", buffer1.texture);
         engine_render(&engine);
         engine_swap_buffers(&engine);
        
