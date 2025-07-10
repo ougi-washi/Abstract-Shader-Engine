@@ -33,7 +33,6 @@ i32 main() {
         engine_swap_buffers(&engine);
     }
     
-    render_buffer_cleanup(&buffer1);
     engine_cleanup(&engine);
     return 0;
 }
