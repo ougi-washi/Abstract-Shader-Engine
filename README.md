@@ -6,7 +6,7 @@ OpenGL shader engine in C.
 * (WIP) Handle SDF objects and operations
 
 ### Building
-CMAke 3.22 is required.
+CMake 3.22 is required.
 ```bash
 mkdir build
 cd build
