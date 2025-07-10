@@ -19,10 +19,10 @@ static const char* quad_vertex_shader =
 static const char* resources_path = "./resources/";
 
 // Forward declarations
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+static void mouse_button_callback(GLFWwindow* window, i32 button, i32 action, i32 mods);
+static void framebuffer_size_callback(GLFWwindow* window, i32 width, i32 height);
 static GLuint compile_shader(const char* source, GLenum type);
 static GLuint create_shader_program(const char* vertex_source, const char* fragment_source);
 
@@ -120,8 +120,8 @@ void engine_update(engine_t* engine) {
     }
     
     // Update built-in uniforms
-    uniform_set_float(engine, "time", (float)engine->time);
-    uniform_set_float(engine, "delta_time", (float)engine->delta_time);
+    uniform_set_float(engine, "time", (f32)engine->time);
+    uniform_set_float(engine, "delta_time", (f32)engine->delta_time);
     uniform_set_int(engine, "frame", engine->frame_count);
     uniform_set_vec2(engine, "resolution", vec2_create(engine->window_width, engine->window_height));
     uniform_set_vec2(engine, "mouse", vec2_create(engine->mouse_x, engine->mouse_y));
@@ -153,11 +153,11 @@ void engine_poll_events(engine_t* engine) {
     glfwPollEvents();
 }
 
-void engine_check_exit_keys(engine_t* engine, int* keys, int key_count) {
+void engine_check_exit_keys(engine_t* engine, i32* keys, i32 key_count) {
     if (key_count == 0) {
         return;
     }
-    for (int i = 0; i < key_count; i++) {
+    for (i32 i = 0; i < key_count; i++) {
         if (!engine->keys[keys[i]]) {
             return;
         }
@@ -232,7 +232,6 @@ shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fra
     engine->shader_count++;
     shader_t* new_shader = &engine->shaders[engine->shader_count - 1];
     if (shader_load_internal(new_shader, vertex_path, fragment_path)) {
-        printf("loaded_shader %p\n", new_shader);
         return new_shader;
     }
     return NULL;
@@ -311,12 +310,12 @@ bool model_load_obj(model_t* model, const char* path) {
         } else if (strncmp(line, "f ", 2) == 0) {
             // Face
             uint32_t v1, v2, v3, n1, n2, n3, t1, t2, t3;
-            int matches = sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+            i32 matches = sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
                                 &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3);
             
             if (matches == 9) {
                 // Create vertices for this face
-                for (int i = 0; i < 3; i++) {
+                for (i32 i = 0; i < 3; i++) {
                     uint32_t vi = (i == 0) ? v1 - 1 : (i == 1) ? v2 - 1 : v3 - 1;
                     uint32_t ni = (i == 0) ? n1 - 1 : (i == 1) ? n2 - 1 : n3 - 1;
                     uint32_t ti = (i == 0) ? t1 - 1 : (i == 1) ? t2 - 1 : t3 - 1;
@@ -465,7 +464,7 @@ void render_buffer_cleanup(render_buffer_t* buffer) {
 }
 
 // Uniform functions
-void uniform_set_float(engine_t* engine, const char* name, float value) {
+void uniform_set_float(engine_t* engine, const char* name, f32 value) {
     for (uint32_t i = 0; i < engine->uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
             engine->uniforms[i].type = UNIFORM_FLOAT;
@@ -537,7 +536,7 @@ void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value) {
     }
 }
 
-void uniform_set_int(engine_t* engine, const char* name, int value) {
+void uniform_set_int(engine_t* engine, const char* name, i32 value) {
     for (uint32_t i = 0; i < engine->uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
             engine->uniforms[i].type = UNIFORM_INT;
@@ -650,7 +649,7 @@ char* load_file(const char* path) {
 }
 
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo) {
-    float quad_vertices[] = {
+    f32 quad_vertices[] = {
         // positions   // texCoords
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
@@ -665,37 +664,37 @@ void create_fullscreen_quad(GLuint* vao, GLuint* vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, *vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
     
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)0);
     glEnableVertexAttribArray(0);
     
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)(2 * sizeof(f32)));
     glEnableVertexAttribArray(1);
     
     glBindVertexArray(0);
 }
 
 // Math utilities
-vec2_t vec2_create(float x, float y) {
+vec2_t vec2_create(f32 x, f32 y) {
     vec2_t v = {x, y};
     return v;
 }
 
-vec3_t vec3_create(float x, float y, float z) {
+vec3_t vec3_create(f32 x, f32 y, f32 z) {
     vec3_t v = {x, y, z};
     return v;
 }
 
-vec4_t vec4_create(float x, float y, float z, float w) {
+vec4_t vec4_create(f32 x, f32 y, f32 z, f32 w) {
     vec4_t v = {x, y, z, w};
     return v;
 }
 
-float vec3_length(vec3_t v) {
+f32 vec3_length(vec3_t v) {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 vec3_t vec3_normalize(vec3_t v) {
-    float length = vec3_length(v);
+    f32 length = vec3_length(v);
     if (length > 0.0f) {
         v.x /= length;
         v.y /= length;
@@ -713,7 +712,7 @@ vec3_t vec3_cross(vec3_t a, vec3_t b) {
 }
 
 // Static helper functions
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods) {
     engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
     if (key >= 0 && key < 1024) {
         if (action == GLFW_PRESS) {
@@ -732,7 +731,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     engine->mouse_y = ypos;
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+static void mouse_button_callback(GLFWwindow* window, i32 button, i32 action, i32 mods) {
     engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
     if (button >= 0 && button < 8) {
         if (action == GLFW_PRESS) {
@@ -743,7 +742,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     }
 }
 
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+static void framebuffer_size_callback(GLFWwindow* window, i32 width, i32 height) {
     engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
     engine->window_width = width;
     engine->window_height = height;

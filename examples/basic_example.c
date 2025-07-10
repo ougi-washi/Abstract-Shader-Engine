@@ -4,14 +4,13 @@
 #include <math.h>
 
 
-int main() {
+i32 main() {
     engine_t engine = {0};
     bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
     assert(engine_success);
 
     shader_t* custom_shader = shader_load(&engine, "vert.glsl", "frag.glsl");
     assert(custom_shader);
-    printf("custom_shader %p\n", custom_shader);
    
     render_buffer_t buffer1 = {0};
     bool render_buffer_res = render_buffer_create(&buffer1, 512, 512);
@@ -19,7 +18,7 @@ int main() {
 
     while (!engine_should_close(&engine)) {
         engine_poll_events(&engine);
-        int keys[] = {GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
+        i32 keys[] = {GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
         engine_check_exit_keys(&engine, keys, 2);
         engine_update(&engine);
         
@@ -95,7 +94,7 @@ int main() {
     uniform_set_float(&engine, "metallic", 0.5f);
     uniform_set_float(&engine, "roughness", 0.3f);
     
-    int current_buffer = 0;
+    i32 current_buffer = 0;
     bool wireframe = false;
     
     // Main render loop

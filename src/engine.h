@@ -21,17 +21,31 @@
 #define MAX_INDICES 65536
 #define MAX_PATH_LENGTH 256
 
+typedef bool b8;
+typedef int8_t i8;
+typedef uint8_t u8;
+typedef int16_t i16;
+typedef uint16_t u16;
+typedef int32_t i32;
+typedef uint32_t u32;
+typedef int64_t i64;
+typedef uint64_t u64;
+typedef float f32;
+typedef double f64;
+typedef char c8;
+typedef unsigned char uc8;
+
 // Structures
 typedef struct {
-    float x, y, z;
+    f32 x, y, z;
 } vec3_t;
 
 typedef struct {
-    float x, y, z, w;
+    f32 x, y, z, w;
 } vec4_t;
 
 typedef struct {
-    float x, y;
+    f32 x, y;
 } vec2_t;
 
 typedef struct {
@@ -79,11 +93,11 @@ typedef struct {
     char name[64];
     uniform_type_t type;
     union {
-        float f;
+        f32 f;
         vec2_t vec2;
         vec3_t vec3;
         vec4_t vec4;
-        int i;
+        i32 i;
         GLuint texture;
     } value;
 } uniform_t;
@@ -144,7 +158,7 @@ void engine_render(engine_t* engine);
 void engine_clear();
 void engine_swap_buffers(engine_t* engine);
 void engine_poll_events(engine_t* engine);
-void engine_check_exit_keys(engine_t* engine, int* keys, int key_count);
+void engine_check_exit_keys(engine_t* engine, i32* keys, i32 key_count);
 
 // Shader functions
 shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path);
@@ -165,11 +179,11 @@ void render_buffer_unbind(void);
 void render_buffer_cleanup(render_buffer_t* buffer);
 
 // Uniform functions
-void uniform_set_float(engine_t* engine, const char* name, float value);
+void uniform_set_f32(engine_t* engine, const char* name, f32 value);
 void uniform_set_vec2(engine_t* engine, const char* name, vec2_t value);
 void uniform_set_vec3(engine_t* engine, const char* name, vec3_t value);
 void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value);
-void uniform_set_int(engine_t* engine, const char* name, int value);
+void uniform_set_int(engine_t* engine, const char* name, i32 value);
 void uniform_set_texture(engine_t* engine, const char* name, GLuint texture);
 void uniform_apply(engine_t* engine, shader_t* shader);
 void uniform_apply_all(engine_t* engine);
@@ -181,10 +195,10 @@ char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
 
 // Math utilities
-vec2_t vec2_create(float x, float y);
-vec3_t vec3_create(float x, float y, float z);
-vec4_t vec4_create(float x, float y, float z, float w);
-float vec3_length(vec3_t v);
+vec2_t vec2_create(f32 x, f32 y);
+vec3_t vec3_create(f32 x, f32 y, f32 z);
+vec4_t vec4_create(f32 x, f32 y, f32 z, f32 w);
+f32 vec3_length(vec3_t v);
 vec3_t vec3_normalize(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 
