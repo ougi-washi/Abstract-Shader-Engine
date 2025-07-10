@@ -16,6 +16,8 @@ static const char* quad_vertex_shader =
 "   gl_Position = vec4(aPos, 0.0, 1.0);\n"
 "}\n";
 
+static const char* resources_path = "./resources/";
+
 // Forward declarations
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -80,8 +82,7 @@ void engine_cleanup(engine_t* engine) {
     for (uint32_t i = 0; i < engine->shader_count; i++) {
         shader_cleanup(&engine->shaders[i]);
     }
-    free(engine->shaders);
-    
+   
     // Cleanup models
     for (uint32_t i = 0; i < engine->model_count; i++) {
         model_cleanup(&engine->models[i]);
@@ -124,9 +125,10 @@ void engine_update(engine_t* engine) {
     uniform_set_int(engine, "frame", engine->frame_count);
     uniform_set_vec2(engine, "resolution", vec2_create(engine->window_width, engine->window_height));
     uniform_set_vec2(engine, "mouse", vec2_create(engine->mouse_x, engine->mouse_y));
+    uniform_apply_all(engine);
 }
 
-void engine_render_quad(engine_t* engine){
+void engine_render_quad(engine_t* engine) {
     glBindVertexArray(engine->quad_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -136,10 +138,7 @@ void engine_render(engine_t* engine) {
     glViewport(0, 0, engine->window_width, engine->window_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    // Render fullscreen quad
-    glBindVertexArray(engine->quad_vao);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
+    engine_render_quad(engine);
 }
 
 void engine_clear(){
@@ -154,7 +153,7 @@ void engine_poll_events(engine_t* engine) {
     glfwPollEvents();
 }
 
-void engine_check_close_keys(engine_t* engine, int* keys, int key_count) {
+void engine_check_exit_keys(engine_t* engine, int* keys, int key_count) {
     if (key_count == 0) {
         return;
     }
@@ -165,6 +164,8 @@ void engine_check_close_keys(engine_t* engine, int* keys, int key_count) {
     }
     glfwSetWindowShouldClose(engine->window, GLFW_TRUE);
 }
+
+// Shader functions
 
 char *read_file(const char *path) {
     FILE *f = fopen(path, "rb");
@@ -179,15 +180,32 @@ char *read_file(const char *path) {
     return buf;
 }
 
-// Shader functions
-bool shader_load(shader_t* shader, const char* vertex_path, const char* fragment_path) {
+bool shader_load_internal(shader_t* shader, const char* vertex_path, const char* fragment_path) {
+   
+    assert(shader && vertex_path != NULL && fragment_path != NULL);
+
     shader_cleanup(shader);
+    // add to path
+    char* new_vertex_path = NULL;
+    char* new_fragment_path = NULL;
     
-    strncpy(shader->vertex_path, vertex_path, MAX_PATH_LENGTH - 1);
-    strncpy(shader->fragment_path, fragment_path, MAX_PATH_LENGTH - 1);
+    if (strlen(vertex_path) > 0) {
+        new_vertex_path = malloc(strlen(resources_path) + strlen(vertex_path) + 1);
+        strcpy(new_vertex_path, resources_path);
+        strcat(new_vertex_path, vertex_path);
+    }
     
-    char* vertex_source = load_file(vertex_path);
-    char* fragment_source = load_file(fragment_path);
+    if (strlen(fragment_path) > 0) {
+        new_fragment_path = malloc(strlen(resources_path) + strlen(fragment_path) + 1);
+        strcpy(new_fragment_path, resources_path);
+        strcat(new_fragment_path, fragment_path);
+    }
+
+    strncpy(shader->vertex_path, new_vertex_path, MAX_PATH_LENGTH - 1);
+    strncpy(shader->fragment_path, new_fragment_path, MAX_PATH_LENGTH - 1);
+
+    char* vertex_source = load_file(new_vertex_path);
+    char* fragment_source = load_file(new_fragment_path);
     
     if (!vertex_source || !fragment_source) {
         free(vertex_source);
@@ -204,10 +222,20 @@ bool shader_load(shader_t* shader, const char* vertex_path, const char* fragment
         return false;
     }
     
-    shader->vertex_mtime = get_file_mtime(vertex_path);
-    shader->fragment_mtime = get_file_mtime(fragment_path);
-    
+    shader->vertex_mtime = get_file_mtime(new_vertex_path);
+    shader->fragment_mtime = get_file_mtime(new_fragment_path);
+    printf("Shader loaded: %s, %s\n", new_vertex_path, new_fragment_path);
     return true;
+}
+
+shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path) {
+    engine->shader_count++;
+    shader_t* new_shader = &engine->shaders[engine->shader_count - 1];
+    if (shader_load_internal(new_shader, vertex_path, fragment_path)) {
+        printf("loaded_shader %p\n", new_shader);
+        return new_shader;
+    }
+    return NULL;
 }
 
 bool shader_reload_if_changed(shader_t* shader) {

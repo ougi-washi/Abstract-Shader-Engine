@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include <assert.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl3.h>
@@ -15,9 +16,9 @@
 // Constants
 #define MAX_BUFFERS 8
 #define MAX_UNIFORMS 32
+#define MAX_SHADERS 64
 #define MAX_VERTICES 65536
 #define MAX_INDICES 65536
-#define MAX_SHADER_SIZE 16384
 #define MAX_PATH_LENGTH 256
 
 // Structures
@@ -105,7 +106,7 @@ typedef struct {
     uint32_t buffer_count;
     
     // Shaders
-    shader_t* shaders;
+    shader_t shaders[MAX_SHADERS];
     uint32_t shader_count;
     
     // Models
@@ -143,10 +144,10 @@ void engine_render(engine_t* engine);
 void engine_clear();
 void engine_swap_buffers(engine_t* engine);
 void engine_poll_events(engine_t* engine);
-void engine_check_close_keys(engine_t* engine, int* keys, int key_count);
+void engine_check_exit_keys(engine_t* engine, int* keys, int key_count);
 
 // Shader functions
-bool shader_load(shader_t* shader, const char* vertex_path, const char* fragment_path);
+shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path);
 bool shader_reload_if_changed(shader_t* shader);
 void shader_use(shader_t* shader);
 void shader_cleanup(shader_t* shader);
