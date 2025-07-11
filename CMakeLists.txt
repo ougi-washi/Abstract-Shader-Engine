@@ -34,10 +34,103 @@ add_subdirectory(${LIB_DIR}/glfw)
 message(STATUS "Adding STB library")
 include_directories(${LIB_DIR}/stb)
 
-
+message(STATUS "Adding PULSEAUDIO library")
 find_library(PULSE_SIMPLE_LIB pulse-simple)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PULSEAUDIO REQUIRED libpulse-simple libpulse)
+
+message(STATUS "Adding PORTAUDIO library")
+if (PORTAUDIO_LIBRARIES AND PORTAUDIO_INCLUDE_DIRS)
+  # in cache already
+  set(PORTAUDIO_FOUND TRUE)
+else (PORTAUDIO_LIBRARIES AND PORTAUDIO_INCLUDE_DIRS)
+  if (NOT WIN32)
+   include(FindPkgConfig)
+   pkg_check_modules(PORTAUDIO2 portaudio-2.0)
+  endif (NOT WIN32)
+
+  if (PORTAUDIO2_FOUND)
+    set(PORTAUDIO_INCLUDE_DIRS
+      ${PORTAUDIO2_INCLUDE_DIRS}
+    )
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+      set(PORTAUDIO_LIBRARIES "${PORTAUDIO2_LIBRARY_DIRS}/lib${PORTAUDIO2_LIBRARIES}.dylib")
+    else (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+      set(PORTAUDIO_LIBRARIES
+        ${PORTAUDIO2_LIBRARIES}
+      )
+    endif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(PORTAUDIO_VERSION
+      19
+    )
+    set(PORTAUDIO_FOUND TRUE)
+  else (PORTAUDIO2_FOUND)
+    find_path(PORTAUDIO_INCLUDE_DIR
+      NAMES
+        portaudio.h
+      PATHS
+        /usr/include
+        /usr/local/include
+        /opt/local/include
+        /sw/include
+    )
+
+    find_library(PORTAUDIO_LIBRARY
+      NAMES
+        portaudio
+      PATHS
+        /usr/lib
+        /usr/local/lib
+        /opt/local/lib
+        /sw/lib
+    )
+
+    find_path(PORTAUDIO_LIBRARY_DIR
+      NAMES
+        portaudio
+      PATHS
+        /usr/lib
+        /usr/local/lib
+        /opt/local/lib
+        /sw/lib
+    )
+
+    set(PORTAUDIO_INCLUDE_DIRS
+      ${PORTAUDIO_INCLUDE_DIR}
+    )
+    set(PORTAUDIO_LIBRARIES
+      ${PORTAUDIO_LIBRARY}
+    )
+
+    set(PORTAUDIO_LIBRARY_DIRS
+      ${PORTAUDIO_LIBRARY_DIR}
+    )
+
+    set(PORTAUDIO_VERSION
+      18
+    )
+
+    if (PORTAUDIO_INCLUDE_DIRS AND PORTAUDIO_LIBRARIES)
+       set(PORTAUDIO_FOUND TRUE)
+    endif (PORTAUDIO_INCLUDE_DIRS AND PORTAUDIO_LIBRARIES)
+
+    if (PORTAUDIO_FOUND)
+      if (NOT Portaudio_FIND_QUIETLY)
+        message(STATUS "Found Portaudio: ${PORTAUDIO_LIBRARIES}")
+      endif (NOT Portaudio_FIND_QUIETLY)
+    else (PORTAUDIO_FOUND)
+      if (Portaudio_FIND_REQUIRED)
+        message(FATAL_ERROR "Could not find Portaudio")
+      endif (Portaudio_FIND_REQUIRED)
+    endif (PORTAUDIO_FOUND)
+  endif (PORTAUDIO2_FOUND)
+
+
+  # show the PORTAUDIO_INCLUDE_DIRS and PORTAUDIO_LIBRARIES variables only in the advanced view
+  mark_as_advanced(PORTAUDIO_INCLUDE_DIRS PORTAUDIO_LIBRARIES)
+
+endif (PORTAUDIO_LIBRARIES AND PORTAUDIO_INCLUDE_DIRS)
+
 
 # setup library macro
 macro(setup_library arg_lib_name arg_source_path arg_include_path)
@@ -50,10 +143,11 @@ macro(setup_library arg_lib_name arg_source_path arg_include_path)
 	target_include_directories(${arg_lib_name} PUBLIC ${arg_include_path})
 endmacro()
 
+
 # Main module
-set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${SRC_SRC} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
+set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${SRC_SRC} ${PROJECT_SOURCE_DIR}/${LIB_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR}/portaudio/include)
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC glfw OpenGL::GL ${PULSEAUDIO_LIBRARIES})  
+target_link_libraries(main_module PUBLIC glfw OpenGL::GL portaudio fftw3  ${PULSEAUDIO_LIBRARIES})  
 
 macro(setup_executable arg_exec_dir arg_exec_name modules)
     message(STATUS "Generating executable ${arg_exec_name}")

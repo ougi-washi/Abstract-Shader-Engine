@@ -15,9 +15,10 @@
 #endif
 
 // Audio
-#include <pulse/simple.h>
-#include <pulse/error.h>
-
+//#include <pulse/simple.h>
+//#include <pulse/error.h>
+#include <portaudio.h>
+#include <fftw3.h>  
 
 #define PI 3.14159265359
 
@@ -208,28 +209,15 @@ vec3_t vec3_normalize(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 
 // Audio
-
-#define SAMPLE_RATE 44100
-#define CHANNELS 1
-#define AUDIO_BUFFER_FRAMES 4096    // frames per read
-#define AUDIO_BUFFER_SIZE 1024
-#define BITS_PER_SAMPLE 16
-
-// don't access directly, use audio_get_amplitude and audio_get_frequency instead
 typedef struct {
-    pa_simple *pa;
-    i16* buffer;
-    f32 amp;
-    f32 freq;
-    // thread
-    pthread_t thread;
-    b8 thread_running;
-    pthread_mutex_t mutex;
-} audio_device_t;
+    // TODO: Store volumes by frequency bands (low, mid, high) here
+    // TODO: Run on separate thread and expose volumes via thread-safe functions
 
-i32 audio_init(audio_device_t* audio_device);
-f32 audio_get_amplitude(audio_device_t* audio_device);
-f32 audio_get_frequency(audio_device_t* audio_device);
-void audio_cleanup(audio_device_t* audio_device);
+    float* buffer;
+    int buffer_size;
+} audio_data_t;
+void audio_init();
+void audio_update();
+void audio_cleanup(audio_data_t* data);
 
 #endif // ENGINE_H

@@ -23,6 +23,9 @@ static const char* quad_vertex_shader =
 
 static const char* resources_path = "./resources/";
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
 // Forward declarations
 static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -128,8 +131,8 @@ void engine_update(engine_t* engine) {
     uniform_set_float(engine, "time", engine->time);
     uniform_set_float(engine, "delta_time", engine->delta_time);
     uniform_set_int(engine, "frame", engine->frame_count);
-    uniform_set_vec2(engine, "resolution", (vec2_t){engine->window_width, engine->window_height});
-    uniform_set_vec2(engine, "mouse", (vec2_t){engine->mouse_x, engine->mouse_y});
+    //uniform_set_vec2(engine, "resolution", (vec2_t){engine->window_width, engine->window_height});
+    //uniform_set_vec2(engine, "mouse", (vec2_t){engine->mouse_x, engine->mouse_y});
 }
 
 void engine_render_quad(engine_t* engine) {
@@ -583,24 +586,25 @@ void uniform_set_buffer_texture(engine_t* engine, const char* name, render_buffe
 }
 
 void uniform_apply(engine_t* engine, shader_t* shader) {
+    glUseProgram(shader->program);
     for (uint32_t i = 0; i < engine->uniform_count; i++) {
         uniform_t* uniform = &engine->uniforms[i];
-        GLint location = glGetUniformLocation(shader->program, uniform->name);
-         
-        if (location == -1) continue;
-        
+        GLint location = glGetUniformLocation(shader->program, uniform->name); 
+        if (location == -1) {
+            continue;
+        };
         switch (uniform->type) {
             case UNIFORM_FLOAT:
-                glUniform1f(location, uniform->value.f);
+                glUniform1fv(location, 1, &uniform->value.f);
                 break;
             case UNIFORM_VEC2:
-                glUniform2f(location, uniform->value.vec2.x, uniform->value.vec2.y);
+                glUniform2fv(location, 1, &uniform->value.vec2.x);
                 break;
             case UNIFORM_VEC3:
-                glUniform3f(location, uniform->value.vec3.x, uniform->value.vec3.y, uniform->value.vec3.z);
+                glUniform3fv(location, 1, &uniform->value.vec3.x);
                 break;
             case UNIFORM_VEC4:
-                glUniform4f(location, uniform->value.vec4.x, uniform->value.vec4.y, uniform->value.vec4.z, uniform->value.vec4.w);
+                glUniform4fv(location, 1, &uniform->value.vec4.x);
                 break;
             case UNIFORM_INT:
                 glUniform1i(location, uniform->value.i);
@@ -785,103 +789,197 @@ static GLuint create_shader_program(const char* vertex_source, const char* fragm
     return program;
 }
 
-void* audio_update(audio_device_t* audio_device){
-    while (audio_device->thread_running) {
-        int err;
-        if (pa_simple_read(audio_device->pa, audio_device->buffer, AUDIO_BUFFER_FRAMES * sizeof(int16_t), &err) < 0) {
-            fprintf(stderr, "pa_simple_read() failed: %s\n", pa_strerror(err));
-            return;
-        }
+
+#define SAMPLE_RATE 44100
+#define FRAMES_PER_BUFFER 1024
+
+// Simple zero-crossing frequency detection
+float detect_frequency(float* buffer, int size, float sample_rate) {
+    int zero_crossings = 0;
     
-        double sum = 0.0;
-        for (int i = 0; i < AUDIO_BUFFER_FRAMES; i++){
-            sum += fabs(audio_device->buffer[i]);
+    for (int i = 1; i < size; i++) {
+        if ((buffer[i-1] >= 0 && buffer[i] < 0) || (buffer[i-1] < 0 && buffer[i] >= 0)) {
+            zero_crossings++;
         }
-        {
-            pthread_mutex_lock(&audio_device->mutex);
-            audio_device->amp = sum / AUDIO_BUFFER_FRAMES;
-            pthread_mutex_unlock(&audio_device->mutex);
-        }
+    }
     
-        // b) Zero‑crossing frequency estimate
-        int crossings = 0;
-        for (int i = 1; i < AUDIO_BUFFER_FRAMES; i++) {
-            if ((audio_device->buffer[i-1] < 0 && audio_device->buffer[i] >= 0) ||
-                (audio_device->buffer[i-1] > 0 && audio_device->buffer[i] <= 0))
-                crossings++;
-        }
-        {
-            // two crossings per cycle
-            pthread_mutex_lock(&audio_device->mutex);
-            audio_device->freq = (crossings / 2.0) * ((double)SAMPLE_RATE / AUDIO_BUFFER_FRAMES);
-            pthread_mutex_unlock(&audio_device->mutex);
-        }
-        // Sleep for 100);
-        usleep(100000);
-    }
-    return NULL;
+    // Frequency is roughly zero crossings per second divided by 2
+    float frequency = (zero_crossings * sample_rate) / (2.0f * size);
+    return frequency;
 }
 
-i32 audio_init(audio_device_t* audio_device){    
-    assert(audio_device);
-    static const pa_sample_spec ss = {
-        .format   = PA_SAMPLE_S16LE,
-        .rate     = SAMPLE_RATE,
-        .channels = CHANNELS
-    };
+// Calculate RMS volume
+float calculate_volume(float* buffer, int size) {
+    float sum = 0.0f;
+    for (int i = 0; i < size; i++) {
+        sum += buffer[i] * buffer[i];
+    }
+    return sqrt(sum / size);
+}
 
-    int err;
-    audio_device->pa = pa_simple_new(
-        NULL,               // use default server
-        "pa-capture",       // application name
-        PA_STREAM_RECORD,   // record stream
-        NULL,               // use default source
-        "audio-capture",    // stream description
-        &ss,                // sample format
-        NULL,               // use default channel map
-        NULL,               // use default buffering attributes
-        &err
-    );
-    if (!audio_device->pa)  {
-        fprintf(stderr, "pa_simple_new() failed: %s\n", pa_strerror(err));
-        return 1;
-    }
-    audio_device->buffer = malloc(AUDIO_BUFFER_FRAMES * sizeof(i16));
-    if (!audio_device->buffer) {
-        perror("malloc");
-        pa_simple_free(audio_device->pa);
-        return 1;
-    }
-    printf("Capturing %d‑frame blocks at %d Hz via PulseAudio…\n", AUDIO_BUFFER_FRAMES, SAMPLE_RATE);
+// Simple frequency band classification
+void classify_frequency_bands(float frequency, float volume, float* low, float* mid, float* high) {
+    *low = 0.0f;
+    *mid = 0.0f;
+    *high = 0.0f;
     
-    pthread_mutex_init(&audio_device->mutex, NULL);
-    audio_device->thread_running = true;
-    pthread_create(&audio_device->thread, NULL, &audio_update, audio_device);
-    return 0;
+    if (frequency >= 20 && frequency <= 250) {
+        *low = volume;
+    } else if (frequency > 250 && frequency <= 4000) {
+        *mid = volume;
+    } else if (frequency > 4000 && frequency <= 20000) {
+        *high = volume;
+    }
 }
 
-f32 audio_get_amplitude(audio_device_t* audio_device){
-    f32 output_amplitude = 0;
-    pthread_mutex_lock(&audio_device->mutex);
-    printf("Amplitude: %f\n", audio_device->amp);
-    output_amplitude = audio_device->amp;
-    pthread_mutex_unlock(&audio_device->mutex);
-    return output_amplitude;
+// Audio callback function
+static int audio_callback(const void* input_buffer, void* output_buffer,
+                         unsigned long frames_per_buffer,
+                         const PaStreamCallbackTimeInfo* time_info,
+                         PaStreamCallbackFlags status_flags,
+                         void* user_data) {
+    
+    audio_data_t* data = (audio_data_t*)user_data;
+    const float* input = (const float*)input_buffer;
+    
+    if (input_buffer == NULL) {
+        return paContinue;
+    }
+    
+    // Copy input to buffer
+    for (unsigned long i = 0; i < frames_per_buffer; i++) {
+        data->buffer[i] = input[i];
+    }
+    
+    float volume = calculate_volume(data->buffer, frames_per_buffer);
+    float frequency = detect_frequency(data->buffer, frames_per_buffer, SAMPLE_RATE);
+    
+    float low_vol, mid_vol, high_vol;
+    classify_frequency_bands(frequency, volume, &low_vol, &mid_vol, &high_vol);
+    
+    float volume_percent = volume * 10000.0f; 
+    if (volume_percent > 100.0f) volume_percent = 100.0f;
+    
+    // Scale band volumes
+    float low_percent = low_vol * 10000.0f;
+    float mid_percent = mid_vol * 10000.0f;
+    float high_percent = high_vol * 10000.0f;
+    
+    if (low_percent > 100.0f) low_percent = 100.0f;
+    if (mid_percent > 100.0f) mid_percent = 100.0f;
+    if (high_percent > 100.0f) high_percent = 100.0f;
+    
+    printf("\rVol: %5.1f%% | Freq: %6.1fHz | Low: %5.1f%% | Mid: %5.1f%% | High: %5.1f%% ",
+           volume_percent, frequency, low_percent, mid_percent, high_percent);
+    
+    // Visual bars
+    int vol_bars = (int)(volume_percent / 5);
+    printf("Vol:");
+    for (int i = 0; i < 20; i++) {
+        if (i < vol_bars) printf("█");
+        else printf("░");
+    }
+    
+    fflush(stdout);
+    
+    return paContinue;
 }
 
-f32 audio_get_frequency(audio_device_t* audio_device){
-    f32 output_frequency = 0;
-    pthread_mutex_lock(&audio_device->mutex);
-    output_frequency = audio_device->freq;
-    pthread_mutex_unlock(&audio_device->mutex);
-    return output_frequency;
+
+void list_audio_devices() {
+    int num_devices = Pa_GetDeviceCount();
+    printf("Available audio devices:\n");
+    
+    for (int i = 0; i < num_devices; i++) {
+        const PaDeviceInfo* device_info = Pa_GetDeviceInfo(i);
+        const PaHostApiInfo* host_api_info = Pa_GetHostApiInfo(device_info->hostApi);
+        
+        printf("Device %d: %s (Host API: %s)\n", i, device_info->name, host_api_info->name);
+        printf("  Max input channels: %d\n", device_info->maxInputChannels);
+        printf("  Max output channels: %d\n", device_info->maxOutputChannels);
+        printf("  Default sample rate: %.0f Hz\n", device_info->defaultSampleRate);
+        printf("\n");
+    }
 }
 
-void audio_cleanup(audio_device_t* audio_device){
-    audio_device->thread_running = false;
-    pthread_join(audio_device->thread, NULL);
-    pthread_mutex_destroy(&audio_device->mutex);
-    free(audio_device->buffer);
-    pa_simple_free(audio_device->pa);
+void audio_init() {
+    PaStreamParameters input_parameters;
+    PaStream* stream;
+    PaError err;
+    audio_data_t data;
+    
+    err = Pa_Initialize();
+    if (err != paNoError) {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+        goto cleanup;
+    }
+    
+    data.buffer = (float*)malloc(FRAMES_PER_BUFFER * sizeof(float));
+    data.buffer_size = FRAMES_PER_BUFFER;
+    
+    if (!data.buffer) {
+        printf("Memory allocation failed\n");
+        goto cleanup;
+    }
+    
+    int input_device = Pa_GetDefaultInputDevice();
+    if (input_device == paNoDevice) {
+        printf("No input device found\n");
+        goto cleanup;
+    }
+    
+    input_parameters.device = input_device;
+    input_parameters.channelCount = 1;
+    input_parameters.sampleFormat = paFloat32;
+    input_parameters.suggestedLatency = Pa_GetDeviceInfo(input_device)->defaultLowInputLatency;
+    input_parameters.hostApiSpecificStreamInfo = NULL;
+    err = Pa_OpenStream(&stream,
+                        &input_parameters,
+                        NULL,
+                        SAMPLE_RATE,
+                        FRAMES_PER_BUFFER,
+                        paClipOff,
+                        audio_callback,
+                        &data);
+    
+    if (err != paNoError) {
+        printf("Cannot open stream: %s\n", Pa_GetErrorText(err));
+        goto cleanup;
+    }
+    
+    err = Pa_StartStream(stream);
+    if (err != paNoError) {
+        printf("Cannot start stream: %s\n", Pa_GetErrorText(err));
+        Pa_CloseStream(stream);
+        goto cleanup;
+    }
+    
+    printf("Simple Audio Monitor - Press Enter to stop\n");
+    printf("Volume and frequency detection active...\n\n");
+    
+    // Wait for user input
+    getchar();    //getchar();
+        
+    // Stop capturing audio
+    err = Pa_StopStream(stream);
+    if (err != paNoError) {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+        goto cleanup;
+    }
+
+    // Stop stream
+    err = Pa_CloseStream(stream);
+    if (err != paNoError) {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+    }
+    
+cleanup:
+    audio_cleanup(&data);
 }
 
+void audio_update(){}
+
+void audio_cleanup(audio_data_t* data){
+    free(data->buffer);
+    Pa_Terminate();
+}

@@ -1,6 +1,5 @@
 #version 330 core
 
-//uniform float time;
 uniform vec2 resolution;
 uniform vec2 mouse;
 uniform int frame;
@@ -14,5 +13,5 @@ float noise(vec2 p) {
 }
 
 void main() {
-    FragColor = texture(buffer1, TexCoord + noise(0.00001 * TexCoord + time * 0.00001));
+    FragColor = texture(buffer1, TexCoord);
 }

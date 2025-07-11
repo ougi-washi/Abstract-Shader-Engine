@@ -5,12 +5,15 @@
 
 
 i32 main() {
+
+    audio_init();
+    
     engine_t engine = {0};
     bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
     assert(engine_success);
     
-    audio_device_t audio_device = {0};
-    audio_init(&audio_device);
+    //audio_device_t audio_device = {0};
+    //audio_init(&audio_device);
 
     shader_t* main_shader = shader_load(&engine, "vert.glsl", "frag_main.glsl");
     assert(main_shader);
@@ -24,12 +27,14 @@ i32 main() {
     
     while (!engine_should_close(&engine)) {
         engine_poll_events(&engine);
-        i32 keys[] = {GLFW_KEY_ESCAPE};//{GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
+        i32 keys[] = {GLFW_KEY_ESCAPE}; //{GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
         engine_check_exit_keys(&engine, keys, sizeof(keys) / sizeof(i32));
         engine_update(&engine);
-
-        uniform_set_float(&engine, "amplitude", audio_get_amplitude(&audio_device));
-        uniform_set_float(&engine, "frequency", audio_get_frequency(&audio_device));
+        //const f32 amplitude = audio_get_amplitude(&audio_device);
+        //const f32 frequency = audio_get_frequency(&audio_device);
+        //printf("Amplitude: %f, Frequency: %f\n", amplitude, frequency);
+        //uniform_set_float(&engine, "amplitude", amplitude);
+        //uniform_set_float(&engine, "frequency", frequency);
         shader_use(&engine, buffer1_shader, true);
         render_buffer_bind(&buffer1);
         engine_clear();
@@ -40,7 +45,6 @@ i32 main() {
         uniform_set_texture(&engine, "buffer1", buffer1.texture);
         engine_render(&engine);
         engine_swap_buffers(&engine);
-       
         // Print some debug info occasionally
         if (engine.frame_count % 300 == 0) {
             printf("Frame %d, Time: %.2f, FPS: %.1f\n", 
@@ -48,7 +52,7 @@ i32 main() {
         }
     }
     
-    audio_cleanup(&audio_device);
+    //audio_cleanup(&audio_device);
     render_buffer_cleanup(&buffer1);
     engine_cleanup(&engine);
     return 0;
