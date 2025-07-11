@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/soundcard.h>
+#include <pulse/simple.h>
+#include <pulse/error.h>
 
 // Fullscreen quad vertex shader
 static const char* quad_vertex_shader = 
@@ -784,149 +785,103 @@ static GLuint create_shader_program(const char* vertex_source, const char* fragm
     return program;
 }
 
+void* audio_update(audio_device_t* audio_device){
+    while (audio_device->thread_running) {
+        int err;
+        if (pa_simple_read(audio_device->pa, audio_device->buffer, AUDIO_BUFFER_FRAMES * sizeof(int16_t), &err) < 0) {
+            fprintf(stderr, "pa_simple_read() failed: %s\n", pa_strerror(err));
+            return;
+        }
+    
+        double sum = 0.0;
+        for (int i = 0; i < AUDIO_BUFFER_FRAMES; i++){
+            sum += fabs(audio_device->buffer[i]);
+        }
+        {
+            pthread_mutex_lock(&audio_device->mutex);
+            audio_device->amp = sum / AUDIO_BUFFER_FRAMES;
+            pthread_mutex_unlock(&audio_device->mutex);
+        }
+    
+        // b) Zero‑crossing frequency estimate
+        int crossings = 0;
+        for (int i = 1; i < AUDIO_BUFFER_FRAMES; i++) {
+            if ((audio_device->buffer[i-1] < 0 && audio_device->buffer[i] >= 0) ||
+                (audio_device->buffer[i-1] > 0 && audio_device->buffer[i] <= 0))
+                crossings++;
+        }
+        {
+            // two crossings per cycle
+            pthread_mutex_lock(&audio_device->mutex);
+            audio_device->freq = (crossings / 2.0) * ((double)SAMPLE_RATE / AUDIO_BUFFER_FRAMES);
+            pthread_mutex_unlock(&audio_device->mutex);
+        }
+        // Sleep for 100);
+        usleep(100000);
+    }
+    return NULL;
+}
 
 i32 audio_init(audio_device_t* audio_device){    
     assert(audio_device);
-    audio_device->valid = false;
-     // Try default audio devices in order of preference
-    const char *device_paths[] = {"/dev/dsp", "/dev/dsp0", "/dev/audio", NULL};
-    
-    for (int i = 0; device_paths[i] != NULL; i++) {
-        audio_device->fd = open(device_paths[i], O_RDONLY);
-        if (audio_device->fd >= 0) {
-            strcpy(audio_device->device_name, device_paths[i]);
-            break;
-        }
+    static const pa_sample_spec ss = {
+        .format   = PA_SAMPLE_S16LE,
+        .rate     = SAMPLE_RATE,
+        .channels = CHANNELS
+    };
+
+    int err;
+    audio_device->pa = pa_simple_new(
+        NULL,               // use default server
+        "pa-capture",       // application name
+        PA_STREAM_RECORD,   // record stream
+        NULL,               // use default source
+        "audio-capture",    // stream description
+        &ss,                // sample format
+        NULL,               // use default channel map
+        NULL,               // use default buffering attributes
+        &err
+    );
+    if (!audio_device->pa)  {
+        fprintf(stderr, "pa_simple_new() failed: %s\n", pa_strerror(err));
+        return 1;
     }
-    
-    if (audio_device->fd < 0) {
-        printf("Cannot open default audio device. Try:\n");
-        printf("  sudo modprobe snd-pcm-oss\n");
-        return -1;
+    audio_device->buffer = malloc(AUDIO_BUFFER_FRAMES * sizeof(i16));
+    if (!audio_device->buffer) {
+        perror("malloc");
+        pa_simple_free(audio_device->pa);
+        return 1;
     }
+    printf("Capturing %d‑frame blocks at %d Hz via PulseAudio…\n", AUDIO_BUFFER_FRAMES, SAMPLE_RATE);
     
-    // Set format to 16-bit signed little endian
-    audio_device->format = AFMT_S16_LE;
-    if (ioctl(audio_device->fd, SNDCTL_DSP_SETFMT, &audio_device->format) < 0) {
-        perror("Cannot set audio format");
-        close(audio_device->fd);
-        return -1;
-    }
-    
-    // Set channels
-    audio_device->channels = CHANNELS;
-    if (ioctl(audio_device->fd, SNDCTL_DSP_CHANNELS, &audio_device->channels) < 0) {
-        perror("Cannot set channels");
-        close(audio_device->fd);
-        return -1;
-    }
-    
-    // Set sample rate
-    audio_device->sample_rate = SAMPLE_RATE;
-    if (ioctl(audio_device->fd, SNDCTL_DSP_SPEED, &audio_device->sample_rate) < 0) {
-        perror("Cannot set sample rate");
-        close(audio_device->fd);
-        return -1;
-    }
-    
-    printf("Using audio device: %s\n", audio_device->device_name);
-    printf("Format: 16-bit signed LE, %d channels, %d Hz\n", 
-           audio_device->channels, audio_device->sample_rate);
-    
+    pthread_mutex_init(&audio_device->mutex, NULL);
+    audio_device->thread_running = true;
+    pthread_create(&audio_device->thread, NULL, &audio_update, audio_device);
     return 0;
 }
 
-void audio_update(audio_device_t* audio_device){
-    i32 bytes_read = read(audio_device->fd, audio_device->buffer, AUDIO_BUFFER_SIZE * sizeof(i16));
-    //printf("Read %d bytes\n", bytes_read);
-    audio_device->valid = bytes_read == AUDIO_BUFFER_SIZE * sizeof(i16);
+f32 audio_get_amplitude(audio_device_t* audio_device){
+    f32 output_amplitude = 0;
+    pthread_mutex_lock(&audio_device->mutex);
+    printf("Amplitude: %f\n", audio_device->amp);
+    output_amplitude = audio_device->amp;
+    pthread_mutex_unlock(&audio_device->mutex);
+    return output_amplitude;
 }
 
-// Simple FFT implementation for frequency detection
-void simple_fft(f32 *real, f32 *imag, int n) {
-    if (n <= 1) return;
-    
-    // Separate even and odd elements
-    f32 *even_real = malloc(n/2 * sizeof(f32));
-    f32 *even_imag = malloc(n/2 * sizeof(f32));
-    f32 *odd_real = malloc(n/2 * sizeof(f32));
-    f32 *odd_imag = malloc(n/2 * sizeof(f32));
-    
-    for (i32 i = 0; i < n/2; i++) {
-        even_real[i] = real[i*2];
-        even_imag[i] = imag[i*2];
-        odd_real[i] = real[i*2+1];
-        odd_imag[i] = imag[i*2+1];
-    }
-    
-    // Recursive FFT
-    simple_fft(even_real, even_imag, n/2);
-    simple_fft(odd_real, odd_imag, n/2);
-    
-    // Combine results
-    for (i32 i = 0; i < n/2; i++) {
-        f32 angle = -2 * PI * i / n;
-        f32 cos_val = cos(angle);
-        f32 sin_val = sin(angle);
-        
-        f32 t_real = cos_val * odd_real[i] - sin_val * odd_imag[i];
-        f32 t_imag = sin_val * odd_real[i] + cos_val * odd_imag[i];
-        
-        real[i] = even_real[i] + t_real;
-        imag[i] = even_imag[i] + t_imag;
-        real[i + n/2] = even_real[i] - t_real;
-        imag[i + n/2] = even_imag[i] - t_imag;
-    }
-    
-    free(even_real);
-    free(even_imag);
-    free(odd_real);
-    free(odd_imag);
-}
-
-f32 audio_calculate_amplitude(audio_device_t* audio_device){
-    f32 sum = 0.0;
-    for (sz i = 0; i < AUDIO_BUFFER_SIZE; i++) {
-        sum += abs(audio_device->buffer[i]);
-    }
-    return sum / AUDIO_BUFFER_SIZE;
-}
-
-f32 audio_find_dominant_frequency(audio_device_t* audio_device){
-    f32 *real = malloc(AUDIO_BUFFER_SIZE * sizeof(f32));
-    f32 *imag = malloc(AUDIO_BUFFER_SIZE * sizeof(f32));
-    
-    // Convert to float and apply window
-    for (i32 i = 0; i < AUDIO_BUFFER_SIZE ; i++) {
-        real[i] = (f32)audio_device->buffer[i];
-        imag[i] = 0.0;
-        // Apply Hamming window
-        real[i] *= 0.54 - 0.46 * cos(2 * PI * i / (AUDIO_BUFFER_SIZE - 1));
-    }
-    
-    simple_fft(real, imag, AUDIO_BUFFER_SIZE);
-    
-    // Find peak frequency
-    f32 max_magnitude = 0.0;
-    i32 max_index = 0;
-    
-    for (i32 i = 1; i < AUDIO_BUFFER_SIZE/2; i++) {
-        f32 magnitude = sqrt(real[i] * real[i] + imag[i] * imag[i]);
-        if (magnitude > max_magnitude) {
-            max_magnitude = magnitude;
-            max_index = i;
-        }
-    }
-    
-    free(real);
-    free(imag);
-    
-    return (f32)max_index * SAMPLE_RATE / AUDIO_BUFFER_SIZE;
+f32 audio_get_frequency(audio_device_t* audio_device){
+    f32 output_frequency = 0;
+    pthread_mutex_lock(&audio_device->mutex);
+    output_frequency = audio_device->freq;
+    pthread_mutex_unlock(&audio_device->mutex);
+    return output_frequency;
 }
 
 void audio_cleanup(audio_device_t* audio_device){
-    if (audio_device->fd >= 0) {
-        close(audio_device->fd);
-    }
+    audio_device->thread_running = false;
+    pthread_join(audio_device->thread, NULL);
+    pthread_mutex_destroy(&audio_device->mutex);
+    free(audio_device->buffer);
+    pa_simple_free(audio_device->pa);
 }
 

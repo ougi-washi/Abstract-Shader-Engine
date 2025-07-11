@@ -6,12 +6,18 @@
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
+#include <pthread.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl3.h>
 #else
 #include <GL/gl.h>
 #endif
+
+// Audio
+#include <pulse/simple.h>
+#include <pulse/error.h>
+
 
 #define PI 3.14159265359
 
@@ -202,24 +208,28 @@ vec3_t vec3_normalize(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 
 // Audio
+
 #define SAMPLE_RATE 44100
 #define CHANNELS 1
+#define AUDIO_BUFFER_FRAMES 4096    // frames per read
 #define AUDIO_BUFFER_SIZE 1024
 #define BITS_PER_SAMPLE 16
+
+// don't access directly, use audio_get_amplitude and audio_get_frequency instead
 typedef struct {
-    b8 valid : 1;
-    i32 fd;
-    c8 device_name[64];
-    i32 format;
-    i32 sample_rate;
-    i32 channels;
-    i16 buffer[AUDIO_BUFFER_SIZE];
+    pa_simple *pa;
+    i16* buffer;
+    f32 amp;
+    f32 freq;
+    // thread
+    pthread_t thread;
+    b8 thread_running;
+    pthread_mutex_t mutex;
 } audio_device_t;
 
 i32 audio_init(audio_device_t* audio_device);
-void audio_update(audio_device_t* audio_device);
-f32 audio_calculate_amplitude(audio_device_t* audio_device);
-f32 audio_find_dominant_frequency(audio_device_t* audio_device);
+f32 audio_get_amplitude(audio_device_t* audio_device);
+f32 audio_get_frequency(audio_device_t* audio_device);
 void audio_cleanup(audio_device_t* audio_device);
 
 #endif // ENGINE_H
