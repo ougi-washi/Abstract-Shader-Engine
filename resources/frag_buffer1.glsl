@@ -5,7 +5,7 @@ uniform float time;
 //uniform vec2 mouse;
 uniform float delta_time;
 uniform int frame;
-uniform float amplitude;
+uniform vec3 amps;
 uniform float frequency;
 in vec2 TexCoord;
 out vec4 FragColor;
@@ -16,8 +16,6 @@ void main() {
     float dist = distance(uv, center) * 10 - time * 1;
     dist = fract(dist);
     vec3 color = vec3(dist);
-    if (amplitude < 400.0){
-        color = vec3(0.0);
-    }
+    color *= amps;
     FragColor = vec4(color, 1.0);
 }

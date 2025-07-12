@@ -30,11 +30,7 @@ i32 main() {
         i32 keys[] = {GLFW_KEY_ESCAPE}; //{GLFW_KEY_LEFT_ALT, GLFW_KEY_F4};
         engine_check_exit_keys(&engine, keys, sizeof(keys) / sizeof(i32));
         engine_update(&engine);
-        //const f32 amplitude = audio_get_amplitude(&audio_device);
-        //const f32 frequency = audio_get_frequency(&audio_device);
-        //printf("Amplitude: %f, Frequency: %f\n", amplitude, frequency);
-        //uniform_set_float(&engine, "amplitude", amplitude);
-        //uniform_set_float(&engine, "frequency", frequency);
+        uniform_set_vec3(&engine, "amps", audio_get_amplitudes());
         shader_use(&engine, buffer1_shader, true);
         render_buffer_bind(&buffer1);
         engine_clear();
@@ -52,7 +48,7 @@ i32 main() {
         }
     }
     
-    //audio_cleanup(&audio_device);
+    audio_cleanup();
     render_buffer_cleanup(&buffer1);
     engine_cleanup(&engine);
     return 0;

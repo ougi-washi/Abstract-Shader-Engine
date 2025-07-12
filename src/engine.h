@@ -209,15 +209,8 @@ vec3_t vec3_normalize(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 
 // Audio
-typedef struct {
-    // TODO: Store volumes by frequency bands (low, mid, high) here
-    // TODO: Run on separate thread and expose volumes via thread-safe functions
-
-    float* buffer;
-    int buffer_size;
-} audio_data_t;
 void audio_init();
-void audio_update();
-void audio_cleanup(audio_data_t* data);
+void audio_cleanup();
+vec3_t audio_get_amplitudes();
 
 #endif // ENGINE_H

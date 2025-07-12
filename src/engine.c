@@ -832,6 +832,19 @@ void classify_frequency_bands(float frequency, float volume, float* low, float* 
     }
 }
 
+// Audio
+
+typedef struct {
+    vec3_t amps;
+    
+    // internal
+    b8 running;
+    float* buffer;
+    PaStream* stream;
+    int buffer_size;
+} audio_data_t;
+static audio_data_t audio_data = {0};
+
 // Audio callback function
 static int audio_callback(const void* input_buffer, void* output_buffer,
                          unsigned long frames_per_buffer,
@@ -869,18 +882,20 @@ static int audio_callback(const void* input_buffer, void* output_buffer,
     if (mid_percent > 100.0f) mid_percent = 100.0f;
     if (high_percent > 100.0f) high_percent = 100.0f;
     
-    printf("\rVol: %5.1f%% | Freq: %6.1fHz | Low: %5.1f%% | Mid: %5.1f%% | High: %5.1f%% ",
-           volume_percent, frequency, low_percent, mid_percent, high_percent);
-    
-    // Visual bars
-    int vol_bars = (int)(volume_percent / 5);
-    printf("Vol:");
-    for (int i = 0; i < 20; i++) {
-        if (i < vol_bars) printf("█");
-        else printf("░");
-    }
-    
-    fflush(stdout);
+    data->amps = (vec3_t){low_vol, mid_vol, high_vol};
+
+    //printf("\rVol: %5.1f%% | Freq: %6.1fHz | Low: %5.1f%% | Mid: %5.1f%% | High: %5.1f%% ",
+    //       volume_percent, frequency, low_percent, mid_percent, high_percent);
+    //
+    //// Visual bars
+    //int vol_bars = (int)(volume_percent / 5);
+    //printf("Vol:");
+    //for (int i = 0; i < 20; i++) {
+    //    if (i < vol_bars) printf("█");
+    //    else printf("░");
+    //}
+    //
+    //fflush(stdout);
     
     return paContinue;
 }
@@ -904,28 +919,29 @@ void list_audio_devices() {
 
 void audio_init() {
     PaStreamParameters input_parameters;
-    PaStream* stream;
     PaError err;
-    audio_data_t data;
     
     err = Pa_Initialize();
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
-        goto cleanup;
+        audio_cleanup();
+        return;
     }
     
-    data.buffer = (float*)malloc(FRAMES_PER_BUFFER * sizeof(float));
-    data.buffer_size = FRAMES_PER_BUFFER;
+    audio_data.buffer = (float*)malloc(FRAMES_PER_BUFFER * sizeof(float));
+    audio_data.buffer_size = FRAMES_PER_BUFFER;
     
-    if (!data.buffer) {
+    if (!audio_data.buffer) {
         printf("Memory allocation failed\n");
-        goto cleanup;
+        audio_cleanup();
+        return;
     }
     
     int input_device = Pa_GetDefaultInputDevice();
     if (input_device == paNoDevice) {
         printf("No input device found\n");
-        goto cleanup;
+        audio_cleanup();
+        return;
     }
     
     input_parameters.device = input_device;
@@ -933,53 +949,55 @@ void audio_init() {
     input_parameters.sampleFormat = paFloat32;
     input_parameters.suggestedLatency = Pa_GetDeviceInfo(input_device)->defaultLowInputLatency;
     input_parameters.hostApiSpecificStreamInfo = NULL;
-    err = Pa_OpenStream(&stream,
+    err = Pa_OpenStream(&audio_data.stream,
                         &input_parameters,
                         NULL,
                         SAMPLE_RATE,
                         FRAMES_PER_BUFFER,
                         paClipOff,
                         audio_callback,
-                        &data);
+                        &audio_data);
     
     if (err != paNoError) {
         printf("Cannot open stream: %s\n", Pa_GetErrorText(err));
-        goto cleanup;
+        audio_cleanup();
+        return;
     }
     
-    err = Pa_StartStream(stream);
+    err = Pa_StartStream(audio_data.stream);
     if (err != paNoError) {
         printf("Cannot start stream: %s\n", Pa_GetErrorText(err));
-        Pa_CloseStream(stream);
-        goto cleanup;
+        Pa_CloseStream(audio_data.stream);
+        audio_cleanup();
+        return;
     }
     
     printf("Simple Audio Monitor - Press Enter to stop\n");
     printf("Volume and frequency detection active...\n\n");
     
-    // Wait for user input
-    getchar();    //getchar();
-        
-    // Stop capturing audio
-    err = Pa_StopStream(stream);
+    audio_data.running = true;
+}
+
+void audio_cleanup(){
+    audio_data.running = false;
+    PaError err;
+    err = Pa_StopStream(audio_data.stream);
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
         goto cleanup;
     }
 
-    // Stop stream
-    err = Pa_CloseStream(stream);
+    err = Pa_CloseStream(audio_data.stream);
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
     }
-    
+
 cleanup:
-    audio_cleanup(&data);
+    free(audio_data.buffer);
+    Pa_Terminate();
 }
 
-void audio_update(){}
 
-void audio_cleanup(audio_data_t* data){
-    free(data->buffer);
-    Pa_Terminate();
+vec3_t audio_get_amplitudes(){
+    return audio_data.amps;
 }
