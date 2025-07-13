@@ -24,7 +24,13 @@ i32 main() {
     render_buffer_t buffer1 = {0};
     bool render_buffer_res = render_buffer_create(&buffer1, 512, 512);
     assert(render_buffer_res);
-    
+   
+    // mesh setup
+    shader_t* mesh_shader = shader_load(&engine, "vert_mesh.glsl", "frag_mesh.glsl");
+    assert(mesh_shader);
+    model_t model = {0};
+    model_load_obj(&model, "cube.obj", mesh_shader);
+
     while (!engine_should_close(&engine)) {
 
         // input
@@ -39,7 +45,8 @@ i32 main() {
         shader_use(&engine, buffer1_shader, true);
         render_buffer_bind(&buffer1);
         engine_clear();
-        engine_render_quad(&engine);
+        //engine_render_quad(&engine);
+        model_render(&engine, &model);
         render_buffer_unbind();
         
         shader_use(&engine, main_shader, true);
@@ -53,6 +60,7 @@ i32 main() {
         }
     }
     
+    model_cleanup(&model);
     audio_cleanup();
     render_buffer_cleanup(&buffer1);
     engine_cleanup(&engine);

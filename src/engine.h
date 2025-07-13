@@ -57,26 +57,22 @@ typedef struct {
     f32 x, y;
 } vec2_t;
 
+typedef struct { float m[16]; } mat4_t;
+static mat4_t mat4_identity(void) {
+    mat4_t I = { {
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    } };
+    return I;
+}
+
 typedef struct {
     vec3_t position;
     vec3_t normal;
     vec2_t uv;
 } vertex_t;
-
-typedef struct {
-    vertex_t* vertices;
-    u32* indices;
-    u32 vertex_count;
-    u32 index_count;
-    GLuint vao;
-    GLuint vbo;
-    GLuint ebo;
-} mesh_t;
-
-typedef struct {
-    mesh_t* meshes;
-    u32 mesh_count;
-} model_t;
 
 typedef struct {
     GLuint program;
@@ -88,6 +84,23 @@ typedef struct {
     time_t fragment_mtime;
     b8 needs_reload;
 } shader_t;
+
+typedef struct {
+    vertex_t* vertices;
+    u32* indices;
+    u32 vertex_count;
+    u32 index_count;
+    GLuint vao;
+    GLuint vbo;
+    GLuint ebo;
+    shader_t* shader;
+    mat4_t model_matrix;  
+} mesh_t;
+
+typedef struct {
+    mesh_t* meshes;
+    u32 mesh_count;
+} model_t;
 
 typedef enum {
     UNIFORM_FLOAT,
@@ -177,8 +190,8 @@ void shader_cleanup(shader_t* shader);
 GLuint shader_get_uniform_location(shader_t* shader, const char* name);
 
 // Model functions
-b8 model_load_obj(model_t* model, const char* path);
-void model_render(model_t* model);
+b8 model_load_obj(model_t* model, const char* path, shader_t* shaders);
+void model_render(engine_t* engine, model_t* model);
 void model_cleanup(model_t* model);
 
 // Buffer functions
@@ -204,13 +217,20 @@ char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
 
 // Math utilities
-f32 vec3_length(vec3_t v);
-vec3_t vec3_normalize(vec3_t v);
-vec3_t vec3_cross(vec3_t a, vec3_t b);
 
 // Audio
 void audio_init();
 void audio_cleanup();
 vec3_t audio_get_amplitudes();
 
+// Math
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+f32 vec3_length(vec3_t v);
+mat4_t mat4_perspective(float fov_y, float aspect, float near, float far);
+vec3_t vec3_sub(vec3_t a, vec3_t b);
+vec3_t vec3_norm(vec3_t v);
+vec3_t vec3_cross(vec3_t a, vec3_t b);
+mat4_t mat4_look_at(vec3_t eye, vec3_t center, vec3_t up);
+mat4_t mat4_mul(const mat4_t A, const mat4_t B);
 #endif // ENGINE_H

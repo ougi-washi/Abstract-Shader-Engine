@@ -15,7 +15,7 @@ void main() {
     vec2 center = vec2(0.5);
     vec3 adjusted_amps = amps;
     adjusted_amps.x = amps.x * 5.;
-    float dist = distance(uv, sin(center)) * 40 * (adjusted_amps.x  + adjusted_amps.y * 0.5) - time ;
+    float dist = distance(uv, center) * 40 * (adjusted_amps.x  + adjusted_amps.y * 0.5) - time ;
     dist = fract(dist);
     vec3 color = vec3(dist);
     color *= amps + .1 ;
