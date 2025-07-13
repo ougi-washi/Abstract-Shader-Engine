@@ -21,7 +21,9 @@ static const char* quad_vertex_shader =
 "   gl_Position = vec4(aPos, 0.0, 1.0);\n"
 "}\n";
 
-static const char* resources_path = "./resources/";
+#ifndef RESOURCES_DIR
+#  error "RESOURCES_DIR not defined!"
+#endif
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -186,32 +188,14 @@ char *read_file(const char *path) {
     return buf;
 }
 
-b8 shader_load_internal(shader_t* shader, const char* vertex_path, const char* fragment_path) {
+b8 shader_load_internal(shader_t* shader) {
    
-    assert(shader && vertex_path != NULL && fragment_path != NULL);
+    assert(shader);
 
     shader_cleanup(shader);
-    // add to path
-    char* new_vertex_path = NULL;
-    char* new_fragment_path = NULL;
     
-    if (strlen(vertex_path) > 0) {
-        new_vertex_path = malloc(strlen(resources_path) + strlen(vertex_path) + 1);
-        strcpy(new_vertex_path, resources_path);
-        strcat(new_vertex_path, vertex_path);
-    }
-    
-    if (strlen(fragment_path) > 0) {
-        new_fragment_path = malloc(strlen(resources_path) + strlen(fragment_path) + 1);
-        strcpy(new_fragment_path, resources_path);
-        strcat(new_fragment_path, fragment_path);
-    }
-
-    strncpy(shader->vertex_path, new_vertex_path, MAX_PATH_LENGTH - 1);
-    strncpy(shader->fragment_path, new_fragment_path, MAX_PATH_LENGTH - 1);
-
-    char* vertex_source = load_file(new_vertex_path);
-    char* fragment_source = load_file(new_fragment_path);
+    char* vertex_source = load_file(shader->vertex_path);
+    char* fragment_source = load_file(shader->fragment_path);
     
     if (!vertex_source || !fragment_source) {
         free(vertex_source);
@@ -228,16 +212,37 @@ b8 shader_load_internal(shader_t* shader, const char* vertex_path, const char* f
         return false;
     }
     
-    shader->vertex_mtime = get_file_mtime(new_vertex_path);
-    shader->fragment_mtime = get_file_mtime(new_fragment_path);
-    printf("Shader loaded: %s, %s\n", new_vertex_path, new_fragment_path);
+    shader->vertex_mtime = get_file_mtime(shader->vertex_path);
+    shader->fragment_mtime = get_file_mtime(shader->fragment_path);
+    printf("Shader loaded: %s, %s\n", shader->vertex_path, shader->fragment_path);
     return true;
 }
 
 shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path) {
     engine->shader_count++;
     shader_t* new_shader = &engine->shaders[engine->shader_count - 1];
-    if (shader_load_internal(new_shader, vertex_path, fragment_path)) {
+    // make path absolute
+    char* new_vertex_path = NULL;
+    char* new_fragment_path = NULL;
+    
+    if (strlen(vertex_path) > 0) {
+        new_vertex_path = malloc(strlen(RESOURCES_DIR) + strlen(vertex_path) + 1);
+        strcpy(new_vertex_path, RESOURCES_DIR);
+        strcat(new_vertex_path, vertex_path);
+    }
+    
+    if (strlen(fragment_path) > 0) {
+        new_fragment_path = malloc(strlen(RESOURCES_DIR) + strlen(fragment_path) + 1);
+        strcpy(new_fragment_path, RESOURCES_DIR);
+        strcat(new_fragment_path, fragment_path);
+    }
+    
+    strcpy(new_shader->vertex_path, new_vertex_path);
+    strcpy(new_shader->fragment_path, new_fragment_path);
+    free(new_vertex_path);
+    free(new_fragment_path);
+
+    if (shader_load_internal(new_shader)) {
         return new_shader;
     }
     return NULL;
@@ -253,7 +258,7 @@ b8 shader_reload_if_changed(shader_t* shader) {
     
     if (vertex_mtime != shader->vertex_mtime || fragment_mtime != shader->fragment_mtime) {
         printf("Reloading shader: %s, %s\n", shader->vertex_path, shader->fragment_path);
-        return shader_load(shader, shader->vertex_path, shader->fragment_path);
+        return shader_load_internal(shader);
     }
     
     return false;
@@ -823,9 +828,9 @@ void classify_frequency_bands(float frequency, float volume, float* low, float* 
     *mid = 0.0f;
     *high = 0.0f;
     
-    if (frequency >= 20 && frequency <= 250) {
+    if (frequency >= 20 && frequency <= 3000) {
         *low = volume;
-    } else if (frequency > 250 && frequency <= 4000) {
+    } else if (frequency > 3000 && frequency <= 4000) {
         *mid = volume;
     } else if (frequency > 4000 && frequency <= 20000) {
         *high = volume;
@@ -883,23 +888,8 @@ static int audio_callback(const void* input_buffer, void* output_buffer,
     if (high_percent > 100.0f) high_percent = 100.0f;
     
     data->amps = (vec3_t){low_vol, mid_vol, high_vol};
-
-    //printf("\rVol: %5.1f%% | Freq: %6.1fHz | Low: %5.1f%% | Mid: %5.1f%% | High: %5.1f%% ",
-    //       volume_percent, frequency, low_percent, mid_percent, high_percent);
-    //
-    //// Visual bars
-    //int vol_bars = (int)(volume_percent / 5);
-    //printf("Vol:");
-    //for (int i = 0; i < 20; i++) {
-    //    if (i < vol_bars) printf("█");
-    //    else printf("░");
-    //}
-    //
-    //fflush(stdout);
-    
     return paContinue;
 }
-
 
 void list_audio_devices() {
     int num_devices = Pa_GetDeviceCount();

@@ -141,6 +141,7 @@ macro(setup_library arg_lib_name arg_source_path arg_include_path)
 					"${arg_source_path}/**/*.cpp")
 	add_library(${arg_lib_name} STATIC	${CURRENT_SRC_FILES})
 	target_include_directories(${arg_lib_name} PUBLIC ${arg_include_path})
+    target_compile_definitions(${arg_lib_name} PRIVATE RESOURCES_DIR="${CMAKE_SOURCE_DIR}/${RESOURCES_DIR}/")
 endmacro()
 
 
@@ -153,8 +154,8 @@ macro(setup_executable arg_exec_dir arg_exec_name modules)
     message(STATUS "Generating executable ${arg_exec_name}")
     add_executable(${arg_exec_name} "${arg_exec_dir}/${arg_exec_name}.c")
     target_link_libraries(${arg_exec_name} PUBLIC main_module)
-    set_target_properties(${arg_exec_name} PROPERTIES
-                            RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})
+    target_compile_definitions(${arg_exec_name} PRIVATE RESOURCES_DIR="${CMAKE_SOURCE_DIR}/${RESOURCES_DIR}/")
+    set_target_properties(${arg_exec_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/${BIN_DIR})
 endmacro()
 
 file(GLOB EXAMPLES 	"${EXAMPLES_DIR}/*.c" 
@@ -167,8 +168,4 @@ foreach(EXAMPLE ${EXAMPLES})
    	message(STATUS "Adding strategy ${EXAMPLE_NAME}")
    	setup_executable(${EXAMPLES_DIR} ${EXAMPLE_NAME} main_module)
 endforeach()
-
-# Copy resources
-file(COPY ${RESOURCES_DIR} DESTINATION ${PROJECT_SOURCE_DIR}/${BIN_DIR})
-
 

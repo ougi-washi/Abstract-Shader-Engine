@@ -13,9 +13,11 @@ out vec4 FragColor;
 void main() {
     vec2 uv = TexCoord;
     vec2 center = vec2(0.5);
-    float dist = distance(uv, center) * 10 - time * 1;
+    vec3 adjusted_amps = amps;
+    adjusted_amps.x = amps.x * 5.;
+    float dist = distance(uv, sin(center)) * 40 * (adjusted_amps.x  + adjusted_amps.y * 0.5) - time ;
     dist = fract(dist);
     vec3 color = vec3(dist);
-    color *= amps;
+    color *= amps + .1 ;
     FragColor = vec4(color, 1.0);
 }
