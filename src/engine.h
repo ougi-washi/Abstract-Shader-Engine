@@ -94,7 +94,7 @@ typedef struct {
     GLuint vbo;
     GLuint ebo;
     shader_t* shader;
-    mat4_t model_matrix;  
+    mat4_t matrix;  
 } mesh_t;
 
 typedef struct {
@@ -216,14 +216,13 @@ time_t get_file_mtime(const char* path);
 char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
 
-// Math utilities
-
 // Audio
 void audio_init();
 void audio_cleanup();
 vec3_t audio_get_amplitudes();
 
 // Math
+#define PI 3.14159265359
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 f32 vec3_length(vec3_t v);
@@ -233,4 +232,8 @@ vec3_t vec3_norm(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 mat4_t mat4_look_at(vec3_t eye, vec3_t center, vec3_t up);
 mat4_t mat4_mul(const mat4_t A, const mat4_t B);
+mat4_t mat4_rotate_x(mat4_t m, f32 angle);
+mat4_t mat4_rotate_y(mat4_t m, f32 angle);
+mat4_t mat4_rotate_z(mat4_t m, f32 angle);
+
 #endif // ENGINE_H

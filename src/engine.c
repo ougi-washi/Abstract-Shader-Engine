@@ -25,9 +25,7 @@ static const char* quad_vertex_shader =
 #  error "RESOURCES_DIR not defined!"
 #endif
 
-
 #define MAX_PATH_LENGTH 256
-
 
 // Forward declarations
 static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
@@ -365,6 +363,7 @@ b8 model_load_obj(model_t* model, const char* path, shader_t* shader) {
     memcpy(mesh->indices, indices, index_count * sizeof(u32));
     mesh->vertex_count = final_vertex_count;
     mesh->index_count = index_count;
+    mesh->matrix = mat4_identity();
     
     // Create OpenGL objects
     glGenVertexArrays(1, &mesh->vao);
@@ -425,7 +424,7 @@ void model_render(engine_t* engine, model_t* model) {
         glUseProgram(sh->program);
 
         mat4_t vp  = mat4_mul(proj, view);
-        mat4_t mvp = mat4_mul(vp, mesh->model_matrix); 
+        mat4_t mvp = mat4_mul(vp, mesh->matrix); 
 
         GLint loc_mvp = glGetUniformLocation(sh->program, "u_MVP");
         if (loc_mvp >= 0) {
@@ -434,29 +433,24 @@ void model_render(engine_t* engine, model_t* model) {
 
         GLint loc_model = glGetUniformLocation(sh->program, "u_Model");
         if (loc_model >= 0) {
-            glUniformMatrix4fv(loc_model, 1, GL_FALSE, mesh->model_matrix.m);
+            glUniformMatrix4fv(loc_model, 1, GL_FALSE, mesh->matrix.m);
         }
 
         // send to the GPU other uniforms (lights if forward rendering, etc)
 
         // draw
         //
-        
-        glDisable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);  
         glBindVertexArray(mesh->vao);
         glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_INT, 0);
     }
     // unbind
     glBindVertexArray(0);
     glUseProgram(0);
-
-    //for (u32 i = 0; i < model->mesh_count; i++) {
-    //    mesh_t* mesh = &model->meshes[i];
-    //    glBindVertexArray(mesh->vao);
-    //    glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_INT, 0);
-    //    glBindVertexArray(0);
-    //}
 }
 
 void model_cleanup(model_t* model) {
@@ -1086,5 +1080,32 @@ mat4_t mat4_mul(const mat4_t A, const mat4_t B) {
         }
     }
     return R;
+}
+
+mat4_t mat4_rotate_x(mat4_t m, f32 angle) {
+    mat4_t R = mat4_identity();
+    R.m[5] =  cos(angle);
+    R.m[6] = -sin(angle);
+    R.m[9] =  sin(angle);
+    R.m[10] = cos(angle);
+    return mat4_mul(m, R);
+}
+
+mat4_t mat4_rotate_y(mat4_t m, f32 angle) {
+    mat4_t R = mat4_identity();
+    R.m[0] =  cos(angle);
+    R.m[2] =  sin(angle);
+    R.m[8] = -sin(angle);
+    R.m[10] = cos(angle);
+    return mat4_mul(m, R);
+}
+
+mat4_t mat4_rotate_z(mat4_t m, f32 angle) {
+    mat4_t R = mat4_identity();
+    R.m[0] =  cos(angle);
+    R.m[1] = -sin(angle);
+    R.m[4] =  sin(angle);
+    R.m[5] =  cos(angle);
+    return mat4_mul(m, R);
 }
 
