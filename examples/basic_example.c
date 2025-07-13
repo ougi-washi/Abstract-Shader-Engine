@@ -46,6 +46,8 @@ i32 main() {
         render_buffer_bind(&buffer1);
         engine_clear();
         //engine_render_quad(&engine);
+        vec3_t rot_angle = {0, 0, 1};
+        model_rotate(&model, &rot_angle, get_delta_time(&engine));
         model_render(&engine, &model);
         render_buffer_unbind();
         

@@ -189,10 +189,18 @@ void shader_use(engine_t* engine, shader_t* shader, const b8 update_uniforms);
 void shader_cleanup(shader_t* shader);
 GLuint shader_get_uniform_location(shader_t* shader, const char* name);
 
+// Mesh functions
+void mesh_translate(mesh_t* mesh, const vec3_t* v);
+void mesh_rotate(mesh_t* mesh, const vec3_t* v, f32 angle);
+void mesh_scale(mesh_t* mesh, const vec3_t* v);
+
 // Model functions
 b8 model_load_obj(model_t* model, const char* path, shader_t* shaders);
 void model_render(engine_t* engine, model_t* model);
 void model_cleanup(model_t* model);
+void model_translate(model_t* model, const vec3_t* v);
+void model_rotate(model_t* model, const vec3_t* v, f32 angle);
+void model_scale(model_t* model, const vec3_t* v);
 
 // Buffer functions
 b8 render_buffer_create(render_buffer_t* buffer, u32 width, u32 height);
@@ -212,6 +220,7 @@ void uniform_apply(engine_t* engine, shader_t* shader); // make sure the shader 
 
 // Utility functions
 f64 get_time(void);
+f64 get_delta_time(const engine_t* engine);
 time_t get_file_mtime(const char* path);
 char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
@@ -221,7 +230,7 @@ void audio_init();
 void audio_cleanup();
 vec3_t audio_get_amplitudes();
 
-// Math
+// Math (TODO: Change all args to ptrs for performance)
 #define PI 3.14159265359
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -232,8 +241,10 @@ vec3_t vec3_norm(vec3_t v);
 vec3_t vec3_cross(vec3_t a, vec3_t b);
 mat4_t mat4_look_at(vec3_t eye, vec3_t center, vec3_t up);
 mat4_t mat4_mul(const mat4_t A, const mat4_t B);
+mat4_t mat4_translate(const vec3_t* v); 
 mat4_t mat4_rotate_x(mat4_t m, f32 angle);
 mat4_t mat4_rotate_y(mat4_t m, f32 angle);
 mat4_t mat4_rotate_z(mat4_t m, f32 angle);
+mat4_t mat4_scale(const vec3_t* v);
 
 #endif // ENGINE_H

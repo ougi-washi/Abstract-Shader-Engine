@@ -281,6 +281,19 @@ GLuint shader_get_uniform_location(shader_t* shader, const char* name) {
     return glGetUniformLocation(shader->program, name);
 }
 
+// Mesh functions
+void mesh_translate(mesh_t* mesh, const vec3_t* v){
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_translate(v));
+}
+
+void mesh_rotate(mesh_t* mesh, const vec3_t* v, f32 angle){
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_x(mat4_identity(), angle));
+}
+
+void mesh_scale(mesh_t* mesh, const vec3_t* v){
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_scale(v));
+}
+
 // Model functions
 b8 model_load_obj(model_t* model, const char* path, shader_t* shader) {
     char full_path[MAX_PATH_LENGTH];
@@ -464,6 +477,27 @@ void model_cleanup(model_t* model) {
     }
     free(model->meshes);
     model->mesh_count = 0;
+}
+
+void model_translate(model_t* model, const vec3_t* v){
+    for (u32 i = 0; i < model->mesh_count; i++) {
+        mesh_t* mesh = &model->meshes[i];
+        mesh_translate(mesh, v);
+    }
+}
+
+void model_rotate(model_t* model, const vec3_t* v, f32 angle){
+    for (u32 i = 0; i < model->mesh_count; i++) {
+        mesh_t* mesh = &model->meshes[i];
+        mesh_rotate(mesh, v, angle);
+    }
+}
+
+void model_scale(model_t* model, const vec3_t* v){
+    for (u32 i = 0; i < model->mesh_count; i++) {
+        mesh_t* mesh = &model->meshes[i];
+        mesh_scale(mesh, v);
+    }
 }
 
 // Buffer functions
@@ -671,8 +705,12 @@ void uniform_apply(engine_t* engine, shader_t* shader) {
 }
 
 // Utility functions
-double get_time(void) {
+f64 get_time(void) {
     return glfwGetTime();
+}
+
+f64 get_delta_time(const engine_t* engine) {
+   return engine->delta_time;
 }
 
 time_t get_file_mtime(const char* path) {
@@ -1082,6 +1120,14 @@ mat4_t mat4_mul(const mat4_t A, const mat4_t B) {
     return R;
 }
 
+mat4_t mat4_translate(const vec3_t* v) {
+    mat4_t T = mat4_identity();
+    T.m[12] = v->x;
+    T.m[13] = v->y;
+    T.m[14] = v->z;
+    return T;
+}
+
 mat4_t mat4_rotate_x(mat4_t m, f32 angle) {
     mat4_t R = mat4_identity();
     R.m[5] =  cos(angle);
@@ -1107,5 +1153,13 @@ mat4_t mat4_rotate_z(mat4_t m, f32 angle) {
     R.m[4] =  sin(angle);
     R.m[5] =  cos(angle);
     return mat4_mul(m, R);
+}
+
+mat4_t mat4_scale(const vec3_t* v) {
+    mat4_t S = mat4_identity();
+    S.m[0] = v->x;
+    S.m[5] = v->y;
+    S.m[10] = v->z;
+    return S;
 }
 
