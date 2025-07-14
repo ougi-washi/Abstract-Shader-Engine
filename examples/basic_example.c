@@ -1,4 +1,7 @@
-#include "engine.h"
+// Abstract-Shader-Engine - Ougi Washi
+
+#include "as_render.h"
+#include "as_audio.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
