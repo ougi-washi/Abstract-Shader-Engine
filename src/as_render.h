@@ -1,9 +1,10 @@
-#ifndef as_engine_H
-#define as_engine_H
+// Abstract-Shader-Engine - Ougi Washi
 
+#ifndef AS_RENDER_H
+#define AS_RENDER_H
+
+#include "as_types.h"
 #include <GLFW/glfw3.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <time.h>
 #include <assert.h>
 #include <pthread.h>
@@ -13,12 +14,6 @@
 #else
 #include <GL/gl.h>
 #endif
-
-// Audio
-//#include <pulse/simple.h>
-//#include <pulse/error.h>
-#include <portaudio.h>
-#include <fftw3.h>  
 
 #define PI 3.14159265359
 
@@ -30,35 +25,6 @@
 #define MAX_INDICES 65536
 #define MAX_PATH_LENGTH 256
 
-typedef bool b8;
-typedef int8_t i8;
-typedef uint8_t u8;
-typedef int16_t i16;
-typedef uint16_t u16;
-typedef int32_t i32;
-typedef uint32_t u32;
-typedef int64_t i64;
-typedef uint64_t u64;
-typedef float f32;
-typedef double f64;
-typedef char c8;
-typedef unsigned char uc8;
-typedef size_t sz;
-
-// Structures
-typedef struct {
-    f32 x, y, z;
-} as_vec3;
-
-typedef struct {
-    f32 x, y, z, w;
-} as_vec4;
-
-typedef struct {
-    f32 x, y;
-} as_vec2;
-
-typedef struct { float m[16]; } as_mat4;
 static as_mat4 mat4_identity(void) {
     as_mat4 I = { {
         1,0,0,0,
@@ -138,35 +104,28 @@ typedef struct {
     u32 window_width;
     u32 window_height;
     
-    // Render buffers
     as_render_buffer buffers[MAX_BUFFERS];
     u32 buffer_count;
     
-    // Shaders
     as_shader shaders[MAX_SHADERS];
     u32 as_shader_count;
     
-    // Models
     as_model* models;
     u32 as_model_count;
     
-    // Uniforms
     as_uniform uniforms[MAX_UNIFORMS];
     u32 as_uniform_count;
     
-    // Timing
     f64 time;
     f64 delta_time;
     f64 last_frame_time;
     i32 frame_count;
     
-    // Input
     b8 keys[1024];
     f64 mouse_x, mouse_y;
     f64 mouse_dx, mouse_dy;
     b8 mouse_buttons[8];
     
-    // Quad for fullscreen rendering
     GLuint quad_vao;
     GLuint quad_vbo;
 } as_engine;
@@ -226,11 +185,6 @@ time_t get_file_mtime(const char* path);
 char* load_file(const char* path);
 void create_fullscreen_quad(GLuint* vao, GLuint* vbo);
 
-// Audio
-void as_audio_init();
-void as_audio_cleanup();
-as_vec3 as_audio_get_amplitudes();
-
 // Math (TODO: Change all args to ptrs for performance)
 #define PI 3.14159265359
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -248,4 +202,4 @@ as_mat4 mat4_rotate_y(as_mat4 m, f32 angle);
 as_mat4 mat4_rotate_z(as_mat4 m, f32 angle);
 as_mat4 mat4_scale(const as_vec3* v);
 
-#endif // as_engine_H
+#endif // AS_RENDER_H
