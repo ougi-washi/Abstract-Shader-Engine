@@ -5,18 +5,18 @@ layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_UV;
 
 // Model-View-Projection and Model matrices
-uniform mat4 u_MVP;
-uniform mat4 u_Model;
+uniform mat4 u_mvp;
+uniform mat4 u_model;
 
-out vec2 vUV;
-out vec3 vNormal;
-out vec3 vFragPos;
+out vec2 v_uv;
+out vec3 v_normal;
+out vec3 v_frag_pos;
 
 void main() {
-    gl_Position = u_MVP * vec4(a_Position, 1.0);
+    gl_Position = u_mvp * vec4(a_Position, 1.0);
 
-    vFragPos  = vec3(u_Model * vec4(a_Position, 1.0));
-    vNormal   = mat3(transpose(inverse(u_Model))) * a_Normal;
+    v_frag_pos  = vec3(u_model * vec4(a_Position, 1.0));
+    v_normal   = mat3(transpose(inverse(u_model))) * a_Normal;
 
-    vUV       = a_UV;
+    v_uv       = a_UV;
 }

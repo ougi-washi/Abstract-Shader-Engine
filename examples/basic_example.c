@@ -3,18 +3,14 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define WIDTH 1920
+#define HEIGHT 1080
 
 i32 main() {
-
-    audio_init();
-    
     engine_t engine = {0};
-    bool engine_success = engine_init(&engine, 1280, 720, "Abstract Shader Engine");
+    bool engine_success = engine_init(&engine, WIDTH, HEIGHT, "Abstract Shader Engine");
     assert(engine_success);
-    
-    //audio_device_t audio_device = {0};
-    //audio_init(&audio_device);
-
+   
     shader_t* main_shader = shader_load(&engine, "vert.glsl", "frag_main.glsl");
     assert(main_shader);
 
@@ -22,15 +18,18 @@ i32 main() {
     shader_t* buffer1_shader = shader_load(&engine, "vert.glsl", "frag_buffer1.glsl");
     assert(buffer1_shader);
     render_buffer_t buffer1 = {0};
-    bool render_buffer_res = render_buffer_create(&buffer1, 512, 512);
+    bool render_buffer_res = render_buffer_create(&buffer1, WIDTH, HEIGHT);
     assert(render_buffer_res);
    
     // mesh setup
-    shader_t* mesh_shader = shader_load(&engine, "vert_mesh.glsl", "frag_mesh.glsl");
-    assert(mesh_shader);
+    shader_t* mesh_shader_0 = shader_load(&engine, "vert_mesh.glsl", "frag_mesh.glsl");
+    shader_t** mesh_shaders = &mesh_shader_0;
+    assert(mesh_shaders);
     model_t model = {0};
-    model_load_obj(&model, "cube.obj", mesh_shader);
-
+    model_load_obj(&model, "cube.obj", mesh_shaders, 1);
+    
+    audio_init();
+   
     while (!engine_should_close(&engine)) {
 
         // input
@@ -46,8 +45,8 @@ i32 main() {
         render_buffer_bind(&buffer1);
         engine_clear();
         //engine_render_quad(&engine);
-        vec3_t rot_angle = {0, 0, 1};
-        model_rotate(&model, &rot_angle, get_delta_time(&engine));
+        const vec3_t rot_angle = {0,0,get_delta_time(&engine)};
+        model_rotate(&model, &rot_angle);
         model_render(&engine, &model);
         render_buffer_unbind();
         

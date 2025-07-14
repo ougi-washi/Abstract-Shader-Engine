@@ -25,6 +25,7 @@
 #define MAX_BUFFERS 8
 #define MAX_UNIFORMS 32
 #define MAX_SHADERS 64
+#define MAX_MESHES 64
 #define MAX_VERTICES 65536
 #define MAX_INDICES 65536
 #define MAX_PATH_LENGTH 256
@@ -191,15 +192,15 @@ GLuint shader_get_uniform_location(shader_t* shader, const char* name);
 
 // Mesh functions
 void mesh_translate(mesh_t* mesh, const vec3_t* v);
-void mesh_rotate(mesh_t* mesh, const vec3_t* v, f32 angle);
+void mesh_rotate(mesh_t* mesh, const vec3_t* v);
 void mesh_scale(mesh_t* mesh, const vec3_t* v);
 
 // Model functions
-b8 model_load_obj(model_t* model, const char* path, shader_t* shaders);
+b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz shader_count); 
 void model_render(engine_t* engine, model_t* model);
 void model_cleanup(model_t* model);
 void model_translate(model_t* model, const vec3_t* v);
-void model_rotate(model_t* model, const vec3_t* v, f32 angle);
+void model_rotate(model_t* model, const vec3_t* v);
 void model_scale(model_t* model, const vec3_t* v);
 
 // Buffer functions

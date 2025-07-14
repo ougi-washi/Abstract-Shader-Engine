@@ -61,7 +61,7 @@ b8 engine_init(engine_t* engine, u32 width, u32 height, const char* title) {
         glfwTerminate();
         return false;
     }
-    
+
     engine->window_width = width;
     engine->window_height = height;
     
@@ -286,97 +286,35 @@ void mesh_translate(mesh_t* mesh, const vec3_t* v){
     mesh->matrix = mat4_mul(mesh->matrix, mat4_translate(v));
 }
 
-void mesh_rotate(mesh_t* mesh, const vec3_t* v, f32 angle){
-    mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_x(mat4_identity(), angle));
+void mesh_rotate(mesh_t* mesh, const vec3_t* v){
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_x(mat4_identity(), v->x));
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_y(mat4_identity(), v->y));
+    mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_z(mat4_identity(), v->z));
 }
 
 void mesh_scale(mesh_t* mesh, const vec3_t* v){
     mesh->matrix = mat4_mul(mesh->matrix, mat4_scale(v));
 }
 
-// Model functions
-b8 model_load_obj(model_t* model, const char* path, shader_t* shader) {
-    char full_path[MAX_PATH_LENGTH];
-    strncpy(full_path, RESOURCES_DIR, MAX_PATH_LENGTH - 1);
-    strncat(full_path, path, MAX_PATH_LENGTH - strlen(full_path) - 1);
-    
-    FILE* file = fopen(full_path, "r");
-    if (!file) {
-        fprintf(stderr, "Failed to open OBJ file: %s\n", path);
-        return false;
-    }
-    
-    // Arrays for temporary storage
-    vec3_t* temp_vertices = malloc(MAX_VERTICES * sizeof(vec3_t));
-    vec3_t* temp_normals = malloc(MAX_VERTICES * sizeof(vec3_t));
-    vec2_t* temp_uvs = malloc(MAX_VERTICES * sizeof(vec2_t));
-    
-    u32 vertex_count = 0;
-    u32 normal_count = 0;
-    u32 uv_count = 0;
-    
-    // Final vertex data
-    vertex_t* vertices = malloc(MAX_VERTICES * sizeof(vertex_t));
-    u32* indices = malloc(MAX_INDICES * sizeof(u32));
-    u32 final_vertex_count = 0;
-    u32 index_count = 0;
-    
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        if (strncmp(line, "v ", 2) == 0) {
-            // Vertex position
-            sscanf(line, "v %f %f %f", &temp_vertices[vertex_count].x, 
-                   &temp_vertices[vertex_count].y, &temp_vertices[vertex_count].z);
-            vertex_count++;
-        } else if (strncmp(line, "vn ", 3) == 0) {
-            // Vertex normal
-            sscanf(line, "vn %f %f %f", &temp_normals[normal_count].x,
-                   &temp_normals[normal_count].y, &temp_normals[normal_count].z);
-            normal_count++;
-        } else if (strncmp(line, "vt ", 3) == 0) {
-            // Vertex texture coordinate
-            sscanf(line, "vt %f %f", &temp_uvs[uv_count].x, &temp_uvs[uv_count].y);
-            uv_count++;
-        } else if (strncmp(line, "f ", 2) == 0) {
-            // Face
-            u32 v1, v2, v3, n1, n2, n3, t1, t2, t3;
-            i32 matches = sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
-                                &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3);
-            
-            if (matches == 9) {
-                // Create vertices for this face
-                for (i32 i = 0; i < 3; i++) {
-                    u32 vi = (i == 0) ? v1 - 1 : (i == 1) ? v2 - 1 : v3 - 1;
-                    u32 ni = (i == 0) ? n1 - 1 : (i == 1) ? n2 - 1 : n3 - 1;
-                    u32 ti = (i == 0) ? t1 - 1 : (i == 1) ? t2 - 1 : t3 - 1;
-                    
-                    vertices[final_vertex_count].position = temp_vertices[vi];
-                    vertices[final_vertex_count].normal = temp_normals[ni];
-                    vertices[final_vertex_count].uv = temp_uvs[ti];
-                    
-                    indices[index_count] = final_vertex_count;
-                    final_vertex_count++;
-                    index_count++;
-                }
-            }
-        }
-    }
-    
-    fclose(file);
-    
-    // Create mesh
-    model->mesh_count = 1;
-    model->meshes = malloc(sizeof(mesh_t));
-    mesh_t* mesh = &model->meshes[0];
-    
-    
-    mesh->vertices = malloc(final_vertex_count * sizeof(vertex_t));
+// Helper function to finalize a mesh
+void finalize_mesh(mesh_t* mesh, vertex_t* vertices, u32* indices, u32 vertex_count, u32 index_count, 
+                   shader_t** shaders, sz shader_count, u32 mesh_index) {
+// Allocate mesh data
+    mesh->vertices = malloc(vertex_count * sizeof(vertex_t));
     mesh->indices = malloc(index_count * sizeof(u32));
-    memcpy(mesh->vertices, vertices, final_vertex_count * sizeof(vertex_t));
+    memcpy(mesh->vertices, vertices, vertex_count * sizeof(vertex_t));
     memcpy(mesh->indices, indices, index_count * sizeof(u32));
-    mesh->vertex_count = final_vertex_count;
+    mesh->vertex_count = vertex_count;
     mesh->index_count = index_count;
     mesh->matrix = mat4_identity();
+    
+    // Assign shader (cycle through available shaders)
+    if (shader_count > 0) {
+        mesh->shader = shaders[mesh_index % shader_count];
+    } else {
+        mesh->shader = NULL;
+        fprintf(stderr, "No shaders provided for mesh %u\n", mesh_index);
+    }
     
     // Create OpenGL objects
     glGenVertexArrays(1, &mesh->vao);
@@ -386,7 +324,7 @@ b8 model_load_obj(model_t* model, const char* path, shader_t* shader) {
     glBindVertexArray(mesh->vao);
     
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, final_vertex_count * sizeof(vertex_t), mesh->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(vertex_t), mesh->vertices, GL_STATIC_DRAW);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(u32), mesh->indices, GL_STATIC_DRAW);
@@ -404,16 +342,161 @@ b8 model_load_obj(model_t* model, const char* path, shader_t* shader) {
     glEnableVertexAttribArray(2);
     
     glBindVertexArray(0);
-    
-    // Bind shader
-    mesh->shader = shader;
+}
 
+
+
+b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz shader_count) {
+    char full_path[MAX_PATH_LENGTH];
+    strncpy(full_path, RESOURCES_DIR, MAX_PATH_LENGTH - 1);
+    strncat(full_path, path, MAX_PATH_LENGTH - strlen(full_path) - 1);
+    
+    FILE* file = fopen(full_path, "r");
+    if (!file) {
+        fprintf(stderr, "Failed to open OBJ file: %s\n", path);
+        return false;
+    }
+    
+    // Arrays for temporary storage (shared across all meshes)
+    vec3_t* temp_vertices = malloc(MAX_VERTICES * sizeof(vec3_t));
+    vec3_t* temp_normals = malloc(MAX_VERTICES * sizeof(vec3_t));
+    vec2_t* temp_uvs = malloc(MAX_VERTICES * sizeof(vec2_t));
+    
+    u32 vertex_count = 0;
+    u32 normal_count = 0;
+    u32 uv_count = 0;
+    
+    // Dynamic array for meshes
+    mesh_t* meshes = malloc(MAX_MESHES * sizeof(mesh_t));
+    u32 mesh_count = 0;
+    
+    // Current mesh data
+    vertex_t* current_vertices = malloc(MAX_VERTICES * sizeof(vertex_t));
+    u32* current_indices = malloc(MAX_INDICES * sizeof(u32));
+    u32 current_vertex_count = 0;
+    u32 current_index_count = 0;
+    
+    char line[256];
+    char current_object[256] = "default";
+    b8 has_faces = false;
+    
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "v ", 2) == 0) {
+            // Vertex position
+            sscanf(line, "v %f %f %f", &temp_vertices[vertex_count].x, 
+                   &temp_vertices[vertex_count].y, &temp_vertices[vertex_count].z);
+            vertex_count++;
+        } else if (strncmp(line, "vn ", 3) == 0) {
+            // Vertex normal
+            sscanf(line, "vn %f %f %f", &temp_normals[normal_count].x,
+                   &temp_normals[normal_count].y, &temp_normals[normal_count].z);
+            normal_count++;
+        } else if (strncmp(line, "vt ", 3) == 0) {
+            // Vertex texture coordinate
+            sscanf(line, "vt %f %f", &temp_uvs[uv_count].x, &temp_uvs[uv_count].y);
+            uv_count++;
+        } else if (strncmp(line, "o ", 2) == 0 || strncmp(line, "g ", 2) == 0) {
+            // New object/group - finalize current mesh if it has faces
+            if (has_faces && current_vertex_count > 0) {
+                finalize_mesh(&meshes[mesh_count], current_vertices, current_indices, 
+                             current_vertex_count, current_index_count, shaders, shader_count, mesh_count);
+                mesh_count++;
+                
+                // Reset for next mesh
+                current_vertex_count = 0;
+                current_index_count = 0;
+                has_faces = false;
+            }
+            
+            // Get new object name
+            sscanf(line, "%*s %255s", current_object);
+        } else if (strncmp(line, "f ", 2) == 0) {
+            // Face
+            has_faces = true;
+            u32 v1, v2, v3, n1, n2, n3, t1, t2, t3;
+            i32 matches = sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+                                &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3);
+            
+            if (matches == 9) {
+                // Create vertices for this face
+                for (i32 i = 0; i < 3; i++) {
+                    u32 vi = (i == 0) ? v1 - 1 : (i == 1) ? v2 - 1 : v3 - 1;
+                    u32 ni = (i == 0) ? n1 - 1 : (i == 1) ? n2 - 1 : n3 - 1;
+                    u32 ti = (i == 0) ? t1 - 1 : (i == 1) ? t2 - 1 : t3 - 1;
+                    
+                    // Check bounds
+                    if (vi >= vertex_count || ni >= normal_count || ti >= uv_count) {
+                        fprintf(stderr, "OBJ file contains invalid face indices\n");
+                        continue;
+                    }
+                    
+                    current_vertices[current_vertex_count].position = temp_vertices[vi];
+                    current_vertices[current_vertex_count].normal = temp_normals[ni];
+                    current_vertices[current_vertex_count].uv = temp_uvs[ti];
+                    
+                    current_indices[current_index_count] = current_vertex_count;
+                    current_vertex_count++;
+                    current_index_count++;
+                }
+            } else {
+                // Try to parse face without texture coordinates (v//n format)
+                matches = sscanf(line, "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3);
+                if (matches == 6) {
+                    for (i32 i = 0; i < 3; i++) {
+                        u32 vi = (i == 0) ? v1 - 1 : (i == 1) ? v2 - 1 : v3 - 1;
+                        u32 ni = (i == 0) ? n1 - 1 : (i == 1) ? n2 - 1 : n3 - 1;
+                        
+                        if (vi >= vertex_count || ni >= normal_count) {
+                            fprintf(stderr, "OBJ file contains invalid face indices\n");
+                            continue;
+                        }
+                        
+                        current_vertices[current_vertex_count].position = temp_vertices[vi];
+                        current_vertices[current_vertex_count].normal = temp_normals[ni];
+                        current_vertices[current_vertex_count].uv = (vec2_t){0.0f, 0.0f}; // Default UV
+                        
+                        current_indices[current_index_count] = current_vertex_count;
+                        current_vertex_count++;
+                        current_index_count++;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Finalize the last mesh
+    if (has_faces && current_vertex_count > 0) {
+        finalize_mesh(&meshes[mesh_count], current_vertices, current_indices, 
+                     current_vertex_count, current_index_count, shaders, shader_count, mesh_count);
+        mesh_count++;
+    }
+    
+    fclose(file);
+    
+    // If no meshes were created, create a default one
+    if (mesh_count == 0) {
+        fprintf(stderr, "No valid meshes found in OBJ file: %s\n", path);
+        free(temp_vertices);
+        free(temp_normals);
+        free(temp_uvs);
+        free(meshes);
+        free(current_vertices);
+        free(current_indices);
+        return false;
+    }
+    
+    // Set up the model
+    model->mesh_count = mesh_count;
+    model->meshes = malloc(mesh_count * sizeof(mesh_t));
+    memcpy(model->meshes, meshes, mesh_count * sizeof(mesh_t));
+    
     // Cleanup temporary arrays
     free(temp_vertices);
     free(temp_normals);
     free(temp_uvs);
-    free(vertices);
-    free(indices);
+    free(meshes);
+    free(current_vertices);
+    free(current_indices);
     
     return true;
 }
@@ -439,12 +522,12 @@ void model_render(engine_t* engine, model_t* model) {
         mat4_t vp  = mat4_mul(proj, view);
         mat4_t mvp = mat4_mul(vp, mesh->matrix); 
 
-        GLint loc_mvp = glGetUniformLocation(sh->program, "u_MVP");
+        GLint loc_mvp = glGetUniformLocation(sh->program, "u_mvp");
         if (loc_mvp >= 0) {
             glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, mvp.m);
         }
 
-        GLint loc_model = glGetUniformLocation(sh->program, "u_Model");
+        GLint loc_model = glGetUniformLocation(sh->program, "u_model");
         if (loc_model >= 0) {
             glUniformMatrix4fv(loc_model, 1, GL_FALSE, mesh->matrix.m);
         }
@@ -486,11 +569,11 @@ void model_translate(model_t* model, const vec3_t* v){
     }
 }
 
-void model_rotate(model_t* model, const vec3_t* v, f32 angle){
+void model_rotate(model_t* model, const vec3_t* v){
     for (u32 i = 0; i < model->mesh_count; i++) {
         mesh_t* mesh = &model->meshes[i];
-        mesh_rotate(mesh, v, angle);
-    }
+        mesh_rotate(mesh, v);
+    }  
 }
 
 void model_scale(model_t* model, const vec3_t* v){
