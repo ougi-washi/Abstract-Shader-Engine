@@ -36,8 +36,8 @@ static GLuint compile_shader(const char* source, GLenum type);
 static GLuint create_shader_program(const char* vertex_source, const char* fragment_source);
 
 // Engine functions
-b8 engine_init(engine_t* engine, u32 width, u32 height, const char* title) {
-    memset(engine, 0, sizeof(engine_t));
+b8 as_engine_init(as_engine* engine, u32 width, u32 height, const char* title) {
+    memset(engine, 0, sizeof(as_engine));
     
     // Initialize GLFW
     if (!glfwInit()) {
@@ -86,21 +86,21 @@ b8 engine_init(engine_t* engine, u32 width, u32 height, const char* title) {
     return true;
 }
 
-void engine_cleanup(engine_t* engine) {
+void as_engine_cleanup(as_engine* engine) {
     // Cleanup shaders
-    for (u32 i = 0; i < engine->shader_count; i++) {
-        shader_cleanup(&engine->shaders[i]);
+    for (u32 i = 0; i < engine->as_shader_count; i++) {
+        as_shader_cleanup(&engine->shaders[i]);
     }
    
     // Cleanup models
-    for (u32 i = 0; i < engine->model_count; i++) {
-        model_cleanup(&engine->models[i]);
+    for (u32 i = 0; i < engine->as_model_count; i++) {
+        as_model_cleanup(&engine->models[i]);
     }
     free(engine->models);
     
     // Cleanup buffers
     for (u32 i = 0; i < engine->buffer_count; i++) {
-        render_buffer_cleanup(&engine->buffers[i]);
+        as_render_buffer_cleanup(&engine->buffers[i]);
     }
     
     // Cleanup quad
@@ -112,11 +112,11 @@ void engine_cleanup(engine_t* engine) {
     glfwTerminate();
 }
 
-b8 engine_should_close(engine_t* engine) {
+b8 as_engine_should_close(as_engine* engine) {
     return glfwWindowShouldClose(engine->window);
 }
 
-void engine_update(engine_t* engine) {
+void as_engine_update(as_engine* engine) {
     double current_time = get_time();
     engine->delta_time = current_time - engine->last_frame_time;
     engine->last_frame_time = current_time;
@@ -124,43 +124,43 @@ void engine_update(engine_t* engine) {
     engine->frame_count++;
     
     // Check for shader reloads
-    for (u32 i = 0; i < engine->shader_count; i++) {
-        shader_reload_if_changed(&engine->shaders[i]);
+    for (u32 i = 0; i < engine->as_shader_count; i++) {
+        as_shader_reload_if_changed(&engine->shaders[i]);
     }
     
     // Update built-in uniforms
-    uniform_set_float(engine, "time", engine->time);
-    uniform_set_float(engine, "delta_time", engine->delta_time);
-    uniform_set_int(engine, "frame", engine->frame_count);
-    //uniform_set_vec2(engine, "resolution", (vec2_t){engine->window_width, engine->window_height});
-    //uniform_set_vec2(engine, "mouse", (vec2_t){engine->mouse_x, engine->mouse_y});
+    as_uniform_set_float(engine, "time", engine->time);
+    as_uniform_set_float(engine, "delta_time", engine->delta_time);
+    as_uniform_set_int(engine, "frame", engine->frame_count);
+    //as_uniform_set_vec2(engine, "resolution", (as_vec2){engine->window_width, engine->window_height});
+    //as_uniform_set_vec2(engine, "mouse", (as_vec2){engine->mouse_x, engine->mouse_y});
 }
 
-void engine_render_quad(engine_t* engine) {
+void as_engine_render_quad(as_engine* engine) {
     glBindVertexArray(engine->quad_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 }
 
-void engine_render(engine_t* engine) {
+void as_engine_render(as_engine* engine) {
     glViewport(0, 0, engine->window_width, engine->window_height);
-    engine_clear(); 
-    engine_render_quad(engine);
+    as_engine_clear(); 
+    as_engine_render_quad(engine);
 }
 
-void engine_clear(){
+void as_engine_clear(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void engine_swap_buffers(engine_t* engine) {
+void as_engine_swap_buffers(as_engine* engine) {
     glfwSwapBuffers(engine->window);
 }
 
-void engine_poll_events(engine_t* engine) {
+void as_engine_poll_events(as_engine* engine) {
     glfwPollEvents();
 }
 
-void engine_check_exit_keys(engine_t* engine, i32* keys, i32 key_count) {
+void as_engine_check_exit_keys(as_engine* engine, i32* keys, i32 key_count) {
     if (key_count == 0) {
         return;
     }
@@ -187,11 +187,11 @@ char *read_file(const char *path) {
     return buf;
 }
 
-b8 shader_load_internal(shader_t* shader) {
+b8 as_shader_load_internal(as_shader* shader) {
    
     assert(shader);
 
-    shader_cleanup(shader);
+    as_shader_cleanup(shader);
     
     char* vertex_source = load_file(shader->vertex_path);
     char* fragment_source = load_file(shader->fragment_path);
@@ -217,9 +217,9 @@ b8 shader_load_internal(shader_t* shader) {
     return true;
 }
 
-shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fragment_path) {
-    engine->shader_count++;
-    shader_t* new_shader = &engine->shaders[engine->shader_count - 1];
+as_shader* as_shader_load(as_engine* engine, const char* vertex_path, const char* fragment_path) {
+    engine->as_shader_count++;
+    as_shader* new_shader = &engine->shaders[engine->as_shader_count - 1];
     // make path absolute
     char* new_vertex_path = NULL;
     char* new_fragment_path = NULL;
@@ -241,13 +241,13 @@ shader_t* shader_load(engine_t* engine, const char* vertex_path, const char* fra
     free(new_vertex_path);
     free(new_fragment_path);
 
-    if (shader_load_internal(new_shader)) {
+    if (as_shader_load_internal(new_shader)) {
         return new_shader;
     }
     return NULL;
 }
 
-b8 shader_reload_if_changed(shader_t* shader) {
+b8 as_shader_reload_if_changed(as_shader* shader) {
     if (strlen(shader->vertex_path) == 0 || strlen(shader->fragment_path) == 0) {
         return false;
     }
@@ -257,63 +257,63 @@ b8 shader_reload_if_changed(shader_t* shader) {
     
     if (vertex_mtime != shader->vertex_mtime || fragment_mtime != shader->fragment_mtime) {
         printf("Reloading shader: %s, %s\n", shader->vertex_path, shader->fragment_path);
-        return shader_load_internal(shader);
+        return as_shader_load_internal(shader);
     }
     
     return false;
 }
 
-void shader_use(engine_t* engine, shader_t* shader, const b8 update_uniforms) {
+void as_shader_use(as_engine* engine, as_shader* shader, const b8 update_uniforms) {
     glUseProgram(shader->program);
     if (update_uniforms) {
-        uniform_apply(engine, shader);
+        as_uniform_apply(engine, shader);
     }
 }
 
-void shader_cleanup(shader_t* shader) {
+void as_shader_cleanup(as_shader* shader) {
     if (shader->program) {
         glDeleteProgram(shader->program);
         shader->program = 0;
     }
 }
 
-GLuint shader_get_uniform_location(shader_t* shader, const char* name) {
+GLuint as_shader_get_uniform_location(as_shader* shader, const char* name) {
     return glGetUniformLocation(shader->program, name);
 }
 
 // Mesh functions
-void mesh_translate(mesh_t* mesh, const vec3_t* v){
+void as_mesh_translate(as_mesh* mesh, const as_vec3* v){
     mesh->matrix = mat4_mul(mesh->matrix, mat4_translate(v));
 }
 
-void mesh_rotate(mesh_t* mesh, const vec3_t* v){
+void as_mesh_rotate(as_mesh* mesh, const as_vec3* v){
     mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_x(mat4_identity(), v->x));
     mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_y(mat4_identity(), v->y));
     mesh->matrix = mat4_mul(mesh->matrix, mat4_rotate_z(mat4_identity(), v->z));
 }
 
-void mesh_scale(mesh_t* mesh, const vec3_t* v){
+void as_mesh_scale(as_mesh* mesh, const as_vec3* v){
     mesh->matrix = mat4_mul(mesh->matrix, mat4_scale(v));
 }
 
 // Helper function to finalize a mesh
-void finalize_mesh(mesh_t* mesh, vertex_t* vertices, u32* indices, u32 vertex_count, u32 index_count, 
-                   shader_t** shaders, sz shader_count, u32 mesh_index) {
+void finalize_mesh(as_mesh* mesh, as_vertex* vertices, u32* indices, u32 vertex_count, u32 index_count, 
+                   as_shader** shaders, sz as_shader_count, u32 as_mesh_index) {
 // Allocate mesh data
-    mesh->vertices = malloc(vertex_count * sizeof(vertex_t));
+    mesh->vertices = malloc(vertex_count * sizeof(as_vertex));
     mesh->indices = malloc(index_count * sizeof(u32));
-    memcpy(mesh->vertices, vertices, vertex_count * sizeof(vertex_t));
+    memcpy(mesh->vertices, vertices, vertex_count * sizeof(as_vertex));
     memcpy(mesh->indices, indices, index_count * sizeof(u32));
     mesh->vertex_count = vertex_count;
     mesh->index_count = index_count;
     mesh->matrix = mat4_identity();
     
     // Assign shader (cycle through available shaders)
-    if (shader_count > 0) {
-        mesh->shader = shaders[mesh_index % shader_count];
+    if (as_shader_count > 0) {
+        mesh->shader = shaders[as_mesh_index % as_shader_count];
     } else {
         mesh->shader = NULL;
-        fprintf(stderr, "No shaders provided for mesh %u\n", mesh_index);
+        fprintf(stderr, "No shaders provided for mesh %u\n", as_mesh_index);
     }
     
     // Create OpenGL objects
@@ -324,21 +324,21 @@ void finalize_mesh(mesh_t* mesh, vertex_t* vertices, u32* indices, u32 vertex_co
     glBindVertexArray(mesh->vao);
     
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(vertex_t), mesh->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(as_vertex), mesh->vertices, GL_STATIC_DRAW);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(u32), mesh->indices, GL_STATIC_DRAW);
     
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(as_vertex), (void*)0);
     glEnableVertexAttribArray(0);
     
     // Normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, normal));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(as_vertex), (void*)offsetof(as_vertex, normal));
     glEnableVertexAttribArray(1);
     
     // UV attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, uv));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(as_vertex), (void*)offsetof(as_vertex, uv));
     glEnableVertexAttribArray(2);
     
     glBindVertexArray(0);
@@ -346,7 +346,7 @@ void finalize_mesh(mesh_t* mesh, vertex_t* vertices, u32* indices, u32 vertex_co
 
 
 
-b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz shader_count) {
+b8 as_model_load_obj(as_model* model, const char* path, as_shader** shaders, const sz as_shader_count) {
     char full_path[MAX_PATH_LENGTH];
     strncpy(full_path, RESOURCES_DIR, MAX_PATH_LENGTH - 1);
     strncat(full_path, path, MAX_PATH_LENGTH - strlen(full_path) - 1);
@@ -358,20 +358,20 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
     }
     
     // Arrays for temporary storage (shared across all meshes)
-    vec3_t* temp_vertices = malloc(MAX_VERTICES * sizeof(vec3_t));
-    vec3_t* temp_normals = malloc(MAX_VERTICES * sizeof(vec3_t));
-    vec2_t* temp_uvs = malloc(MAX_VERTICES * sizeof(vec2_t));
+    as_vec3* temp_vertices = malloc(MAX_VERTICES * sizeof(as_vec3));
+    as_vec3* temp_normals = malloc(MAX_VERTICES * sizeof(as_vec3));
+    as_vec2* temp_uvs = malloc(MAX_VERTICES * sizeof(as_vec2));
     
     u32 vertex_count = 0;
     u32 normal_count = 0;
     u32 uv_count = 0;
     
     // Dynamic array for meshes
-    mesh_t* meshes = malloc(MAX_MESHES * sizeof(mesh_t));
-    u32 mesh_count = 0;
+    as_mesh* meshes = malloc(MAX_MESHES * sizeof(as_mesh));
+    u32 as_mesh_count = 0;
     
     // Current mesh data
-    vertex_t* current_vertices = malloc(MAX_VERTICES * sizeof(vertex_t));
+    as_vertex* current_vertices = malloc(MAX_VERTICES * sizeof(as_vertex));
     u32* current_indices = malloc(MAX_INDICES * sizeof(u32));
     u32 current_vertex_count = 0;
     u32 current_index_count = 0;
@@ -398,9 +398,9 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
         } else if (strncmp(line, "o ", 2) == 0 || strncmp(line, "g ", 2) == 0) {
             // New object/group - finalize current mesh if it has faces
             if (has_faces && current_vertex_count > 0) {
-                finalize_mesh(&meshes[mesh_count], current_vertices, current_indices, 
-                             current_vertex_count, current_index_count, shaders, shader_count, mesh_count);
-                mesh_count++;
+                finalize_mesh(&meshes[as_mesh_count], current_vertices, current_indices, 
+                             current_vertex_count, current_index_count, shaders, as_shader_count, as_mesh_count);
+                as_mesh_count++;
                 
                 // Reset for next mesh
                 current_vertex_count = 0;
@@ -453,7 +453,7 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
                         
                         current_vertices[current_vertex_count].position = temp_vertices[vi];
                         current_vertices[current_vertex_count].normal = temp_normals[ni];
-                        current_vertices[current_vertex_count].uv = (vec2_t){0.0f, 0.0f}; // Default UV
+                        current_vertices[current_vertex_count].uv = (as_vec2){0.0f, 0.0f}; // Default UV
                         
                         current_indices[current_index_count] = current_vertex_count;
                         current_vertex_count++;
@@ -466,15 +466,15 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
     
     // Finalize the last mesh
     if (has_faces && current_vertex_count > 0) {
-        finalize_mesh(&meshes[mesh_count], current_vertices, current_indices, 
-                     current_vertex_count, current_index_count, shaders, shader_count, mesh_count);
-        mesh_count++;
+        finalize_mesh(&meshes[as_mesh_count], current_vertices, current_indices, 
+                     current_vertex_count, current_index_count, shaders, as_shader_count, as_mesh_count);
+        as_mesh_count++;
     }
     
     fclose(file);
     
     // If no meshes were created, create a default one
-    if (mesh_count == 0) {
+    if (as_mesh_count == 0) {
         fprintf(stderr, "No valid meshes found in OBJ file: %s\n", path);
         free(temp_vertices);
         free(temp_normals);
@@ -486,9 +486,9 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
     }
     
     // Set up the model
-    model->mesh_count = mesh_count;
-    model->meshes = malloc(mesh_count * sizeof(mesh_t));
-    memcpy(model->meshes, meshes, mesh_count * sizeof(mesh_t));
+    model->as_mesh_count = as_mesh_count;
+    model->meshes = malloc(as_mesh_count * sizeof(as_mesh));
+    memcpy(model->meshes, meshes, as_mesh_count * sizeof(as_mesh));
     
     // Cleanup temporary arrays
     free(temp_vertices);
@@ -501,26 +501,26 @@ b8 model_load_obj(model_t* model, const char* path, shader_t** shaders, const sz
     return true;
 }
 
-void model_render(engine_t* engine, model_t* model) {
+void as_model_render(as_engine* engine, as_model* model) {
     // set up global view/proj once per frame
-    mat4_t proj = mat4_perspective(  // 45° FOV
+    as_mat4 proj = mat4_perspective(  // 45° FOV
         45.0f * (3.14159f/180.0f),
         engine->window_width / engine->window_height,
         0.1f, 100.0f
     );
-    vec3_t cam_pos    = { 0, 0,  5 };
-    vec3_t cam_target = { 0, 0,  0 };
-    vec3_t cam_up     = { 0, 1,  0 };
-    mat4_t view = mat4_look_at(cam_pos, cam_target, cam_up);
+    as_vec3 cam_pos    = { 0, 0,  5 };
+    as_vec3 cam_target = { 0, 0,  0 };
+    as_vec3 cam_up     = { 0, 1,  0 };
+    as_mat4 view = mat4_look_at(cam_pos, cam_target, cam_up);
 
-    for(u32 i = 0; i < model->mesh_count; i++) {
-        mesh_t* mesh = &model->meshes[i];
-        shader_t* sh = mesh->shader;
+    for(u32 i = 0; i < model->as_mesh_count; i++) {
+        as_mesh* mesh = &model->meshes[i];
+        as_shader* sh = mesh->shader;
 
         glUseProgram(sh->program);
 
-        mat4_t vp  = mat4_mul(proj, view);
-        mat4_t mvp = mat4_mul(vp, mesh->matrix); 
+        as_mat4 vp  = mat4_mul(proj, view);
+        as_mat4 mvp = mat4_mul(vp, mesh->matrix); 
 
         GLint loc_mvp = glGetUniformLocation(sh->program, "u_mvp");
         if (loc_mvp >= 0) {
@@ -549,9 +549,9 @@ void model_render(engine_t* engine, model_t* model) {
     glUseProgram(0);
 }
 
-void model_cleanup(model_t* model) {
-    for (u32 i = 0; i < model->mesh_count; i++) {
-        mesh_t* mesh = &model->meshes[i];
+void as_model_cleanup(as_model* model) {
+    for (u32 i = 0; i < model->as_mesh_count; i++) {
+        as_mesh* mesh = &model->meshes[i];
         glDeleteVertexArrays(1, &mesh->vao);
         glDeleteBuffers(1, &mesh->vbo);
         glDeleteBuffers(1, &mesh->ebo);
@@ -559,32 +559,32 @@ void model_cleanup(model_t* model) {
         free(mesh->indices);
     }
     free(model->meshes);
-    model->mesh_count = 0;
+    model->as_mesh_count = 0;
 }
 
-void model_translate(model_t* model, const vec3_t* v){
-    for (u32 i = 0; i < model->mesh_count; i++) {
-        mesh_t* mesh = &model->meshes[i];
-        mesh_translate(mesh, v);
+void as_model_translate(as_model* model, const as_vec3* v){
+    for (u32 i = 0; i < model->as_mesh_count; i++) {
+        as_mesh* mesh = &model->meshes[i];
+        as_mesh_translate(mesh, v);
     }
 }
 
-void model_rotate(model_t* model, const vec3_t* v){
-    for (u32 i = 0; i < model->mesh_count; i++) {
-        mesh_t* mesh = &model->meshes[i];
-        mesh_rotate(mesh, v);
+void as_model_rotate(as_model* model, const as_vec3* v){
+    for (u32 i = 0; i < model->as_mesh_count; i++) {
+        as_mesh* mesh = &model->meshes[i];
+        as_mesh_rotate(mesh, v);
     }  
 }
 
-void model_scale(model_t* model, const vec3_t* v){
-    for (u32 i = 0; i < model->mesh_count; i++) {
-        mesh_t* mesh = &model->meshes[i];
-        mesh_scale(mesh, v);
+void as_model_scale(as_model* model, const as_vec3* v){
+    for (u32 i = 0; i < model->as_mesh_count; i++) {
+        as_mesh* mesh = &model->meshes[i];
+        as_mesh_scale(mesh, v);
     }
 }
 
 // Buffer functions
-b8 render_buffer_create(render_buffer_t* buffer, u32 width, u32 height) {
+b8 as_render_buffer_create(as_render_buffer* buffer, u32 width, u32 height) {
     buffer->width = width;
     buffer->height = height;
     
@@ -609,7 +609,7 @@ b8 render_buffer_create(render_buffer_t* buffer, u32 width, u32 height) {
     // Check framebuffer completeness
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         fprintf(stderr, "Framebuffer not complete!\n");
-        render_buffer_cleanup(buffer);
+        as_render_buffer_cleanup(buffer);
         return false;
     }
     
@@ -617,16 +617,16 @@ b8 render_buffer_create(render_buffer_t* buffer, u32 width, u32 height) {
     return true;
 }
 
-void render_buffer_bind(render_buffer_t* buffer) {
+void as_render_buffer_bind(as_render_buffer* buffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, buffer->framebuffer);
     glViewport(0, 0, buffer->width, buffer->height);
 }
 
-void render_buffer_unbind(void) {
+void as_render_buffer_unbind(void) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_buffer_cleanup(render_buffer_t* buffer) {
+void as_render_buffer_cleanup(as_render_buffer* buffer) {
     if (buffer->framebuffer) {
         glDeleteFramebuffers(1, &buffer->framebuffer);
         buffer->framebuffer = 0;
@@ -642,143 +642,143 @@ void render_buffer_cleanup(render_buffer_t* buffer) {
 }
 
 // Uniform functions
-void uniform_set_float(engine_t* engine, const char* name, f32 value) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_float(as_engine* engine, const char* name, f32 value) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_FLOAT;
+            engine->uniforms[i].type = as_uniform_FLOAT;
             engine->uniforms[i].value.f = value;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_FLOAT;
+        uniform->type = as_uniform_FLOAT;
         uniform->value.f = value;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_vec2(engine_t* engine, const char* name, vec2_t value) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_vec2(as_engine* engine, const char* name, as_vec2 value) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_VEC2;
+            engine->uniforms[i].type = as_uniform_VEC2;
             engine->uniforms[i].value.vec2 = value;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_VEC2;
+        uniform->type = as_uniform_VEC2;
         uniform->value.vec2 = value;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_vec3(engine_t* engine, const char* name, vec3_t value) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_vec3(as_engine* engine, const char* name, as_vec3 value) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_VEC3;
+            engine->uniforms[i].type = as_uniform_VEC3;
             engine->uniforms[i].value.vec3 = value;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_VEC3;
+        uniform->type = as_uniform_VEC3;
         uniform->value.vec3 = value;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_vec4(engine_t* engine, const char* name, vec4_t value) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_vec4(as_engine* engine, const char* name, as_vec4 value) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_VEC4;
+            engine->uniforms[i].type = as_uniform_VEC4;
             engine->uniforms[i].value.vec4 = value;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_VEC4;
+        uniform->type = as_uniform_VEC4;
         uniform->value.vec4 = value;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_int(engine_t* engine, const char* name, i32 value) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_int(as_engine* engine, const char* name, i32 value) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_INT;
+            engine->uniforms[i].type = as_uniform_INT;
             engine->uniforms[i].value.i = value;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_INT;
+        uniform->type = as_uniform_INT;
         uniform->value.i = value;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_texture(engine_t* engine, const char* name, GLuint texture) {
-    for (u32 i = 0; i < engine->uniform_count; i++) {
+void as_uniform_set_texture(as_engine* engine, const char* name, GLuint texture) {
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
         if (strcmp(engine->uniforms[i].name, name) == 0) {
-            engine->uniforms[i].type = UNIFORM_TEXTURE;
+            engine->uniforms[i].type = as_uniform_TEXTURE;
             engine->uniforms[i].value.texture = texture;
             return;
         }
     }
     
-    if (engine->uniform_count < MAX_UNIFORMS) {
-        uniform_t* uniform = &engine->uniforms[engine->uniform_count];
+    if (engine->as_uniform_count < MAX_UNIFORMS) {
+        as_uniform* uniform = &engine->uniforms[engine->as_uniform_count];
         strncpy(uniform->name, name, sizeof(uniform->name) - 1);
-        uniform->type = UNIFORM_TEXTURE;
+        uniform->type = as_uniform_TEXTURE;
         uniform->value.texture = texture;
-        engine->uniform_count++;
+        engine->as_uniform_count++;
     }
 }
 
-void uniform_set_buffer_texture(engine_t* engine, const char* name, render_buffer_t* buffer) {
-    uniform_set_texture(engine, name, buffer->texture);
+void as_uniform_set_buffer_texture(as_engine* engine, const char* name, as_render_buffer* buffer) {
+    as_uniform_set_texture(engine, name, buffer->texture);
 }
 
-void uniform_apply(engine_t* engine, shader_t* shader) {
+void as_uniform_apply(as_engine* engine, as_shader* shader) {
     glUseProgram(shader->program);
-    for (u32 i = 0; i < engine->uniform_count; i++) {
-        uniform_t* uniform = &engine->uniforms[i];
+    for (u32 i = 0; i < engine->as_uniform_count; i++) {
+        as_uniform* uniform = &engine->uniforms[i];
         GLint location = glGetUniformLocation(shader->program, uniform->name); 
         if (location == -1) {
             continue;
         };
         switch (uniform->type) {
-            case UNIFORM_FLOAT:
+            case as_uniform_FLOAT:
                 glUniform1fv(location, 1, &uniform->value.f);
                 break;
-            case UNIFORM_VEC2:
+            case as_uniform_VEC2:
                 glUniform2fv(location, 1, &uniform->value.vec2.x);
                 break;
-            case UNIFORM_VEC3:
+            case as_uniform_VEC3:
                 glUniform3fv(location, 1, &uniform->value.vec3.x);
                 break;
-            case UNIFORM_VEC4:
+            case as_uniform_VEC4:
                 glUniform4fv(location, 1, &uniform->value.vec4.x);
                 break;
-            case UNIFORM_INT:
+            case as_uniform_INT:
                 glUniform1i(location, uniform->value.i);
                 break;
-            case UNIFORM_TEXTURE:
+            case as_uniform_TEXTURE:
                 glActiveTexture(GL_TEXTURE0 + i);
                 glBindTexture(GL_TEXTURE_2D, uniform->value.texture);
                 glUniform1i(location, i);
@@ -792,7 +792,7 @@ f64 get_time(void) {
     return glfwGetTime();
 }
 
-f64 get_delta_time(const engine_t* engine) {
+f64 get_delta_time(const as_engine* engine) {
    return engine->delta_time;
 }
 
@@ -855,7 +855,7 @@ void create_fullscreen_quad(GLuint* vao, GLuint* vbo) {
 
 // Static helper functions
 static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods) {
-    engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
+    as_engine* engine = (as_engine*)glfwGetWindowUserPointer(window);
     if (key >= 0 && key < 1024) {
         if (action == GLFW_PRESS) {
             engine->keys[key] = true;
@@ -866,7 +866,7 @@ static void key_callback(GLFWwindow* window, i32 key, i32 scancode, i32 action, 
 }
 
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-    engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
+    as_engine* engine = (as_engine*)glfwGetWindowUserPointer(window);
     engine->mouse_dx = xpos - engine->mouse_x;
     engine->mouse_dy = ypos - engine->mouse_y;
     engine->mouse_x = xpos;
@@ -874,7 +874,7 @@ static void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 static void mouse_button_callback(GLFWwindow* window, i32 button, i32 action, i32 mods) {
-    engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
+    as_engine* engine = (as_engine*)glfwGetWindowUserPointer(window);
     if (button >= 0 && button < 8) {
         if (action == GLFW_PRESS) {
             engine->mouse_buttons[button] = true;
@@ -885,7 +885,7 @@ static void mouse_button_callback(GLFWwindow* window, i32 button, i32 action, i3
 }
 
 static void framebuffer_size_callback(GLFWwindow* window, i32 width, i32 height) {
-    engine_t* engine = (engine_t*)glfwGetWindowUserPointer(window);
+    as_engine* engine = (as_engine*)glfwGetWindowUserPointer(window);
     engine->window_width = width;
     engine->window_height = height;
     glViewport(0, 0, width, height);
@@ -986,24 +986,24 @@ void classify_frequency_bands(float frequency, float volume, float* low, float* 
 // Audio
 
 typedef struct {
-    vec3_t amps;
+    as_vec3 amps;
     
     // internal
     b8 running;
     float* buffer;
     PaStream* stream;
     int buffer_size;
-} audio_data_t;
-static audio_data_t audio_data = {0};
+} as_audio_data_t;
+static as_audio_data_t as_audio_data = {0};
 
 // Audio callback function
-static int audio_callback(const void* input_buffer, void* output_buffer,
+static int as_audio_callback(const void* input_buffer, void* output_buffer,
                          unsigned long frames_per_buffer,
                          const PaStreamCallbackTimeInfo* time_info,
                          PaStreamCallbackFlags status_flags,
                          void* user_data) {
     
-    audio_data_t* data = (audio_data_t*)user_data;
+    as_audio_data_t* data = (as_audio_data_t*)user_data;
     const float* input = (const float*)input_buffer;
     
     if (input_buffer == NULL) {
@@ -1033,7 +1033,7 @@ static int audio_callback(const void* input_buffer, void* output_buffer,
     if (mid_percent > 100.0f) mid_percent = 100.0f;
     if (high_percent > 100.0f) high_percent = 100.0f;
     
-    data->amps = (vec3_t){low_vol, mid_vol, high_vol};
+    data->amps = (as_vec3){low_vol, mid_vol, high_vol};
     return paContinue;
 }
 
@@ -1053,7 +1053,7 @@ void list_audio_devices() {
     }
 }
 
-void audio_init() {
+void as_audio_init() {
     list_audio_devices();
     PaStreamParameters input_parameters;
     PaError err;
@@ -1061,23 +1061,23 @@ void audio_init() {
     err = Pa_Initialize();
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
-        audio_cleanup();
+        as_audio_cleanup();
         return;
     }
     
-    audio_data.buffer = (float*)malloc(FRAMES_PER_BUFFER * sizeof(float));
-    audio_data.buffer_size = FRAMES_PER_BUFFER;
+    as_audio_data.buffer = (float*)malloc(FRAMES_PER_BUFFER * sizeof(float));
+    as_audio_data.buffer_size = FRAMES_PER_BUFFER;
     
-    if (!audio_data.buffer) {
+    if (!as_audio_data.buffer) {
         printf("Memory allocation failed\n");
-        audio_cleanup();
+        as_audio_cleanup();
         return;
     }
     
     int input_device = Pa_GetDefaultInputDevice();
     if (input_device == paNoDevice) {
         printf("No input device found\n");
-        audio_cleanup();
+        as_audio_cleanup();
         return;
     }
     
@@ -1086,85 +1086,85 @@ void audio_init() {
     input_parameters.sampleFormat = paFloat32;
     input_parameters.suggestedLatency = Pa_GetDeviceInfo(input_device)->defaultLowInputLatency;
     input_parameters.hostApiSpecificStreamInfo = NULL;
-    err = Pa_OpenStream(&audio_data.stream,
+    err = Pa_OpenStream(&as_audio_data.stream,
                         &input_parameters,
                         NULL,
                         SAMPLE_RATE,
                         FRAMES_PER_BUFFER,
                         paClipOff,
-                        audio_callback,
-                        &audio_data);
+                        as_audio_callback,
+                        &as_audio_data);
     
     if (err != paNoError) {
         printf("Cannot open stream: %s\n", Pa_GetErrorText(err));
-        audio_cleanup();
+        as_audio_cleanup();
         return;
     }
     
-    err = Pa_StartStream(audio_data.stream);
+    err = Pa_StartStream(as_audio_data.stream);
     if (err != paNoError) {
         printf("Cannot start stream: %s\n", Pa_GetErrorText(err));
-        Pa_CloseStream(audio_data.stream);
-        audio_cleanup();
+        Pa_CloseStream(as_audio_data.stream);
+        as_audio_cleanup();
         return;
     }
     
     printf("Volume and frequency detection active...\n\n");
-    audio_data.running = true;
+    as_audio_data.running = true;
 }
 
-void audio_cleanup(){
-    audio_data.running = false;
+void as_audio_cleanup(){
+    as_audio_data.running = false;
     PaError err;
-    err = Pa_StopStream(audio_data.stream);
+    err = Pa_StopStream(as_audio_data.stream);
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
         goto cleanup;
     }
 
-    err = Pa_CloseStream(audio_data.stream);
+    err = Pa_CloseStream(as_audio_data.stream);
     if (err != paNoError) {
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
     }
 
 cleanup:
-    free(audio_data.buffer);
+    free(as_audio_data.buffer);
     Pa_Terminate();
 }
 
 
-vec3_t audio_get_amplitudes(){
-    return audio_data.amps;
+as_vec3 as_audio_get_amplitudes(){
+    return as_audio_data.amps;
 }
 
 // Math functions
 
-f32 vec3_length(vec3_t v) {
+f32 vec3_length(as_vec3 v) {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-mat4_t mat4_perspective(float fov_y, float aspect, float near, float far) {
+as_mat4 mat4_perspective(float fov_y, float aspect, float near, float far) {
     float f = 1.0f / tanf(fov_y * 0.5f);
-    mat4_t P = { {
-        f/aspect, 0, 0,                                   0,
-        0,        f, 0,                                   0,
-        0,        0, (far+near)/(near-far),             -1,
-        0,        0, (2*far*near)/(near-far),            0
+    as_mat4 P = { {
+        f/aspect, 0, 0,                            0,
+        0,        f, 0,                            0,
+        0,        0, (far+near)/(near-far),       -1,
+        0,        0, (2*far*near)/(near-far),      0
     } };
     return P;
 }
 
-vec3_t vec3_sub(vec3_t a, vec3_t b){
-    return (vec3_t){ a.x-b.x, a.y-b.y, a.z-b.z };
+as_vec3 vec3_sub(as_vec3 a, as_vec3 b){
+    return (as_vec3){ a.x-b.x, a.y-b.y, a.z-b.z };
 }
 
-vec3_t vec3_norm(vec3_t v){
+as_vec3 vec3_norm(as_vec3 v){
     const f32 len = vec3_length(v);
-    return (vec3_t){ v.x/len, v.y/len, v.z/len };
+    return (as_vec3){ v.x/len, v.y/len, v.z/len };
 }
 
-vec3_t vec3_cross(vec3_t a, vec3_t b){
-    return (vec3_t){
+as_vec3 vec3_cross(as_vec3 a, as_vec3 b){
+    return (as_vec3){
         a.y*b.z - a.z*b.y,
         a.z*b.x - a.x*b.z,
         a.x*b.y - a.y*b.x
@@ -1172,12 +1172,12 @@ vec3_t vec3_cross(vec3_t a, vec3_t b){
 }
 
 // eye = camera pos, center = look at point, up = world up (e.g. {0,1,0})
-mat4_t mat4_look_at(vec3_t eye, vec3_t center, vec3_t up) {
-    vec3_t f = vec3_norm(vec3_sub(center, eye));
-    vec3_t s = vec3_norm(vec3_cross(f, up));
-    vec3_t u = vec3_cross(s, f);
+as_mat4 mat4_look_at(as_vec3 eye, as_vec3 center, as_vec3 up) {
+    as_vec3 f = vec3_norm(vec3_sub(center, eye));
+    as_vec3 s = vec3_norm(vec3_cross(f, up));
+    as_vec3 u = vec3_cross(s, f);
 
-    mat4_t M = mat4_identity();
+    as_mat4 M = mat4_identity();
     // rotation
     M.m[0] =  s.x; M.m[1] =  u.x; M.m[2] = -f.x;
     M.m[4] =  s.y; M.m[5] =  u.y; M.m[6] = -f.y;
@@ -1189,8 +1189,8 @@ mat4_t mat4_look_at(vec3_t eye, vec3_t center, vec3_t up) {
     return M;
 }
 
-mat4_t mat4_mul(const mat4_t A, const mat4_t B) {
-    mat4_t R;
+as_mat4 mat4_mul(const as_mat4 A, const as_mat4 B) {
+    as_mat4 R;
     for(int row=0; row<4; row++){
         for(int col=0; col<4; col++){
             float sum = 0.0f;
@@ -1203,16 +1203,16 @@ mat4_t mat4_mul(const mat4_t A, const mat4_t B) {
     return R;
 }
 
-mat4_t mat4_translate(const vec3_t* v) {
-    mat4_t T = mat4_identity();
+as_mat4 mat4_translate(const as_vec3* v) {
+    as_mat4 T = mat4_identity();
     T.m[12] = v->x;
     T.m[13] = v->y;
     T.m[14] = v->z;
     return T;
 }
 
-mat4_t mat4_rotate_x(mat4_t m, f32 angle) {
-    mat4_t R = mat4_identity();
+as_mat4 mat4_rotate_x(as_mat4 m, f32 angle) {
+    as_mat4 R = mat4_identity();
     R.m[5] =  cos(angle);
     R.m[6] = -sin(angle);
     R.m[9] =  sin(angle);
@@ -1220,8 +1220,8 @@ mat4_t mat4_rotate_x(mat4_t m, f32 angle) {
     return mat4_mul(m, R);
 }
 
-mat4_t mat4_rotate_y(mat4_t m, f32 angle) {
-    mat4_t R = mat4_identity();
+as_mat4 mat4_rotate_y(as_mat4 m, f32 angle) {
+    as_mat4 R = mat4_identity();
     R.m[0] =  cos(angle);
     R.m[2] =  sin(angle);
     R.m[8] = -sin(angle);
@@ -1229,8 +1229,8 @@ mat4_t mat4_rotate_y(mat4_t m, f32 angle) {
     return mat4_mul(m, R);
 }
 
-mat4_t mat4_rotate_z(mat4_t m, f32 angle) {
-    mat4_t R = mat4_identity();
+as_mat4 mat4_rotate_z(as_mat4 m, f32 angle) {
+    as_mat4 R = mat4_identity();
     R.m[0] =  cos(angle);
     R.m[1] = -sin(angle);
     R.m[4] =  sin(angle);
@@ -1238,8 +1238,8 @@ mat4_t mat4_rotate_z(mat4_t m, f32 angle) {
     return mat4_mul(m, R);
 }
 
-mat4_t mat4_scale(const vec3_t* v) {
-    mat4_t S = mat4_identity();
+as_mat4 mat4_scale(const as_vec3* v) {
+    as_mat4 S = mat4_identity();
     S.m[0] = v->x;
     S.m[5] = v->y;
     S.m[10] = v->z;

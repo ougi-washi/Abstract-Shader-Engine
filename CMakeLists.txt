@@ -131,7 +131,6 @@ else (PORTAUDIO_LIBRARIES AND PORTAUDIO_INCLUDE_DIRS)
 
 endif (PORTAUDIO_LIBRARIES AND PORTAUDIO_INCLUDE_DIRS)
 
-
 # setup library macro
 macro(setup_library arg_lib_name arg_source_path arg_include_path)
 	message(STATUS "Adding ${arg_lib_name}")
@@ -144,11 +143,10 @@ macro(setup_library arg_lib_name arg_source_path arg_include_path)
     target_compile_definitions(${arg_lib_name} PUBLIC RESOURCES_DIR="${CMAKE_SOURCE_DIR}/${RESOURCES_DIR}/")
 endmacro()
 
-
 # Main module
-set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${SRC_SRC} ${PROJECT_SOURCE_DIR}/${LIB_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR}/portaudio/include)
+set(MAIN_MODULE_INCLUDES ${PROJECT_SOURCE_DIR}/${SRC_DIR} ${PROJECT_SOURCE_DIR}/${LIB_DIR})
 setup_library(main_module ${SRC_DIR} "${MAIN_MODULE_INCLUDES}")
-target_link_libraries(main_module PUBLIC glfw OpenGL::GL portaudio fftw3  ${PULSEAUDIO_LIBRARIES})  
+target_link_libraries(main_module PUBLIC glfw OpenGL::GL portaudio)  
 
 macro(setup_executable arg_exec_dir arg_exec_name modules)
     message(STATUS "Generating executable ${arg_exec_name}")
